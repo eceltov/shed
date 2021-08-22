@@ -30,6 +30,7 @@ if (typeof to === 'undefined') {
 }
 
 to.isAdd = function(subdif) {
+    //console.log(subdif);
     return (subdif.constructor === Array && typeof subdif[2] === 'string');
 }
 
@@ -45,130 +46,228 @@ to.isRemline = function(subdif) {
     return (typeof subdif === 'number' && subdif < 0); // line 0 cannot be deleted
 }
 
-to.merge = function(buf_ref) {
-    let buf = JSON.parse(JSON.stringify(buf_ref)); // deep copy
+to.merge = function(dif_ref) {
+    let dif = JSON.parse(JSON.stringify(dif_ref)); // deep copy
 
     // remove empty Adds/Dels
-    for (let i = 0; i < buf.length; ++i) {
-        if (to.isAdd(buf[i])) {
-            if (buf[i][2] === "") {
-                buf.splice(i, 1);
+    for (let i = 0; i < dif.length; ++i) {
+        if (to.isAdd(dif[i])) {
+            if (dif[i][2] === "") {
+                dif.splice(i, 1);
                 --i;
             }
         }
-        else if (to.isDel(buf[i])) {
-            if (buf[i][2] === 0) {
-                buf.splice(i, 1);
+        else if (to.isDel(dif[i])) {
+            if (dif[i][2] === 0) {
+                dif.splice(i, 1);
                 --i;
             }
         }
     }
     
     // join adjacent Adds
-    for (let i = 0; i < buf.length - 1; ++i) { // so that there is a next entry
-        if (to.isAdd(buf[i])) {
-            let end_pos = buf[i][1] + buf[i][2].length;
-            if (buf[i][0] === buf[i+1][0] &&      // they are on the same row
-                end_pos === buf[i+1][1] &&           // they are adjacent
-                to.isAdd(buf[i+1])                   // the next entry is of type Add
+    for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
+        if (to.isAdd(dif[i])) {
+            let end_pos = dif[i][1] + dif[i][2].length;
+            if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
+                end_pos === dif[i+1][1] &&           // they are adjacent
+                to.isAdd(dif[i+1])                   // the next entry is of type Add
             ) {
-                buf[i] = [buf[i][0], buf[i][1], buf[i][2] + buf[i+1][2]];
-                buf.splice(i+1, 1);
+                dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
+                dif.splice(i+1, 1);
                 i--; // decrement i so that the merged subdif will be compared with the next one
             }
         }
     }
 
     // join adjacent Dels
-    for (let i = 0; i < buf.length - 1; ++i) { // so that there is a next entry
-        if (to.isDel(buf[i])) {
-            let end_pos = buf[i][1] - buf[i][2];
-            if (buf[i][0] === buf[i+1][0] &&      // they are on the same row
-                end_pos === buf[i+1][1] &&           // they are adjacent
-                to.isDel(buf[i+1])                   // the next entry is of type Add
+    for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
+        if (to.isDel(dif[i])) {
+            let end_pos = dif[i][1] - dif[i][2];
+            if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
+                end_pos === dif[i+1][1] &&           // they are adjacent
+                to.isDel(dif[i+1])                   // the next entry is of type Add
             ) {
-                buf[i] = [buf[i][0], buf[i][1], buf[i][2] + buf[i+1][2]];
-                buf.splice(i+1, 1);
+                dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
+                dif.splice(i+1, 1);
             }
         }
     }
 
     // line deletion right propagation
-    for (let i = buf.length - 1; i >= 0; --i) {
-        if (to.isRemline(buf[i])) {
-            for (let j = i + 1; j < buf.length; ++j) {
-                if (to.isAdd(buf[j]) && buf[j][0] >= -buf[i]) {
-                    buf[j][0] += 1;
+    for (let i = dif.length - 1; i >= 0; --i) {
+        if (to.isRemline(dif[i])) {
+            for (let j = i + 1; j < dif.length; ++j) {
+                if (to.isAdd(dif[j]) && dif[j][0] >= -dif[i]) {
+                    dif[j][0] += 1;
                 }
-                else if (to.isDel(buf[j]) && buf[j][0] >= -buf[i]) {
-                    buf[j][0] += 1;
+                else if (to.isDel(dif[j]) && dif[j][0] >= -dif[i]) {
+                    dif[j][0] += 1;
                 }
-                else if (to.isNewline(buf[j])) {
-                    if (buf[j] >= -buf[i]) {
-                        buf[j] += 1;
+                else if (to.isNewline(dif[j])) {
+                    if (dif[j] >= -dif[i]) {
+                        dif[j] += 1;
                     }
                     else {
-                        buf[i] -= 1;
+                        dif[i] -= 1;
                     }
                 }
-                else if (to.isRemline(buf[j])) {
-                    if (buf[i] >= buf[j]) {
-                        buf[j] -= 1;
+                else if (to.isRemline(dif[j])) {
+                    if (dif[i] >= dif[j]) {
+                        dif[j] -= 1;
                     }
                     else {
-                        buf[i] += 1;
+                        dif[i] += 1;
                     }
                 }
             }
-            buf.push(buf[i]);
-            buf.splice(i, 1);
+            dif.push(dif[i]);
+            dif.splice(i, 1);
         }
     }
 
     // line addition left propagation
-    for (let i = 1; i < buf.length; ++i) {
-        if (to.isNewline(buf[i])) {
+    for (let i = 1; i < dif.length; ++i) {
+        if (to.isNewline(dif[i])) {
             for (let j = i - 1; j >= 0; --j) {
-                if (to.isAdd(buf[j]) && buf[j][0] >= buf[i]) {
-                    buf[j][0] += 1;
+                if (to.isAdd(dif[j]) && dif[j][0] >= dif[i]) {
+                    dif[j][0] += 1;
                 }
-                else if (to.isDel(buf[j]) && buf[j][0] >= buf[i]) {
-                    buf[j][0] += 1;
+                else if (to.isDel(dif[j]) && dif[j][0] >= dif[i]) {
+                    dif[j][0] += 1;
                 }
-                else if (to.isNewline(buf[j])) {
-                    if (buf[i] <= buf[j]) {
-                        buf[j] += 1;
+                else if (to.isNewline(dif[j])) {
+                    if (dif[i] <= dif[j]) {
+                        dif[j] += 1;
                     }
                     else {
-                        buf[i] -= 1;
+                        dif[i] -= 1;
                     }
                 }
             }
-            buf.unshift(buf[i]);
-            buf.splice(i+1, 1);
+            dif.unshift(dif[i]);
+            dif.splice(i+1, 1);
         }
     }
 
     ///TODO: reorder newlines?
     
     // order Adds and Dels by row
-    const first_non_nl = buf.findIndex(el => !to.isNewline(el));
-    const first_reml = buf.findIndex(el => to.isRemline(el));
-    const non_nl_el_count = buf.length - ((first_non_nl >= 0) ? first_non_nl : 0) - ((first_reml >= 0) ? (buf.length - first_reml) : 0);
+    const first_non_nl = dif.findIndex(el => !to.isNewline(el));
+    const first_reml = dif.findIndex(el => to.isRemline(el));
+    const non_nl_el_count = dif.length - ((first_non_nl >= 0) ? first_non_nl : 0) - ((first_reml >= 0) ? (dif.length - first_reml) : 0);
     if (non_nl_el_count > 1) {
-        let content = buf.slice(((first_non_nl >= 0) ? first_non_nl : 0), ((first_reml >= 0) ? first_reml : buf.length));
-        let newlines = buf.slice(0, ((first_non_nl >= 0) ? first_non_nl : 0));
-        let remlines = buf.slice(((first_reml >= 0) ? first_reml : buf.length), buf.length);
+        let content = dif.slice(((first_non_nl >= 0) ? first_non_nl : 0), ((first_reml >= 0) ? first_reml : dif.length));
+        let newlines = dif.slice(0, ((first_non_nl >= 0) ? first_non_nl : 0));
+        let remlines = dif.slice(((first_reml >= 0) ? first_reml : dif.length), dif.length);
         content.sort(function(a,b) { return a[0] > b[0] });
-        buf = [...newlines, ...content, ...remlines];
+        dif = [...newlines, ...content, ...remlines];
     }
 
-    return buf;
+    return dif;
+}
+
+to.transform = function(transformer, dif) {
+    let new_transformer = JSON.parse(JSON.stringify(transformer));
+    let new_transformer_reduction = 0;
+
+    console.log("transformer:", JSON.stringify(transformer));
+    console.log("transformee:", JSON.stringify(dif));
+    for (let i = 0; i < transformer.length; i++) {
+        for (let j = 0; j < dif.length; j++) {
+
+            if (to.isAdd(transformer[i])) {
+                if (to.isAdd(dif[j]) || to.isDel(dif[j])) {
+                    if (transformer[i][0] === dif[j][0] && // same row
+                        transformer[i][1] <= dif[j][1] // the transformer is at a lower or equal position
+                    ) {
+                        dif[j][1] += transformer[i][2].length;
+                    }
+                }
+                // newlines are unchanged
+                else if (to.isRemline(dif[j])) {
+                    if (transformer[i][0] === -dif[j]) {
+                        dif.splice(j, 1); // remove the remline
+                        --j;
+                    }
+                }
+            }
+            else if (to.isDel(transformer[i])) {
+                if (to.isAdd(dif[j]) || to.isDel(dif[j])) {
+                    if (transformer[i][0] === dif[j][0] &&
+                        transformer[i][1] <= dif[j][1]
+                    ) {
+                        dif[j][1] -= transformer[i][2]; // reduce position by the length of deletion
+                    }
+                    ///TODO: revise this (this is used in the 1aa2/1a2a3 example)
+                    else if (to.isAdd(dif[j]) &&
+                             transformer[i][0] === dif[j][0] &&
+                             transformer[i][1] > dif[j][1]
+                    ) {
+                        transformer[i][1] += dif[j][2].length;
+                    }
+                }
+                else if (to.isRemline(dif[j])) {
+                    if (transformer[i][0] === -dif[j]) {
+                        console.log("Transforming remline against delete!");
+                    }
+                }
+            }
+            else if (to.isNewline(transformer[i])) {
+                if (to.isAdd(dif[j]) || to.isDel(dif[j])) {
+                    if (transformer[i] <= dif[j][0]) { // if the transformer is on the same or lower line
+                        ++dif[j][0];
+                    }
+                }
+                else if (to.isNewline(dif[j])) {
+                    if (transformer[i] <= dif[j]) {
+                        ++dif[j];
+                    }
+                }
+                else {
+                    if (transformer[i] <= -dif[j]) {
+                        --dif[j];
+                    }
+                }
+            }
+            else {
+                if (to.isAdd(dif[j])) {
+                    if (-transformer[i] === dif[j][0]) {
+                        /*transformer.splice(i, 1); // delete from the transformer, as it tries to delete content from the dif
+                        --i;*/
+                        new_transformer.splice(i - new_transformer_reduction, 1);
+                        ++new_transformer_reduction;
+                    }
+                }
+                else if (to.isDel(dif[j])) {
+                    if (-transformer[i] === dif[j][0]) {
+                        console.log("Transforming delete against remline!");
+                    }
+                }
+                else if (to.isNewline(dif[j])) {
+                    if (-transformer[i] <= dif[j]) {
+                        --dif[j];
+                    }
+                }
+                else {
+                    if (transformer[i] === dif[j]) {
+                        dif.splice(j, 1); // remove the remline, as both transformer and dif try to delete the same row
+                        --j;
+                    }
+                }
+            }
+        }
+    }
+    transformer = new_transformer;
+    console.log("post transformer:", JSON.stringify(transformer));
+    console.log("post transformee:", JSON.stringify(dif));
 }
 
 to.applyAdd = function(previous_value, subdif) {
     if (subdif[1] > previous_value.length) {
         console.log('applyAdd subdif position too large!');
+        console.log(subdif);
+        console.log(previous_value);
         return previous_value;
     }
 

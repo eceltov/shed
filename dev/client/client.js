@@ -184,10 +184,11 @@ class App extends React.Component {
     this.handleClick = this.handleClick.bind(this);
     this.applyDif = this.applyDif.bind(this);
     this.processLocalDif = this.processLocalDif.bind(this);
+    this.processExternalDif = this.processExternalDif.bind(this);
     this.getRowCount = this.getRowCount.bind(this);
     this.getRowRange = this.getRowRange.bind(this);
     this.getRow = this.getRow.bind(this);
-    this.processDif = this.processDif.bind(this);
+    this.propagateLocalDif = this.propagateLocalDif.bind(this);
     this.intervalTimerStart = this.intervalTimerStart.bind(this);
     this.intervalBufClear = this.intervalBufClear.bind(this);
     this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
@@ -217,7 +218,8 @@ class App extends React.Component {
 
       //entry format: [[userID, commitSerialNumber, preceding userID, preceding commitSerialNumber], dif]
       HB: [],
-      HB_inverse: []
+      HB_inverse: [],
+      unreceived_messages: [] // own messages that were not yet received from the server (commitSerialNumber)
     };
   }
 
@@ -329,10 +331,10 @@ class App extends React.Component {
     that.setState((prevState) => ({
       measuring: false
     }));
-    that.processDif();
+    that.propagateLocalDif();
   }
 
-  processDif() {
+  propagateLocalDif() {
     let dif = to.merge(this.state.interval_buf); // organise the dif
     let inverse_dif = this.state.interval_inverse_buf;
     inverse_dif.reverse();
@@ -343,9 +345,14 @@ class App extends React.Component {
     this.intervalBufClear(); // intervalBufClear the buffer for new user changes
 
     this.pushLocalDifToHB(dif, inverse_dif); // push the dif into the history buffer and add the neccesary metadata
-    var message = JSON.stringify(this.HBGetLast());
-    let that = this;
+    let message_obj = this.HBGetLast();
+    this.setState((prevState) => ({
+      unreceived_messages: [...prevState.unreceived_messages, message_obj[0][1]] // adds the commitSerialNumber to unreceived_messages
+    }));
 
+    let message = JSON.stringify(message_obj);
+    let that = this;
+    console.log("message", message);
     setTimeout(function () {
       that.state.connection.send(message);
     }, CSLatency); // latency testing
@@ -377,12 +384,20 @@ class App extends React.Component {
     this.cursorFocus(); // moves the cursor of the correct position, based on the user's action
   }
 
-  applyDif(dif) {
+  getStateAfterDifApplication(dif, alternativeState={}) {
     let nextRowIDIncrement = 0;
     let rowCountIncrement = 0;
-    let new_rows = [...this.state.rows];
+    let new_rows = [];
     let inverse_dif = [];
-    //console.log("dif", dif);
+    
+    if (Object.keys(alternativeState).length !== 0) {
+      nextRowIDIncrement += alternativeState.nextRowIDIncrement;
+      rowCountIncrement += alternativeState.rowCountIncrement;
+      new_rows = alternativeState.rows;
+    }
+    else {
+      new_rows = [...this.state.rows];
+    }
 
     // apply newlines
     for (var i = 0; i < dif.length && to.isNewline(dif[i]); ++i) {
@@ -430,13 +445,25 @@ class App extends React.Component {
       inverse_dif.push(-dif[i]);
     }
 
-    this.setState((prevState) => ({
+    return {
       rows: new_rows,
-      nextRowID: prevState.nextRowID + nextRowIDIncrement,
-      rowCount: prevState.rowCount + rowCountIncrement
+      nextRowIDIncrement: nextRowIDIncrement,
+      rowCountIncrement: rowCountIncrement,
+      inverse_dif: inverse_dif
+    };
+  }
+
+
+  applyDif(dif) {
+    let new_state = this.getStateAfterDifApplication(dif);
+
+    this.setState((prevState) => ({
+      rows: new_state.rows,
+      nextRowID: prevState.nextRowID + new_state.nextRowIDIncrement,
+      rowCount: prevState.rowCount + new_state.rowCountIncrement
     }));
 
-    return inverse_dif;
+    return new_state.inverse_dif;
   }
 
   /**
@@ -483,6 +510,8 @@ class App extends React.Component {
 
     connection.onmessage = function (message) {
       let message_obj = JSON.parse(message.data);
+      //console.log("recv message obj", message_obj);
+      //console.log("recv message", message.data);
 
       if (that.state.userID === undefined) {
         if (message_obj.hasOwnProperty('userID')) {
@@ -498,30 +527,148 @@ class App extends React.Component {
       }
       else {
         setTimeout(function () {
-          let new_HB = [...that.state.HB];
-          new_HB.push(message_obj);
-
-          if (message_obj[0][0] !== that.state.userID) {
-            let inverse_dif = that.applyDif(message_obj[1]);
-            inverse_dif.reverse();
-            inverse_dif = to.merge(inverse_dif);
-            that.setState((prevState) => ({
-              HB: new_HB,
-              HB_inverse: [...prevState.HB_inverse, [
-                [...message_obj[0]], inverse_dif
-              ]]
-            }));
-          }
-          else {
-            that.setState((prevState) => ({
-              HB: new_HB,
-            }));
-          }
+          that.processExternalDif(message_obj);
           ///TODO: filter out own difs via a function
           ///TODO: this is setting state twice
         }, SCLatency); // latency testing
         //console.log(that.state.HB_inverse);
       }
+    }
+  }
+
+  processExternalDif(message) {
+    //console.log("recv mesg", message);
+    let prev_userID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
+    let prev_commitSerialNumber = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][1];
+
+    // own message
+    if (message[0][0] === this.state.userID) {
+      let new_unreceived_messages = this.state.unreceived_messages;
+      let message_index = new_unreceived_messages.findIndex((commitSerialNumber) => commitSerialNumber === message[0][1]);
+      new_unreceived_messages.splice(message_index, 1);
+      this.setState((prevState) => ({
+       unreceived_messages: new_unreceived_messages
+      }));
+      ///TODO: this will always remove the first entry, no need for finding the index
+    }
+    else {
+      ///TODO: what if there are multiple preceding difs on the same level?
+
+      // find the last unreceived message index that was created prior to the external message
+      // the external message has to be transformed agains all these unreceived messages
+      let findPredecessor = (HBEntry) => HBEntry[0][0] === message[0][2] && HBEntry[0][1] === message[0][3];
+      let predecessor_index = this.state.HB.findIndex(findPredecessor);
+      let preceding_unreceived_messages = 0; // the number of unreceived messages the external message is not dependant on
+      //console.log("predecessor index", predecessor_index);
+      //console.log("state length", this.state.unreceived_messages.length);
+
+      for (let i = 0; i <= predecessor_index; ++i) {
+        if (preceding_unreceived_messages === this.state.unreceived_messages.length) {
+          break;
+        }
+
+        if (this.state.HB[i][0][0] == this.state.userID &&
+            this.state.HB[i][0][1] == this.state.unreceived_messages[preceding_unreceived_messages] // if this entry is an unreceived message
+          ) {
+            ++preceding_unreceived_messages;
+        }
+      }
+
+      ///TODO: this if should be removed and implemented in a different way probably
+      if (preceding_unreceived_messages === 0 && predecessor_index + 1 < this.state.HB.length && this.state.unreceived_messages.length > 0) {
+        ++preceding_unreceived_messages;
+      }
+
+      // the message is dependant on all local messages and can be applied directly
+      if (
+        preceding_unreceived_messages == 0 &&
+        message[0][2] === prev_userID &&
+        message[0][3] === prev_commitSerialNumber
+      ) {
+        // push the message to HB, apply the dif and create the inverse dif
+        let new_HB = [...this.state.HB];
+        new_HB.push(message);
+        let inverse_dif = this.applyDif(message[1]);
+        inverse_dif.reverse();
+        inverse_dif = to.merge(inverse_dif);
+        this.setState((prevState) => ({
+          HB: new_HB,
+          HB_inverse: [...prevState.HB_inverse, [
+            [...message[0]], inverse_dif
+          ]]
+        }));
+      }
+      // the message is dependant on an older document state (the undo/do/redo scheme must be used)
+      else {
+        //console.log("undo/do/redo");
+        //console.log("userID:", this.state.userID);
+
+        // UNDO
+        // total ordering is based on userID, the lower userID is ordered before the greater one
+        //console.log(this.state.HB);
+        //console.log(predecessor_index);
+        let messageTotalOrderingIndex = (predecessor_index + 1 < this.state.HB.length) ? (this.state.HB[predecessor_index + 1][0][0] > message[0][0]) ? predecessor_index + 1 : predecessor_index + 2 : predecessor_index + 1; ///TODO: revise this
+        //console.log('messageTotalOrderingIndex:', messageTotalOrderingIndex);
+        // HB entries that will follow the external message
+        let undoneHBEntries = this.state.HB.slice(messageTotalOrderingIndex); 
+        let new_HB = this.state.HB.slice(0, messageTotalOrderingIndex);
+
+        let new_HB_inverse = [...this.state.HB_inverse];
+        let new_state = {};
+
+        for (let i = new_HB_inverse.length - 1; i >= messageTotalOrderingIndex; --i) {
+          ///TODO: creating inverse difs that are unused
+          new_state = this.getStateAfterDifApplication(new_HB_inverse[i][1], new_state);
+        }
+
+        /// HB_inverse[entry_index + 1] has to exist, because at least one dif is being undone 
+        new_HB_inverse.splice(messageTotalOrderingIndex);
+
+        // DO
+        /*if (messageTotalOrderingIndex === predecessor_index + 2) {
+          to.transform(new_HB[predecessor_index + 1][1], message[1]);
+        }*/
+        // transform the external message against all preceding unreceived messages
+        //console.log("prec. unrec. msgs.", preceding_unreceived_messages);
+        for (let i = 0; i < preceding_unreceived_messages; i++) {
+          let unreceived_message_index = this.state.HB.findIndex((HBEntry) => HBEntry[0][0] == this.state.userID && HBEntry[0][1] == this.state.unreceived_messages[i]);
+          to.transform(new_HB[unreceived_message_index][1], message[1]);
+        }
+        new_HB.push(message);
+        new_state = this.getStateAfterDifApplication(message[1], new_state);
+        new_state.inverse_dif.reverse(); //TODO: this should be made into a function
+        new_state.inverse_dif = to.merge(new_state.inverse_dif);
+        new_HB_inverse.push([message[0], new_state.inverse_dif]);
+
+        // REDO
+        for (let i = 0; i < undoneHBEntries.length; ++i) {
+          if (i === 0) {
+            // change dependency metadata
+            undoneHBEntries[i][0][2] = message[0][2];
+            undoneHBEntries[i][0][3] = message[0][3];
+          }
+          to.transform(message[1], undoneHBEntries[i][1]);
+          new_HB.push(undoneHBEntries[i]);
+          new_state = this.getStateAfterDifApplication(undoneHBEntries[i][1], new_state);
+          new_state.inverse_dif.reverse(); //TODO: this should be made into a function
+          new_state.inverse_dif = to.merge(new_state.inverse_dif);
+          new_HB_inverse.push([message[0], new_state.inverse_dif]);
+        }
+
+        // update local document state
+        this.setState((prevState) => ({
+          HB: new_HB,
+          HB_inverse: new_HB_inverse,
+          rows: new_state.rows,
+          nextRowID: prevState.nextRowID + new_state.nextRowIDIncrement,
+          rowCount: prevState.rowCount + new_state.rowCountIncrement
+        }));
+
+        //console.log(new_HB_inverse);
+      }
+
+
+      
     }
   }
 
@@ -587,7 +734,7 @@ class Testing extends React.Component {
   }
 
   /**
-   * @note CS latency is implemented in the App.processDif function
+   * @note CS latency is implemented in the App.propagateLocalDif function
    */
   CSHandleChange(e) {
     CSLatency = e.target.value;
