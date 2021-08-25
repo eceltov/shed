@@ -1,7 +1,7 @@
 /**
  * @note Dif definition: A dif is an array of primitive operations called subdifs.
    A primitive operation can be adding newlines (called newline), removing empty lines (called
-   remlines), adding text (called add) or deleting text (called del).
+   remlines), adding text (called add) deleting text (called del) or moving text to a different location (called move).
 
     Subdif structure: 
     - newline: x; where x is a positive integer or zero saying that a new row should be added at
@@ -20,6 +20,10 @@
       Example: applying the subdif [3, 1, 4] where the content of row 3 is '123456789'
       will result in the new content of row 3 being '16789' (4 characters after the 1st will be removed).
 
+    - move: [source_row, source_position, target_row, target_position, length]; where all variables are positive integers or zeroes.
+      Example: let the content on row 0 be "1234" and content on row 1 be "abcd". Applying the subdif [0, 1, 1, 2, 2]
+      will result in row 0 being "14" and row 1 being "ab23cd".
+
     Example dif: [2, -3, [1, 2, 'abc'], [3, 3, 1]]
 */
 
@@ -30,11 +34,11 @@ if (typeof to === 'undefined') {
 
 to.isAdd = function(subdif) {
     //console.log(subdif);
-    return (subdif.constructor === Array && typeof subdif[2] === 'string');
+    return (subdif.constructor === Array && subdif.length === 3 && typeof subdif[2] === 'string');
 }
 
 to.isDel = function(subdif) {
-    return (subdif.constructor === Array && typeof subdif[2] === 'number');
+    return (subdif.constructor === Array && subdif.length === 3 && typeof subdif[2] === 'number');
 }
 
 to.isNewline = function(subdif) {
@@ -45,10 +49,14 @@ to.isRemline = function(subdif) {
     return (typeof subdif === 'number' && subdif < 0); // line 0 cannot be deleted
 }
 
+to.isMove = function(subdif) {
+    return (subdif.constructor === Array && subdif.length === 5);
+}
+
 to.merge = function(dif_ref) {
     let dif = JSON.parse(JSON.stringify(dif_ref)); // deep copy
 
-    // remove empty Adds/Dels
+    // remove empty Adds/Dels/Moves
     for (let i = 0; i < dif.length; ++i) {
         if (to.isAdd(dif[i])) {
             if (dif[i][2] === "") {
@@ -58,6 +66,12 @@ to.merge = function(dif_ref) {
         }
         else if (to.isDel(dif[i])) {
             if (dif[i][2] === 0) {
+                dif.splice(i, 1);
+                --i;
+            }
+        }
+        else if (to.isMove(dif[i])) {
+            if (dif[i][4] === 0) {
                 dif.splice(i, 1);
                 --i;
             }
@@ -119,6 +133,14 @@ to.merge = function(dif_ref) {
                         dif[i] += 1;
                     }
                 }
+                else if (to.isMove(dif[j])) {
+                    if (dif[j][0] >= -dif[i]) {
+                        dif[j][0] += 1;
+                    }
+                    if (dif[j][2] >= -dif[i]) {
+                        dif[j][2] += 1;
+                    }
+                }
             }
             dif.push(dif[i]);
             dif.splice(i, 1);
@@ -143,6 +165,14 @@ to.merge = function(dif_ref) {
                         dif[i] -= 1;
                     }
                 }
+                else if (to.isMove(dif[j])) {
+                    if (dif[j][0] >= dif[i]) {
+                        dif[j][0] += 1;
+                    }
+                    if (dif[j][2] >= dif[i]) {
+                        dif[j][2] += 1;
+                    }
+                }
             }
             dif.unshift(dif[i]);
             dif.splice(i+1, 1);
@@ -152,7 +182,8 @@ to.merge = function(dif_ref) {
     ///TODO: reorder newlines?
     
     // order Adds and Dels by row
-    const first_non_nl = dif.findIndex(el => !to.isNewline(el));
+    ///TODO: implement this with move instruction in mind
+    /*const first_non_nl = dif.findIndex(el => !to.isNewline(el));
     const first_reml = dif.findIndex(el => to.isRemline(el));
     const non_nl_el_count = dif.length - ((first_non_nl >= 0) ? first_non_nl : 0) - ((first_reml >= 0) ? (dif.length - first_reml) : 0);
     if (non_nl_el_count > 1) {
@@ -161,7 +192,7 @@ to.merge = function(dif_ref) {
         let remlines = dif.slice(((first_reml >= 0) ? first_reml : dif.length), dif.length);
         content.sort(function(a,b) { return a[0] > b[0] });
         dif = [...newlines, ...content, ...remlines];
-    }
+    }*/
 
     return dif;
 }

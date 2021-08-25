@@ -28,8 +28,11 @@ class Row extends React.Component {
       let dif = [];
       dif.push(this.props.index + 1); // add new row
       if (thisRowContent.length - cursor_position !== 0) {
+        /*
         dif.push([this.props.index, cursor_position, thisRowContent.length - cursor_position]); // delete trailing text on this row
         dif.push([this.props.index + 1, 0, thisRowContent.substr(cursor_position)]); // add trailing text to next row
+        */
+       dif.push([this.props.index, cursor_position, this.props.index + 1, 0, thisRowContent.length - cursor_position]);
       }
       this.props.cursorSetPosition(cursor_row + 1, 0);
       this.props.processLocalDif(dif);
@@ -81,12 +84,17 @@ class Row extends React.Component {
       e.preventDefault();
       if (cursor_position === 0 && this.props.index > 0) {
 
+        
         let prevRowContent = this.props.getRow(this.props.index - 1).content;
         let thisRowContent = this.props.getRow(this.props.index).content;
         let dif = [];
+        /*
         dif.push([this.props.index - 1, prevRowContent.length, thisRowContent]); // add content to prev row
         dif.push([this.props.index, 0, thisRowContent.length]); // remove content from this row
         dif.push(-this.props.index); // remove this row
+        */
+
+        dif.push([this.props.index, 0, this.props.index - 1, prevRowContent.length, thisRowContent.length]);
 
         this.props.processLocalDif(dif);
       }
@@ -414,7 +422,7 @@ class App extends React.Component {
       inverse_dif.push([dif[i] - 1, rowContent.length, rowContent]); // add content to prev row
     }
 
-    // apply adds and dels
+    // apply adds, dels and moves
     for (i; i < dif.length && !to.isRemline(dif[i]); ++i) {
       let row_idx = dif[i][0];
 
@@ -425,10 +433,26 @@ class App extends React.Component {
         inverse_dif.push([row_idx, position, content]);
       }
 
-      let prev_content = new_rows[row_idx].content;
-      new_rows[row_idx].content = to.applySubdif(prev_content, dif[i]);
-      new_rows[row_idx].ID = this.state.nextRowID + nextRowIDIncrement++;
 
+      if (to.isMove(dif[i])) {
+        let source_row_content = new_rows[dif[i][0]].content;
+        let target_row_content = new_rows[dif[i][2]].content;
+        let move_content = source_row_content.substr(dif[i][1], dif[i][4]);
+        new_rows[dif[i][0]].content = source_row_content.substring(0, dif[i][1]) + source_row_content.substring(dif[i][1] + dif[i][4]);
+        new_rows[dif[i][2]].content = target_row_content.substring(0, dif[i][3] + 1) + move_content + target_row_content.substring(dif[i][3] + 1);
+        new_rows[dif[i][0]].ID = this.state.nextRowID + nextRowIDIncrement++;
+        new_rows[dif[i][2]].ID = this.state.nextRowID + nextRowIDIncrement++;
+
+        // inverse subdif
+        inverse_dif.push([dif[i][2], dif[i][3], dif[i][0], dif[i][1], dif[i][4]]);
+      }
+      else {
+        let prev_content = new_rows[row_idx].content;
+        new_rows[row_idx].content = to.applySubdif(prev_content, dif[i]);
+        new_rows[row_idx].ID = this.state.nextRowID + nextRowIDIncrement++;
+      }
+
+      
       // creating inverse subdif to addition
       if (to.isAdd(dif[i])) {
         inverse_dif.push([dif[i][0], dif[i][1], dif[i][2].length]);
@@ -680,6 +704,9 @@ class App extends React.Component {
     /*for (let i = HB_inverse.length - 1; i > 0; --i) {
       this.applyDif(HB_inverse[i][1]);
     }*/
+
+    console.log("Applying inverse dif:", HB_inverse[HB_inverse.length - 1][1]);
+
     this.applyDif(HB_inverse[HB_inverse.length - 1][1]);
     HB_inverse.splice(HB_inverse.length - 1, 1);
 
