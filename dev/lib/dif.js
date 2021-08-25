@@ -17,9 +17,8 @@
       will be inserted between the first and second character on the row with index 2
 
     - del: [row, position, count]; where all variables are positive integers or zeroes.
-      Example: applying the subdif [3, 5, 4] where the content of row 3 is '123456789'
-      will result in the new content of row 3 being '16789' (the 5th character and 3 preceding
-      ones will be removed - a total of 4 characters).
+      Example: applying the subdif [3, 1, 4] where the content of row 3 is '123456789'
+      will result in the new content of row 3 being '16789' (4 characters after the 1st will be removed).
 
     Example dif: [2, -3, [1, 2, 'abc'], [3, 3, 1]]
 */
@@ -83,10 +82,10 @@ to.merge = function(dif_ref) {
     // join adjacent Dels
     for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
         if (to.isDel(dif[i])) {
-            let end_pos = dif[i][1] - dif[i][2];
+            let end_pos = dif[i][1] + dif[i][2];
             if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
                 end_pos === dif[i+1][1] &&           // they are adjacent
-                to.isDel(dif[i+1])                   // the next entry is of type Add
+                to.isDel(dif[i+1])                   // the next entry is of type Del
             ) {
                 dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
                 dif.splice(i+1, 1);
@@ -275,12 +274,14 @@ to.applyAdd = function(previous_value, subdif) {
 }
 
 to.applyDel = function(previous_value, subdif) {
-    if (subdif[1] > previous_value.length) {
+    if (subdif[1] + subdif[2] > previous_value.length) {
         console.log('applyDel subdif position too large!');
+        console.log(previous_value);
+        console.log(subdif);
         return previous_value;
     }
 
-    return (previous_value.substring(0, subdif[1] - subdif[2])) + previous_value.substring(subdif[1]);
+    return (previous_value.substring(0, subdif[1])) + previous_value.substring(subdif[1] + subdif[2]);
 }
 
 // only handles Adds and Dels
@@ -317,7 +318,7 @@ to.textToDif = function(targetRow, targetPosition, text, trailingRowText) {
 
     // remove the trailing text from the first row
     if (trailingRowText) {
-        dif.push([targetRow, targetPosition + trailingRowText.length, trailingRowText.length]);
+        dif.push([targetRow, targetPosition, trailingRowText.length]);
     }
 
     // add the first line 

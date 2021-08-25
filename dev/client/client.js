@@ -28,7 +28,7 @@ class Row extends React.Component {
       let dif = [];
       dif.push(this.props.index + 1); // add new row
       if (thisRowContent.length - cursor_position !== 0) {
-        dif.push([this.props.index, thisRowContent.length, thisRowContent.length - cursor_position]); // delete trailing text on this row
+        dif.push([this.props.index, cursor_position, thisRowContent.length - cursor_position]); // delete trailing text on this row
         dif.push([this.props.index + 1, 0, thisRowContent.substr(cursor_position)]); // add trailing text to next row
       }
       this.props.cursorSetPosition(cursor_row + 1, 0);
@@ -85,7 +85,7 @@ class Row extends React.Component {
         let thisRowContent = this.props.getRow(this.props.index).content;
         let dif = [];
         dif.push([this.props.index - 1, prevRowContent.length, thisRowContent]); // add content to prev row
-        dif.push([this.props.index, thisRowContent.length, thisRowContent.length]); // remove content from this row
+        dif.push([this.props.index, 0, thisRowContent.length]); // remove content from this row
         dif.push(-this.props.index); // remove this row
 
         this.props.processLocalDif(dif);
@@ -93,7 +93,7 @@ class Row extends React.Component {
 
       if (cursor_position !== 0) {
         this.props.processLocalDif([
-          [this.props.index, cursor_position, 1]
+          [this.props.index, cursor_position - 1, 1]
         ]);
       }
     }
@@ -420,7 +420,7 @@ class App extends React.Component {
 
       //creating inverse subdif to deletion
       if (to.isDel(dif[i])) {
-        let position = dif[i][1] - dif[i][2];
+        let position = dif[i][1];
         let content = new_rows[row_idx].content.substr(position, dif[i][2]);
         inverse_dif.push([row_idx, position, content]);
       }
@@ -431,7 +431,7 @@ class App extends React.Component {
 
       // creating inverse subdif to addition
       if (to.isAdd(dif[i])) {
-        inverse_dif.push([dif[i][0], dif[i][1] + dif[i][2].length, dif[i][2].length]);
+        inverse_dif.push([dif[i][0], dif[i][1], dif[i][2].length]);
       }
     }
 
