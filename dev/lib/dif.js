@@ -165,6 +165,80 @@ to.undoDif = function(dif, document) {
     return document;
 }
 
+to.UDR_no_editor = function(message, HB_original, SO_original) {
+    let HB = to.prim.deepCopy(HB_original);
+    let SO = [...SO_original, message[0]];
+
+    // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
+    let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
+    //console.log('TO_HB_index:', TO_HB_index);
+
+    // case when no operations need to be undone
+    if (TO_HB_index === HB.length - 1) {
+        let transformed_message = to.GOTCA(message, HB, SO);
+        //console.log('UDR no ops need to be undone');
+        //log(transformed_message);
+        return {
+            message: transformed_message,
+            HB: [...HB, transformed_message]
+        };
+    }
+
+    // transforming and applying message
+    let transformed_message = to.GOTCA(message, HB.slice(0, TO_HB_index), SO); // giving GOTCA only the relevant part of HB
+
+    // preparing undone difs for transformation
+    let redo_wraps = [];
+    for (let i = TO_HB_index + 1; i < HB.length; i++) {
+        redo_wraps.push(to.prim.wrapDif(to.prim.deepCopy(HB[i][1])));
+    }
+
+    let reversed_redo_difs = [];
+    for (let i = HB.length - 1; i > TO_HB_index; i--) {
+        let dif = to.prim.deepCopy(HB[i][1]);
+        dif.reverse();
+        reversed_redo_difs.push(dif);
+    }
+
+    // transforming undone difs
+    let transformed_wraps = [];
+    let first_transformed_wrap = to.prim.LIT(redo_wraps[0], transformed_message[1]);
+    transformed_wraps.push(first_transformed_wrap);
+    let LET_transformation_dif = [];
+    let LIT_transformation_dif = [...transformed_message[1]];
+    for (let i = 1; i < redo_wraps.length; i++) {
+        LET_transformation_dif.unshift(...reversed_redo_difs[reversed_redo_difs.length - i]);
+        let excluded_wrap = to.prim.LET(redo_wraps[i], LET_transformation_dif);
+        LIT_transformation_dif.push(...transformed_wraps[i - 1]);
+        let transformed_wrap = to.prim.LIT(excluded_wrap, LIT_transformation_dif);
+        transformed_wraps.push(transformed_wrap);
+    }
+
+    // unwrapping transformed wraps
+    let transformed_difs = [];
+    transformed_wraps.forEach(wrap => transformed_difs.push(to.prim.unwrapDif(wrap)));
+
+
+    // creating operations from undone difs
+    let transformed_operations = [];
+    transformed_difs.forEach((dif, i) => {
+        let transformed_operation = [HB[TO_HB_index + 1 + i][0], dif];
+        transformed_operations.push(transformed_operation);
+    });
+
+    // updating HB
+    HB.push(transformed_message)
+    transformed_operations.forEach(operation => HB.push(operation));
+
+    //console.log('UDR full run');
+    //log(transformed_message);
+
+    return {
+        message: transformed_message,
+        HB: HB
+    };
+}
+
 to.UDR = function(message, editor, HB_original, SO_original) {
     // creating new document so that changing it is not propagated to the user
     let document = new Document(editor.getSession().getDocument().getAllLines());
@@ -173,14 +247,14 @@ to.UDR = function(message, editor, HB_original, SO_original) {
 
     // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
     let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
-    console.log('TO_HB_index:', TO_HB_index);
+    //console.log('TO_HB_index:', TO_HB_index);
 
     // case when no operations need to be undone
     if (TO_HB_index === HB.length - 1) {
         let transformed_message = to.GOTCA(message, HB, SO);
         document = to.applyDif(transformed_message[1], document);
-        console.log('UDR no ops need to be undone');
-        log(transformed_message);
+        //console.log('UDR no ops need to be undone');
+        //log(transformed_message);
         return {
             message: transformed_message,
             document: document,
@@ -242,8 +316,8 @@ to.UDR = function(message, editor, HB_original, SO_original) {
     HB.push(transformed_message)
     transformed_operations.forEach(operation => HB.push(operation));
 
-    console.log('UDR full run');
-    log(transformed_message);
+    //console.log('UDR full run');
+    //log(transformed_message);
 
     return {
         message: transformed_message,
@@ -292,7 +366,7 @@ to.GOTCA = function(message, HB, SO) {
 
     // there are no independant messages, therefore no transformation is needed
     if (independant_difs.length === 0) {
-        console.log('GOTCA no independant messages');
+        //console.log('GOTCA no independant messages');
         return message; 
     }
 
@@ -304,8 +378,8 @@ to.GOTCA = function(message, HB, SO) {
         independant_difs.forEach(dif => transformation_dif.push(...dif));
         let transformed_message_wrap = to.prim.LIT(wrapped_message_dif, transformation_dif);
         message[1] = to.prim.unwrapDif(transformed_message_wrap);
-        console.log('GOTCA no locally dependant operations');
-        log(message);
+        //console.log('GOTCA no locally dependant operations');
+        //log(message);
         return message;
     }
 
@@ -342,8 +416,8 @@ to.GOTCA = function(message, HB, SO) {
     let transformed_message_wrap = to.prim.LET(wrapped_message_dif, to.prim.dissolveArrays(transformed_difs));
     transformed_message_wrap = to.prim.LIT(transformed_message_wrap, to.prim.dissolveArrays(HB.slice(last_directly_dependant_index + 1, TO_HB_index + 1)));
     message[1] = to.prim.unwrapDif(transformed_message_wrap);
-    console.log('GOTCA full run');
-    log(message);
+    //console.log('GOTCA full run');
+    //log(message);
     return message;
 }
 
@@ -498,7 +572,7 @@ to.merge = function(dif_ref) {
  */
 to.prim.findTOIndex = function(operation, HB, SO) {
     let SO_index = SO.findIndex((entry) => entry[0] === operation[0][0] && entry[1] === operation[0][1]); // index of operation
-    console.log('SO_index', SO_index);
+    //console.log('SO_index', SO_index);
     if (SO_index === 0) return -1;
     let HB_index = HB.findIndex((entry) => entry[0][0] === SO[SO_index - 1][0] && entry[0][1] === SO[SO_index - 1][1]); // index of entry before operation
     return HB_index;
@@ -802,7 +876,7 @@ to.prim.ET = function(wrap, transformer) {
         }
         else if (to.isDel(transformer)) {
             let result = to.prim.ET_DD(wrap, transformer);
-            if (isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
@@ -810,7 +884,7 @@ to.prim.ET = function(wrap, transformer) {
         }
         else if (to.isMove(transformer)) {
             let result = to.prim.ET_DM(wrap, transformer);
-            if (isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
@@ -1416,3 +1490,7 @@ to.textToDif = function(targetRow, targetPosition, content, trailingRowText) {
 
     return dif;
 }
+
+
+
+module.exports = to;
