@@ -1,0 +1,130 @@
+undo/do/redo:
+    saving information for reversibility:
+        It is sufficient for delete operations to save the characters they deleted. If a new operration arrives that should be executed before some of the operations
+        in the local HB, the reverse operations are applied, than the new operation and then the following operations in HB are redone and their inverses remade.
+
+inverse examples:
+    - 0: 
+        The inverse of subdif 0 is adding all content from row 1 to row 0, then deleting the content from row 1 and the row itself.
+    - -1:
+        The inverse of -1 is 1
+    - [2, 4, 3]:
+        For content '123456' the inverse is [2, 4 - 3, '234'], where '234' = '123456'.substr(4 - 3, 3)
+    - 0 both ways:
+        The inverse of 0 is pushing the content from 1 to zero and deleting 1. The reverse of that is adding 1, adding content from 0 to 1 and deleting content from 0. This is equal to subdif 0.
+
+interval_inverse_buf notes:
+    if the difs 1, 2, 3, 4 are pushed in this order to interval_buf and each consists of subdifs x_1, x_2, x_3, than the content of interval_inverse_buf should be:
+        [-4_3, -4_2, -4_1, ..., -1_1], where -x is an inverse of x where -x = to.merge(-x_3, -x_2, -x_1)
+        -> 	the interval_inverse_buf has the subdifs reversed, but if the "subdif segment" consists of more steps, they have to be in proper (not reversed order), therefore
+		while producing the inverse dif, if one subdif requires multiple steps for inversion, these steps are added in the reverse order, so they will later be reversed to the correct order.
+	applyDif(1) produces the pseudo inverse dif: [-1_1, -1_2, -1_3], if the contents are added to the interval_inverse_buf, that reversed and than merged, the resulting dif is the inverse of the starting dif.
+	
+
+
+reformating:
+    Necessary because the App component receives external difs. These difs have to have their inverses. The inversion function has to have access to rows in the TextContainer component
+    in order to create inverses, as well as access to the external difs received in the App component. 
+    - rows will be pushed to the App component
+    - rows will have to be added in props to the TextContainer component
+    - each change would prompt a new rendering of TextContainer and thus copying all rows:
+        Solutions:
+            1. Only a limited set of rows will be pushed to TextContainer (same problem, only smaller)
+            2. TextContainer will be merged will App, App would render Rows directly
+
+undo/do/redo example:
+    user 0 writes 'a' (before user 1) and user 1 writes 'b' to an empty document, and user 1's message arrives first to the server (0 has a CS latency of 1 second).
+    user 0 receives 1's message before his is even sent. Because 0's change is already present in HB and the local doc state and his userID is lower,
+    the document should contain 'ab'. After some time user 1 receives the 'a' and his doc state changes from 'b' to 'ab'.
+
+    user 0 site:
+        the document has the state of 'a' with one member in HB and HB_inverse. He receives the message from 1 and the undo/do/redo option is chosen. The ancestor index should be -1.
+        Because the total ordering decides that 'a' should precede 'b', the index of the HB entry for 'a' is 0 and for 'b' is 1. All entries with index 1 or more in the local HB
+        will be removed (none exist though). Than the 'b' is 'done' by increasing its position by the length of 'a'.
+
+
+
+redo (switch based on incoming external subdif):
+    - add:
+        - add: only changes subdifs on the same row with the same or greater position, example:
+            doc state: "123" subdifs add(x, 1, "aaa"), add(x, 5, "bbb"), external subdif preceding both: add(x, 2, "c")
+            doc state history: "123", "1aaa23", "1aaa2bbb3", "1aaa2cbbb3"
+            changed subdifs: add(x, 1, "aaa"), add(x, 6, "bbb")
+          all positions greater or equal to the external subdif add will be increased by the external subdifs content length
+        - del: subdifs on same row with lower position are unchanged, with greater or equal are increased by the external subdif's length, example:
+            doc state: "123" subdifs del(x, 1, 1), del(x, 2, 1), external subdif preceding both: add(x, 2, "b")
+            doc state history: "123", "23", "2", "2b"
+            changed subdifs: del(x, 1, 1), del(x, 3, 1)
+        - newline: unchanged
+        - remline: remlines will be deleted? ///TODO
+        - move: move the target or source (or both) positions if they are same or greater
+    - del:
+        - add: example:
+            doc state: "123" subdifs add(x, 1, "aaa"), add(x, 5, "bbb"), external subdif preceding both: del(x, 2, 1)
+            doc state history: "123", "1aaa23", "1aaa2bbb3", "1aaabbb3"
+            changed subdifs: add(x, 1, "aaa"), add(x, 4, "bbb")
+        - del: example:
+            doc state: "123" subdifs del(x, 1, 1), del(x, 2, 1), external subdif preceding both: del(x, 2, 1)
+            doc state history: "123", "23", "2", ""
+            changed subdifs: del(x, 1, 1), del(x, 1, 1)
+          if the dels in redo would delete something that does not exist, it is fine (because the external subdif deleted it)
+        - newline: unchangedj12j
+        - remline: impossible to happen, handled in del del
+    - newline:
+        - add: the add subdifs will have their row attribute incremented (if greater or equal to newline)
+        - del: the del subdifs will have their row attributes incremented (if greater or equal to newline)
+        - newline: increment the newline by one (alternative idea is to remove the newline if it targets the same row, but what if the intention of the external newline is to create a new row and write new content on it?)
+        - remline: increment the remline by one (if greater or equal to newline)
+    - remline:
+        - add: ///TODO
+        - del: impossible
+        - newline: decrease the newline by one if the value of remline is less or equal to? ///TODO
+        - remline: if the remline numbers are equal, then remove the remline in HB (///TODO), the reason is that both users want to remove the same row and no other,
+                   else decrement the HB remline if the external points to a lower line
+
+
+complications with the linear history buffer (no state array):
+    let there be client 0 and 1. 0 has a big CS latency and makes a change. 1 makes 2 changes (sends 2 messages) before 0's message arrives.
+    0 receives the first message and transforms it using the undo/do/redo scheme, but he won't transform the second one, because the metadata does not make it clear, if it is 
+    independent of 0's change (the second message of 1 is dependant on his first, the first is the only which shares the doc state with 0's message).
+
+    the solution is 0's own message that is sent back to him. Every preceding message has to be transformed until 0's message is received by 0. This can be done by adding
+    an array of unreceived messages. 
+
+    if a received external message was created after a local message was sent but before it was received, the undo/do/redo scheme is used
+
+    UPDATE: the above does not handle situations, where client 1 has big SC latency, thus user 0's message could already arrive to him, but user 1 does not have it.
+    User 1 thus creates those 2 messages, 0 receives it and the messages state that they are dependant on some state. If 0's message is older in HB than that state,
+    1's messages won't be transformed against 0's message.
+
+    SOLUTION: Server ordering. Each client will have an array of incoming server messages metadata so the server ordering is known. HB contains the total ordering,
+    not the server ordering. HB's total ordering allows for local changes to take efect immediately, the server ordering could not do that.
+
+complications with newline transformations:
+    assume the state "123", user 0 adds 2 newlines between '2' and '3' with latency, whilst user 1 deletes '3'. Given the current add, del, newline, remline model,
+    there is not enought information to transform the delete '3' instruction, as newline movement is encoded as del '3', newline, add '3' (there is no direct connection
+    between the content of del and add).
+
+    A new instruction move(source_row, source_position, target_row, target_position, length) is considered, moving a specific amount of characters to a different position.
+    The same scenario would be: User 0 dif: [1, 1, [0, 2, 2, 0, 1]], user 1 dif: [[0, 3, 1]]. After transformation, user 1's dif would be [[2, 1, 1]].
+
+
+Operations and orderings:
+    Each operation has a dependancyNumber, which is equal to the number of entries in server_ordering during generation. The only operations that may not be present
+    in server_ordering but be present in the document state are local operations, as external operations are immediately logged to server_ordering.
+    Thus, if a user receives an external operation, he can deduce that it is dependant on all server_ordering entries based on dependancyNumber plus all operations
+    made by the same user, which were received earlier than this message (due to all messages from one source being sent in the order of generation).
+    The receiver thus has to use the full GOT control algorithm to undo all independant and dependant (from the same user) operations up to dependancyNumber, transform the
+    incoming message and apply them back.
+
+    The dependancyNumber may not be implemented, as it is bacivally the prev_userID and prev_commitSerialNumber.
+
+    Is the HB even neccesary? Yes it is because it holds the transformed operations (the document state).
+
+Ideas:
+    Implement "blaming". A mode that shows what content was authored by what users.
+
+Possible problem:
+    An operation A is transformed into two using some include/exclude transformation into A'_1 and A'_2.
+    Another operation B is transformed into B' by excluding A and has relative addressing.
+    Later B'' is created by including A'_1 and A'_2, but it is relatively addressed to A, therefore one of the A's need to have the same id as A. 

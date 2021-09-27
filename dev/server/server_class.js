@@ -3,6 +3,7 @@ var http = require('http');
 
 class Server {
     constructor() {
+        this.messageLog = []; ///TODO: testing only
         this.nextUserID = 0;
         this.users = [];
         this.server = http.createServer(function(request, response) {

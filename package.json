@@ -1,0 +1,13 @@
+{
+  "name": "shared-web-editor",
+  "version": "0.0.1",
+  "main": "",
+  "scripts": {
+    "test": "jest"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.mff.cuni.cz:teaching/nprg045/krulis/2021-kloda-shared-web-editor.git"
+  },
+  "author": "Vojtech Kloda"
+}

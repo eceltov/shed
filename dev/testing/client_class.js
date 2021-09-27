@@ -7,6 +7,7 @@ class Client {
       this.userID = null;
       this.commitSerialNumber = 0;
       this.HB = [];
+      this.document = [""];
       this.server_ordering = [];
       this.serverURL = null;
       this.SCLatency = 0;
@@ -14,9 +15,11 @@ class Client {
       this.serverURL = serverURL;
       this.onMessageCallback = null;
       this.onMessageCallbackArgument = null;
+      this.log = false;
     }
 
     propagateLocalDif(dif) {
+        this.applyDif(dif);
         this.pushLocalDifToHB(dif);
         let message_obj = this.HBGetLast();
     
@@ -109,10 +112,40 @@ class Client {
       }
       // GOT control algorithm
       else {
-        let final_state = to.UDR_no_editor(message, this.HB, this.server_ordering);
+        let final_state = to.UDRTest(message, this.document, this.HB, this.server_ordering, this.log);
         this.server_ordering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append server_ordering
         this.HB = final_state.HB;
+        this.document = final_state.document;
       }
+    }
+
+    applyDif(dif) {
+      dif.forEach((subdif) => {
+        if (to.isAdd(subdif)) {
+          let row = this.document[subdif[0]];
+          this.document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
+        }
+        else if (to.isDel(subdif)) {
+          let row = this.document[subdif[0]];
+          this.document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2]);
+        }
+        else if (to.isMove(subdif)) {
+          let sourceRow = this.document[subdif[0]];
+          let targetRow = this.document[subdif[2]];
+          let movedText = sourceRow.substr(subdif[1], subdif[4]);
+          this.document[subdif[0]] = sourceRow.substr(0, subdif[1]) + sourceRow.substr(subdif[1] + subdif[4]);
+          this.document[subdif[2]] = targetRow.substr(0, subdif[3]) + movedText + targetRow.substr(subdif[3]);
+        }
+        else if (to.isNewline(subdif)) {
+          this.document.splice(subdif, 0, "");
+        }
+        else if (to.isRemline(subdif)) {
+          this.document.splice(-subdif, 1);
+        }
+        else {
+            console.log("Received unknown subdif!", subdif);
+        }
+      });
     }
 
     onMessageReceived(callback, argument) {

@@ -1,47 +1,14 @@
 var to = require('../lib/dif');
+var lib = require('./test_lib');
 var Server = require('../server/server_class');
 var Client = require('./client_class');
 var StatusChecker = require('./status_checker');
 
-/**
- * @brief Returns a new promise linked to a StatusChecker, that will resolve after all the
- *        elements in statusChecker are checked (can happen right away),
- *        or reject if the time limit is exceeded.
- * @param statusChecker Any StatusChecker.
- * @param timeout Time in ms after which the promise will be rejected.
- * @returns A new Promise.
- */
-function getStatusPromise(statusChecker, timeout=0) {
-    return new Promise((resolve, reject) => {
-        if (statusChecker.ready()) resolve();
-        statusChecker.setReadyCallback(resolve);
-        if (timeout > 0) {
-            setTimeout(reject, timeout);
-        }
-    });
-}
-
-/**
- * @brief Creates an array of clients, that will automatically attempt connect.
- * @param count The amount of clients to be created.
- * @param serverURL The URL to which the clients will connect.
- * @param connectionChecker A StatusChecker linked to the clients' connection status.
- * @param msgReceivedChecker A StatusChecker linked to the clients' message received status.
- * @returns An array of clients.
- */
-function createClients(count, serverURL, connectionChecker, msgReceivedChecker) {
-    let clients = [];
-    for (i = 0; i < count; i++) {
-        let client = new Client(serverURL);
-        client.onMessageReceived(msgReceivedChecker.check, i).onConnection(connectionChecker.check, i).connect();
-        clients.push(client);
-    }
-    return clients;
-}
 
 var serverURL = 'ws://localhost:8080/';
 var server;
 var clients;
+var clientCount;
 var connectionChecker;
 var msgReceivedChecker;
 
@@ -49,9 +16,10 @@ var msgReceivedChecker;
 beforeEach(() => {
     server = new Server();
     server.listen(8080);
-    connectionChecker = new StatusChecker(10);
-    msgReceivedChecker = new StatusChecker(10);
-    clients = createClients(10, serverURL, connectionChecker, msgReceivedChecker);
+    clientCount = 10;
+    connectionChecker = new StatusChecker(clientCount);
+    msgReceivedChecker = new StatusChecker(clientCount);
+    clients = lib.createClients(clientCount, serverURL, connectionChecker, msgReceivedChecker);
 });
 
 afterEach(() => {
@@ -59,7 +27,7 @@ afterEach(() => {
 });
 
 test('Clients can connect to the server', () => {
-    return getStatusPromise(connectionChecker)
+    return lib.getStatusPromise(connectionChecker)
     .then(() => {
         expect(true).toBe(true);
     })
@@ -69,22 +37,62 @@ test('Clients can connect to the server', () => {
 });
 
 test('Clients can send and receive messages.', () => {
-    return getStatusPromise(connectionChecker)
+    return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        let dif = to.add(0, 0, 'test');
+        let dif = [to.add(0, 0, 'test')];
         clients[0].propagateLocalDif(dif);
-        return getStatusPromise(msgReceivedChecker);
+        return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
         expect(msgReceivedChecker.ready()).toBe(true);
         msgReceivedChecker.reset();
         expect(msgReceivedChecker.ready()).toBe(false);
-        let dif = to.add(0, 0, 'test2');
+        let dif = [to.add(0, 0, 'test2')];
         clients[1].propagateLocalDif(dif);
-        return getStatusPromise(msgReceivedChecker);
+        return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
         expect(true).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+
+test('Add convergence test (one user adds "a" and the second one "b").', () => {
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].CSLatency = 150;
+        clients[1].CSLatency = 100;
+        let dif0 = [to.add(0, 0, 'a')];
+        let dif1 = [to.add(0, 0, 'b')];
+        clients[0].propagateLocalDif(dif0);
+        clients[1].propagateLocalDif(dif1);
+        return lib.getStatusPromise(msgReceivedChecker, 2);
+    })
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(clients[0].document).toEqual(['ba']);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Add convergence test (all users add random strings).', () => {
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        let clientMsgCount = 10;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.add(0, 0, i.toString())];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
     })
     .catch(() => {
         expect(false).toBe(true);

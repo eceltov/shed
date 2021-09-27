@@ -1,30 +1,40 @@
 class StatusChecker {
     constructor(count) {
         this.check = this.check.bind(this);
-        this.status = new Array(count).fill(false);
+        this.checkCount = 1;
+        this.status = new Array(count).fill(0);
         this.readyCallback = null;
     }
 
     /**
-     * @brief Sets a callback that will be invoked after the last unchecked element is checked.
+     * @brief Sets the amount of checks each element has to have.
+     */
+    setCheckCount(count) {
+        this.checkCount = count;
+    }
+
+    /**
+     * @brief Sets a callback that will be invoked after the last unchecked element is checked
+              and the check count is satisfied.
      */
     setReadyCallback(callback) {
         this.readyCallback = callback;
     }
 
     /**
-     * @brief Unchecks all elements.
+     * @brief Sets the check count of all elements to 0.
      */
     reset() {
-        this.status.fill(false);
+        this.status.fill(0);
     }
 
     /**
-     * @returns Returns true if all elements are checked, otherwise returns false.
+     * @returns Returns true if all elements are check the correct amount of times,
+     *          otherwise returns false.
      */
     ready() {
         for (let check of this.status) {
-            if (!check) return false;
+            if (check !== this.checkCount) return false;
         }
         return true;
     }
@@ -34,7 +44,7 @@ class StatusChecker {
      * @param index The index of an element to be checked.
      */
     check(index) {
-        this.status[index] = true;
+        this.status[index]++;
         if (this.readyCallback !== null && this.ready()) {
             this.readyCallback();
         }

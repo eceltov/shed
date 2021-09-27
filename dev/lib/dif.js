@@ -165,77 +165,253 @@ to.undoDif = function(dif, document) {
     return document;
 }
 
-to.UDR_no_editor = function(message, HB_original, SO_original) {
-    let HB = to.prim.deepCopy(HB_original);
+to.applyDifTest = function(dif, document) {
+    dif.forEach((subdif) => {
+      if (to.isAdd(subdif)) {
+        let row = document[subdif[0]];
+        document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
+      }
+      else if (to.isDel(subdif)) {
+        let row = document[subdif[0]];
+        document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2]);
+      }
+      else if (to.isMove(subdif)) {
+        let sourceRow = document[subdif[0]];
+        let targetRow = document[subdif[2]];
+        let movedText = sourceRow.substr(subdif[1], subdif[4]);
+        document[subdif[0]] = sourceRow.substr(0, subdif[1]) + sourceRow.substr(subdif[1] + subdif[4]);
+        document[subdif[2]] = targetRow.substr(0, subdif[3]) + movedText + targetRow.substr(subdif[3]);
+      }
+      else if (to.isNewline(subdif)) {
+        document.splice(subdif, 0, "");
+      }
+      else if (to.isRemline(subdif)) {
+        document.splice(-subdif, 1);
+      }
+      else {
+          console.log("Received unknown subdif!", subdif);
+      }
+    });
+    return document;
+}
+
+to.undoDifTest = function(dif, document) {
+    let dif_copy = to.prim.deepCopy(dif);
+    dif_copy.reverse(); // subdifs need to be undone in reverse order
+    dif_copy.forEach((subdif) => {
+        if (to.isAdd(subdif)) {
+            let row = document[subdif[0]];
+            document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2].length);
+        }
+        else if (to.isDel(subdif)) {
+            let row = document[subdif[0]];
+            document[subdif[0]] = row.substr(0, subdif[1]) + '#'.repeat(subdif[2]) + row.substr(subdif[1]);
+        }
+        else if (to.isMove(subdif)) {
+            let sourceRow = document[subdif[2]];
+            let targetRow = document[subdif[0]];
+            let movedText = sourceRow.substr(subdif[3], subdif[4]);
+            document[subdif[2]] = sourceRow.substr(0, subdif[3]) + sourceRow.substr(subdif[3] + subdif[4]);
+            document[subdif[0]] = targetRow.substr(0, subdif[1]) + movedText + targetRow.substr(subdif[1]);
+        }
+        else if (to.isNewline(subdif)) {
+            document.splice(subdif, 1);
+        }
+          else if (to.isRemline(subdif)) {
+            document.splice(-subdif, 0, "");
+        }
+        else {
+            console.log("Received unknown dif!");
+        }
+    });
+    return document;
+}
+
+to.UDRTest = function(message, document, HB, SO_original, log) {
+    // creating new document so that changing it is not propagated to the user
+    if(log) console.log('before:', document);
+    let HBCopy = to.prim.deepCopy(HB);
+    let wHB = HBCopy.map(operation => [operation[0], to.prim.wrapDif(operation[1])]); // wrapping everything in HB (so that operations have an ID)
     let SO = [...SO_original, message[0]];
 
+    if(log) console.log('wHB:', wHB);
+    if(log) console.log('message:', message);
+
     // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
-    let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
-    //console.log('TO_HB_index:', TO_HB_index);
+    let TO_HBIndex = to.prim.findTOIndex(message, wHB, SO);
+    let dependantHBIndex = to.prim.findLastDependancyIndex(message, wHB);
+    let msgSOIndex = to.prim.SOIndex(message, SO);
+    //if(log) console.log('TO_HB_index:', TO_HB_index);
+
+    /*
+    let undoIndex = TO_HBIndex + 1; // the index will be at least after the last totally preceding operation
+    for (let i = undoIndex; i < HB.length; i++) {
+        let operation = HB[i];
+        for (let j = 0; j < TO_HBIndex + 1; j++) { ///TODO: this should be searched from back to front
+            // if operation (which has a higher SOIndex than message) is locally dependant on an operation with a lower SOIndex than message and is part of the same 'message chain'
+            if (HB[j][0][0] === operation[0][0] && HB[j][0][2] === operation[0][2] && HB[j][0][3] === operation[0][3]) {
+                undoIndex++;
+                break;
+            }
+        }
+        // if operation has no local dependencies that are part of a 'message chain', it is skipped
+        // the loop will not terminate, as there can be more operations that are part of a message chain
+        // the skipped operation will have its 'execution time placement' shifted as well
+    }
+    */
+
+    let undoIndex = 0;
+    for (let i = 0; i < wHB.length; i++) {
+        let operation = wHB[i];
+        // message is part of a chain
+        if (message[0][0] === operation[0][0] && message[0][2] === operation[0][2] && message[0][3] === operation[0][3]) {
+            undoIndex = i + 1;
+        }
+    }
+
+
+    ///TODO: revise this
+    if (undoIndex === 0) {
+        undoIndex = TO_HBIndex + 1; // the index will be at least after the last totally preceding operation
+        for (let i = undoIndex; i < wHB.length; i++) {
+            let operation = wHB[i];
+            for (let j = 0; j < TO_HBIndex + 1; j++) { ///TODO: this should be searched from back to front
+                // if operation (which has a higher SOIndex than message) is locally dependant on an operation with a lower SOIndex than message and is part of the same 'message chain'
+                if (wHB[j][0][0] === operation[0][0] && wHB[j][0][2] === operation[0][2] && wHB[j][0][3] === operation[0][3]) {
+                    undoIndex++;
+                    break;
+                }
+            }
+            // if operation has no local dependencies that are part of a 'message chain', it is skipped
+            // the loop will not terminate, as there can be more operations that are part of a message chain
+            // the skipped operation will have its 'execution time placement' shifted as well
+        }
+    }
+
+    if(log) console.log('dependantHBIndex:', dependantHBIndex);
+    if(log) console.log('undoIndex:', undoIndex);
+    if(log) console.log('TO_HBIndex:', TO_HBIndex);
+
+    let wMessage = [message[0], to.prim.wrapDif(message[1])];
 
     // case when no operations need to be undone
-    if (TO_HB_index === HB.length - 1) {
-        let transformed_message = to.GOTCA(message, HB, SO);
-        //console.log('UDR no ops need to be undone');
-        //log(transformed_message);
+    //if (TO_HB_index === HB.length - 1) {
+    if (undoIndex === wHB.length) {
+        if(log) console.log('UDR no ops need to be undone');
+        let wTransformedMessage = to.GOTCA(wMessage, wHB, SO, log);
+        let transformedMessage = [wTransformedMessage[0], to.prim.unwrapDif(wTransformedMessage[1])];
+        if(log) console.log('transformedMessage:', transformedMessage);
+        document = to.applyDifTest(transformedMessage[1], document);
+        //log(wTransformedMessage);
+
+        if(log) console.log('after:', document);
+
+        // unwrapping difs
+        let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
+
         return {
-            message: transformed_message,
-            HB: [...HB, transformed_message]
+            message: transformedMessage,
+            document: document,
+            HB: [...newHB, transformedMessage]
         };
     }
 
+
+    
+
+    //if(log) console.log('TO_HB_index:', TO_HB_index);
+    //if(log) console.log('dependantHBIndex:', dependantHBIndex);
+    //let undoneHB = HB.slice(TO_HB_index + 1);
+    //HB = HB.slice(0, TO_HB_index + 1);
+    let wUndoneHB = wHB.slice(undoIndex);
+    wHB = wHB.slice(0, undoIndex);
+    // undo independant operations
+    for (let i = wUndoneHB.length - 1; i >= 0; i--) {
+        document = to.undoDifTest(to.prim.unwrapDif(wUndoneHB[i][1]), document);
+    }
+    
+
+
+    if(log) console.log('undo independant ops:', document);
+
     // transforming and applying message
-    let transformed_message = to.GOTCA(message, HB.slice(0, TO_HB_index), SO); // giving GOTCA only the relevant part of HB
+    let wTransformedMessage = to.GOTCA(wMessage, wHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
+    let transformedMessage = [wTransformedMessage[0], to.prim.unwrapDif(wTransformedMessage[1])];
+    document = to.applyDifTest(transformedMessage[1], document);
+
+    if(log) console.log('wTransformedMessage:', JSON.stringify(wTransformedMessage));
 
     // preparing undone difs for transformation
-    let redo_wraps = [];
-    for (let i = TO_HB_index + 1; i < HB.length; i++) {
-        redo_wraps.push(to.prim.wrapDif(to.prim.deepCopy(HB[i][1])));
+    let wUndoneDifs = [];
+    for (let i = 0; i < wUndoneHB.length; i++) {
+        wUndoneDifs.push(to.prim.deepCopy(wUndoneHB[i][1]));
     }
 
-    let reversed_redo_difs = [];
-    for (let i = HB.length - 1; i > TO_HB_index; i--) {
-        let dif = to.prim.deepCopy(HB[i][1]);
-        dif.reverse();
-        reversed_redo_difs.push(dif);
+    let wReversedUndoneDifs = [];
+    for (let i = wUndoneHB.length - 1; i >= 0; i--) {
+        let wUndoneDif = to.prim.deepCopy(wUndoneHB[i][1]);
+        wUndoneDif.reverse();
+        wReversedUndoneDifs.push(wUndoneDif);
     }
 
     // transforming undone difs
-    let transformed_wraps = [];
-    let first_transformed_wrap = to.prim.LIT(redo_wraps[0], transformed_message[1]);
-    transformed_wraps.push(first_transformed_wrap);
-    let LET_transformation_dif = [];
-    let LIT_transformation_dif = [...transformed_message[1]];
-    for (let i = 1; i < redo_wraps.length; i++) {
-        LET_transformation_dif.unshift(...reversed_redo_difs[reversed_redo_difs.length - i]);
-        let excluded_wrap = to.prim.LET(redo_wraps[i], LET_transformation_dif);
-        LIT_transformation_dif.push(...transformed_wraps[i - 1]);
-        let transformed_wrap = to.prim.LIT(excluded_wrap, LIT_transformation_dif);
-        transformed_wraps.push(transformed_wrap);
+    let wTransformedUndoneDifs = []; // undone difs that are transformed
+    if(log) console.log('wUndoneDifs:', JSON.stringify(wUndoneDifs));
+    let wFirstTransformedUndoneDif = to.prim.LIT(wUndoneDifs[0], wTransformedMessage[1]);
+    wTransformedUndoneDifs.push(wFirstTransformedUndoneDif);
+    let wLETDif = [];
+    let wLITDif = [...wTransformedMessage[1]];
+    if(log) console.log('wFirstTransformedUndoneDif:', JSON.stringify(wFirstTransformedUndoneDif));
+    for (let i = 1; i < wUndoneDifs.length; i++) {
+        if(log && i == 1) console.log('wUndoneDifs[i]:', JSON.stringify(wUndoneDifs[i]));
+        wLETDif.unshift(...wReversedUndoneDifs[wReversedUndoneDifs.length - i]);
+        let wExcludedDif = to.prim.LET(wUndoneDifs[i], wLETDif);
+        if(log && i == 1) console.log('wExcludedDif:', JSON.stringify(wExcludedDif));
+        wLITDif.push(...wTransformedUndoneDifs[i - 1]);
+        if(log && i == 1) console.log('wLITDif:', JSON.stringify(wLITDif));
+        let transformed_wrap = to.prim.LIT(wExcludedDif, wLITDif, log);
+        if(log && i == 1) console.log('transformed_wrap:', JSON.stringify(transformed_wrap));
+        wTransformedUndoneDifs.push(transformed_wrap);
     }
 
-    // unwrapping transformed wraps
-    let transformed_difs = [];
-    transformed_wraps.forEach(wrap => transformed_difs.push(to.prim.unwrapDif(wrap)));
 
+    // unwrapping transformed wraps
+    let transformedUndoneDifs = [];
+    wTransformedUndoneDifs.forEach(wrap => transformedUndoneDifs.push(to.prim.unwrapDif(wrap)));
+
+    if(log) console.log('transformedUndoneDifs:', JSON.stringify(transformedUndoneDifs));
+
+
+    // redoing undone difs
+    transformedUndoneDifs.forEach(dif => document = to.applyDifTest(dif, document));
 
     // creating operations from undone difs
-    let transformed_operations = [];
-    transformed_difs.forEach((dif, i) => {
-        let transformed_operation = [HB[TO_HB_index + 1 + i][0], dif];
-        transformed_operations.push(transformed_operation);
+    let transformedUndoneOperations = [];
+    transformedUndoneDifs.forEach((dif, i) => {
+        let transformed_operation = [wUndoneHB[i][0], dif];
+        transformedUndoneOperations.push(transformed_operation);
     });
 
-    // updating HB
-    HB.push(transformed_message)
-    transformed_operations.forEach(operation => HB.push(operation));
+    //if(log) console.log('mid HB:', HB);
 
-    //console.log('UDR full run');
+
+    // updating HB
+    wHB.push(wTransformedMessage);
+    transformedUndoneOperations.forEach(operation => wHB.push(operation));
+
+    if(log) console.log('UDR full run');
     //log(transformed_message);
 
+    if(log) console.log('after:', document);
+    //if(log) console.log('after HB:', HB);
+
+    // unwrapping difs
+    let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
+
     return {
-        message: transformed_message,
-        HB: HB
+        message: transformedMessage,
+        document: document,
+        HB: newHB
     };
 }
 
@@ -264,7 +440,7 @@ to.UDR = function(message, editor, HB_original, SO_original) {
 
     // undo independant operations
     for (let i = HB.length - 1; i > TO_HB_index; i--) {
-        to.undoDif(HB[i][1], document);
+        document = to.undoDif(HB[i][1], document);
     }
 
     // transforming and applying message
@@ -277,11 +453,11 @@ to.UDR = function(message, editor, HB_original, SO_original) {
         redo_wraps.push(to.prim.wrapDif(to.prim.deepCopy(HB[i][1])));
     }
 
-    let reversed_redo_difs = [];
+    let reversed_redo_dif_wraps = [];
     for (let i = HB.length - 1; i > TO_HB_index; i--) {
         let dif = to.prim.deepCopy(HB[i][1]);
         dif.reverse();
-        reversed_redo_difs.push(dif);
+        reversed_redo_dif_wraps.push(dif);
     }
 
     // transforming undone difs
@@ -291,7 +467,7 @@ to.UDR = function(message, editor, HB_original, SO_original) {
     let LET_transformation_dif = [];
     let LIT_transformation_dif = [...transformed_message[1]];
     for (let i = 1; i < redo_wraps.length; i++) {
-        LET_transformation_dif.unshift(...reversed_redo_difs[reversed_redo_difs.length - i]);
+        LET_transformation_dif.unshift(...reversed_redo_dif_wraps[reversed_redo_dif_wraps.length - i]);
         let excluded_wrap = to.prim.LET(redo_wraps[i], LET_transformation_dif);
         LIT_transformation_dif.push(...transformed_wraps[i - 1]);
         let transformed_wrap = to.prim.LIT(excluded_wrap, LIT_transformation_dif);
@@ -326,7 +502,7 @@ to.UDR = function(message, editor, HB_original, SO_original) {
     };
 }
 
-to.GOTCA = function(message, HB, SO) {
+to.GOTCA = function(wMessage, wHB, SO, log=false) {
     /**
      *  @note Due to the fact that all operations are being received by all clients in the same
          order, the only independant operations from the received one can be those made by the
@@ -335,90 +511,116 @@ to.GOTCA = function(message, HB, SO) {
     */
 
     // array of difs of independant operations in HB
-    let independant_difs = [];
+    let wIndependantDifs = [];
     // causally preceding difs with an index higher than last_directly_dependant_index
-    let locally_dependant_difs = [];
-    let locally_dependant_indices = [];
+    let wLocallyDependantDifs = [];
+    let locallyDependantIndices = [];
 
-    let last_directly_dependant_index = SO.findIndex((operation) => operation[0] === message[0][2] && operation[1] === message[0][3]);
+    let lastDirectlyDependantIndex = SO.findIndex((operation) => operation[0] === wMessage[0][2] && operation[1] === wMessage[0][3]);
+    let lastDirectlyDependantHBIndex = -1;
 
-    // finding independant operations
-    for (let HB_index = 0, SO_index = 0; HB_index < HB.length; HB_index++) {
-    // filtering all directly dependant operations
-    if (SO_index <= last_directly_dependant_index) {
-        if (HB[HB_index][0][0] === SO[SO_index][0] &&
-            HB[HB_index][0][1] === SO[SO_index][1]
-        ) {
-            SO_index++;
+    //if(log) console.log('lastDirectlyDependantIndex', lastDirectlyDependantIndex);
+
+    // finding independant and locally dependant operations in HB
+    for (let i = 0; i < wHB.length; i++) {
+        let directlyDependant = false;
+        // filtering out directly dependant operations
+        for (let j = 0; j <= lastDirectlyDependantIndex; j++) {
+            // deep comparison between the HB operation metadata and SO operation metadata
+            if (to.prim.deepEqual(wHB[i][0], SO[j])) {
+                directlyDependant = true;
+                lastDirectlyDependantHBIndex = i;
+                break;
+            }
+        }
+        if (directlyDependant) continue;
+
+        // locally dependant operations have the same author
+        if (wHB[i][0][0] === wMessage[0][0]) {
+            locallyDependantIndices.push(i);
+            wLocallyDependantDifs.push(wHB[i][1]);
             continue;
         }
-    }
-    // filtering all locally dependant operations
-    if (HB[HB_index][0][0] === message[0][0]) {
-        locally_dependant_difs.push(HB[HB_index][1]);
-        locally_dependant_indices.push(HB_index);
-        continue;
+
+        // the remainder must be independant
+        wIndependantDifs.push(wHB[i][1]);
     }
 
-    // the remainder must be independant
-    independant_difs.push(HB[HB_index][1]);
-    }
+    //if(log) console.log('wIndependantDifs:', JSON.stringify(wIndependantDifs));
+
 
     // there are no independant messages, therefore no transformation is needed
-    if (independant_difs.length === 0) {
+    if (wIndependantDifs.length === 0) {
         //console.log('GOTCA no independant messages');
-        return message; 
+        return wMessage; 
     }
 
-    let wrapped_message_dif = to.prim.wrapDif(message[1]);
+    let wMessageDif = wMessage[1];
 
     // there are no locally dependant operations in HB, therefore all independant operations can be included directly
-    if (locally_dependant_difs.length === 0) {
+    if (wLocallyDependantDifs.length === 0) {
+        if(log) console.log('GOTCA no locally dependant ops');
         let transformation_dif = [];
-        independant_difs.forEach(dif => transformation_dif.push(...dif));
-        let transformed_message_wrap = to.prim.LIT(wrapped_message_dif, transformation_dif);
-        message[1] = to.prim.unwrapDif(transformed_message_wrap);
+        wIndependantDifs.forEach(wDif => transformation_dif.push(...wDif));
+        let wTransformedMessageDif = to.prim.LIT(wMessageDif, transformation_dif);
+        wMessage[1] = wTransformedMessageDif;
         //console.log('GOTCA no locally dependant operations');
         //log(message);
-        return message;
+        return wMessage;
     }
 
     // preparing difs for transformation
-    let locally_dependant_wraps = [];
-    locally_dependant_difs.forEach(dif => locally_dependant_wraps.push(to.prim.wrapDif(to.prim.deepCopy(dif))));
+    wLocallyDependantDifs = to.prim.deepCopy(wLocallyDependantDifs);
 
-    let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
-    let reversed_transformer_difs = [];
-    for (let i = TO_HB_index; i > last_directly_dependant_index; i--) {
-        let dif = to.prim.deepCopy(HB[i][1]);
-        dif.reverse();
-        reversed_transformer_difs.push(dif);
+    //let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
+    let dependantHBIndex = to.prim.findLastDependancyIndex(wMessage, wHB);
+    let wReversedTransformerDifs = [];
+    //for (let i = TO_HB_index; i > lastDirectlyDependantIndex; i--) {
+    for (let i = dependantHBIndex; i > lastDirectlyDependantIndex; i--) {
+        let wDif = to.prim.deepCopy(wHB[i][1]);
+        wDif.reverse();
+        wReversedTransformerDifs.push(wDif);
     }
+
+    //if(log) console.log('wLocallyDependantDifs:', JSON.stringify(wLocallyDependantDifs));
+    //if(log) console.log('wReversedTransformerDifs:', JSON.stringify(wReversedTransformerDifs));
+
 
     // [..., last_dep_index=20, indep1, indep2, loc_dep0=23, indep3, loc_dep1=25]
 
     // transformation
-    let transformed_wraps = []; ///TODO: actually wrapped difs, rename this
-    let LET_transformation_dif = to.prim.dissolveArrays(reversed_transformer_difs.slice(reversed_transformer_difs.length - (locally_dependant_indices[0] - (last_directly_dependant_index + 1))));
-    let LIT_transformation_dif = [];
-    let first_transformed_wrap = to.prim.LET(locally_dependant_wraps[0], LET_transformation_dif);
-    transformed_wraps.push(first_transformed_wrap);
-    for (let i = 1; i < locally_dependant_wraps.length; i++) {
-        LET_transformation_dif = to.prim.dissolveArrays(reversed_transformer_difs.slice(reversed_transformer_difs.length - (locally_dependant_indices[i] - (last_directly_dependant_index + 1))));
-        let excluded_wrap = to.prim.LET(locally_dependant_wraps[i], LET_transformation_dif);
-        LIT_transformation_dif.push(...transformed_wraps[i - 1]);
-        let transformed_wrap = to.prim.LIT(excluded_wrap, LIT_transformation_dif);
-        transformed_wraps.push(transformed_wrap);
+    let wTransformedDifs = []; // EOL' in wrapped dif form
+    let wLETDif = to.prim.dissolveArrays(wReversedTransformerDifs.slice(wReversedTransformerDifs.length - (locallyDependantIndices[0] - (lastDirectlyDependantIndex + 1))));
+    let wLITDif = [];
+    let wFirstTransformedDif = to.prim.LET(wLocallyDependantDifs[0], wLETDif);
+    if(log) console.log('wFirstTransformedDif:', JSON.stringify(wFirstTransformedDif));
+    wTransformedDifs.push(wFirstTransformedDif);
+    for (let i = 1; i < wLocallyDependantDifs.length; i++) {
+        wLETDif = to.prim.dissolveArrays(wReversedTransformerDifs.slice(wReversedTransformerDifs.length - (locallyDependantIndices[i] - (lastDirectlyDependantIndex + 1))));
+        let wExcludedDif = to.prim.LET(wLocallyDependantDifs[i], wLETDif);
+        wLITDif.push(...wTransformedDifs[i - 1]);
+        let wTransformedDif = to.prim.LIT(wExcludedDif, wLITDif);
+        wTransformedDifs.push(wTransformedDif);
     }
-    let transformed_difs = [];
-    transformed_wraps.forEach(wrap => transformed_difs.push(to.prim.unwrapDif(wrap)));
-    transformed_difs.reverse();
-    let transformed_message_wrap = to.prim.LET(wrapped_message_dif, to.prim.dissolveArrays(transformed_difs));
-    transformed_message_wrap = to.prim.LIT(transformed_message_wrap, to.prim.dissolveArrays(HB.slice(last_directly_dependant_index + 1, TO_HB_index + 1)));
-    message[1] = to.prim.unwrapDif(transformed_message_wrap);
+    let wReversedTransformedDifs = to.prim.deepCopy(wTransformedDifs)
+    wReversedTransformedDifs.reverse();
+    let wTransformedMessageDif = to.prim.LET(wMessageDif, to.prim.dissolveArrays(wReversedTransformedDifs));
+    if(log) console.log('wTransformedMessageDif post LET:', JSON.stringify(wTransformedMessageDif));
+    let prependingIndependantDifs = wHB.slice(lastDirectlyDependantIndex + 1, to.prim.findFirstLocalDependancyIndex(wMessage, wHB)); // independant difs between the last directly and first locally dependant dif
+    //let prependingIndependantDifs = HB.slice(lastDirectlyDependantIndex + 1, TO_HB_index); // independant difs between the last directly and first locally dependant dif
+    prependingIndependantDifs.forEach((operation, index) => prependingIndependantDifs[index] = operation[1]);
+
+    let wHBLITDif = [];
+    for (let i = lastDirectlyDependantHBIndex + 1; i < wHB.length; i++) {
+        wHBLITDif.push(...wHB[i][1]);
+    }
+
+    wTransformedMessageDif = to.prim.LIT(wTransformedMessageDif, wHBLITDif);
+    if(log) console.log('wTransformedMessageDif post LIT:', JSON.stringify(wTransformedMessageDif));
+    wMessage[1] = wTransformedMessageDif;
     //console.log('GOTCA full run');
     //log(message);
-    return message;
+    return wMessage;
 }
 
 to.merge = function(dif_ref) {
@@ -565,6 +767,8 @@ to.merge = function(dif_ref) {
     return dif;
 }
 
+to.prim.wrapID = 0; // id for wrapped difs (used in relative addressing)
+
 /**
  * @brief Finds the index of an HB entry that the operation directly follows.
  * 
@@ -577,6 +781,40 @@ to.prim.findTOIndex = function(operation, HB, SO) {
     let HB_index = HB.findIndex((entry) => entry[0][0] === SO[SO_index - 1][0] && entry[0][1] === SO[SO_index - 1][1]); // index of entry before operation
     return HB_index;
 }
+to.prim.findLastDependancyIndex = function(operation, HB) {
+    let user = operation[0][0];
+    let directDependancyUser = operation[0][2]; // the user the operation is directly dependant on
+    let directDependancyCSN = operation[0][3]; // the commitSerialNumber the operation is directly dependant on
+
+    let DDIndex = -1;
+    let LDIndex = -1;
+    // find the last locally dependant operation and the last directly dependant operation
+    HB.forEach((op, i) => {
+        if (op[0][0] === directDependancyUser && op[0][1] === directDependancyCSN) {
+            DDIndex = i;
+        }
+        if (op[0][0] === user && op[0][2] === directDependancyUser && op[0][3] === directDependancyCSN) {
+            LDIndex = i;
+        }
+    });
+    return Math.max(DDIndex, LDIndex);
+}
+to.prim.findFirstLocalDependancyIndex = function(operation, HB) {
+    let user = operation[0][0];
+    let directDependancyUser = operation[0][2]; // the user the operation is directly dependant on
+    let directDependancyCSN = operation[0][3]; // the commitSerialNumber the operation is directly dependant on
+
+    // find the last locally dependant operation and the last directly dependant operation
+    for (let i = 0; i < HB.length; i++) {
+        if (HB[i][0][0] === user && HB[i][0][2] === directDependancyUser && HB[i][0][3] === directDependancyCSN) {
+            return i;
+        }
+    }
+    return -1;
+}
+to.prim.SOIndex = function(operation, SO) {
+    return SO.findIndex(entry => entry[0] === operation[0][0] && entry[1] === operation[0][1]);
+}
 /**
  * @brief Takes an array of arrays and returns an array containing all nested elements
  */
@@ -588,8 +826,31 @@ to.prim.dissolveArrays = function(arrays) {
 to.prim.deepCopy = function(object) {
     return JSON.parse(JSON.stringify(object));
 }
-to.prim.sameRow = function(wrap, transformer) {
-    return wrap.sub[0] === transformer[0];
+to.prim.deepEqual = function(x, y) {
+    if (x === y) {
+        return true;
+    }
+    else if ((typeof x == "object" && x != null) && (typeof y == "object" && y != null)) {
+        if (Object.keys(x).length != Object.keys(y).length)
+            return false;
+    
+        for (var prop in x) {
+            if (y.hasOwnProperty(prop))
+            {  
+                if (!to.prim.deepEqual(x[prop], y[prop]))
+                    return false;
+            }
+            else
+                return false;
+        }
+        
+        return true;
+      }
+      else 
+        return false;
+}
+to.prim.sameRow = function(wrap, wTransformer) {
+    return wrap.sub[0] === wTransformer.sub[0];
 }
 to.prim.mockupString = function(length) {
     return {
@@ -601,6 +862,7 @@ to.prim.wrapSubdif = function(subdif) {
         return {
             sub: to.prim.deepCopy(subdif),
             meta: {
+                ID: to.prim.wrapID++,
                 informationLost: false, // whether the context had to be saved
                 relative: false, // whether relative addresing is in place
                 context: {
@@ -615,6 +877,7 @@ to.prim.wrapSubdif = function(subdif) {
         return {
             sub: to.prim.deepCopy(subdif),
             metaDel: {
+                ID: to.prim.wrapID++,
                 informationLost: false, // whether the context had to be saved
                 relative: false, // whether relative addresing is in place
                 context: {
@@ -624,6 +887,7 @@ to.prim.wrapSubdif = function(subdif) {
                 }
             },
             metaAdd: {
+                ID: to.prim.wrapID++,
                 informationLost: false, // whether the context had to be saved
                 relative: false, // whether relative addresing is in place
                 context: {
@@ -706,36 +970,35 @@ to.prim.saveRA = function(wrap, addresser) {
     wrap.meta.context.addresser = addresser;
     return wrap;
 }
-///TODO: is it sufficient to check whether they are equal? what if there are two identical subdifs?
-to.prim.checkLI = function(wrap, transformer) {
+to.prim.checkLI = function(wrap, wTransformer) {
     if (!wrap.meta.informationLost) {
         return false;
     }
-    return to.prim.identicalSubdifs(wrap.meta.context.transformer, transformer);
+    return wrap.meta.context.transformer.meta.ID === wTransformer.meta.ID;
 }
 to.prim.recoverLI = function(wrap) {
     return wrap.meta.context.original;
 }
-to.prim.checkBO = function(wrap, subdif) {
+to.prim.checkBO = function(wrap, wTransformer) {
     if (!to.isMove(wrap)) {
-        return to.prim.identicalSubdifs(wrap.meta.context.addresser, subdif);
+        return wrap.meta.context.addresser.meta.ID === wTransformer.meta.ID;
     }
-    return to.prim.identicalSubdifs(wrap.metaAdd.context.addresser, subdif) ||
-           to.prim.identicalSubdifs(wrap.metaDel.context.addresser, subdif);
+    return wrap.metaAdd.context.addresser.meta.ID === wTransformer.meta.ID ||
+           wrap.metaDel.context.addresser.meta.ID === wTransformer.meta.ID;
 }
-to.prim.convertAA = function(wrap, addresser) {
+to.prim.convertAA = function(wrap, wAddresser) {
     if (!to.isMove(wrap)) {
-        wrap.sub[1] += wrap.meta.context.addresser[1];
+        wrap.sub[1] += wAddresser.sub[1];
         wrap.meta.relative = false;
         wrap.meta.context.addresser = null;
     }
-    else if (to.prim.identicalSubdifs(wrap.metaAdd.context.addresser, addresser)) {
-        wrap.sub[3] += wrap.metaAdd.context.addresser[1];
+    else if (wrap.metaAdd.context.addresser.ID === wAddresser.meta.ID) {
+        wrap.sub[3] += wAddresser.sub[1];
         wrap.metaAdd.relative = false;
         wrap.metaAdd.context.addresser = null;
     }
-    else if (to.prim.identicalSubdifs(wrap.metaDel.context.addresser, addresser)) {
-        wrap.sub[1] += wrap.metaDel.context.addresser[1];
+    else if (wrap.metaDel.context.addresser.ID === wAddresser.meta.ID) {
+        wrap.sub[1] += wAddresser.sub[1];
         wrap.metaDel.relative = false;
         wrap.metaDel.context.addresser = null;
     }
@@ -745,219 +1008,233 @@ to.prim.convertAA = function(wrap, addresser) {
     return wrap;
 }
 
-to.prim.LIT = function(wrapped_dif, transformation_dif) {
-    if (wrapped_dif.length === 0) return [];
-    let transformed_wraps_1 = to.prim.LIT1(wrapped_dif[0], transformation_dif);
-    let transformed_wraps_2 = to.prim.LIT(wrapped_dif.slice(1), [...transformation_dif, ...transformed_wraps_1]);
-    return [...transformed_wraps_1, ...transformed_wraps_2];    
+to.prim.LIT = function(wDif, wTransformationDif, log=false) {
+    //process.stdout.write("I");
+    if (wDif.length === 0) return [];
+    let wTransformedSubdifs1 = to.prim.LIT1(wDif[0], wTransformationDif, log);
+    let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1]);
+    return [...wTransformedSubdifs1, ...wTransformedSubdifs2];    
 }
-to.prim.LIT1 = function(wrap, transformation_dif) {
-    let transformed_wraps = [];
-    if (transformation_dif.length === 0) {
-        transformed_wraps = [wrap];
+to.prim.LIT1 = function(wrap, wTransformationDif, log=false) {
+    //process.stdout.write("I1");
+    if (log) console.log('LIT1:');
+    let wTransformedSubdifs = [];
+    if (wTransformationDif.length === 0) {
+        wTransformedSubdifs = [wrap];
     }
-    else if (to.prim.checkRA(wrap) && !to.prim.checkBO(wrap, transformation_dif[0])) {
-        transformed_wraps = to.prim.LIT1(wrap, transformation_dif.slice(1));
+    // if the wrap is relatively addressed and the transformer is not the target, then skip it
+    else if (to.prim.checkRA(wrap) && !to.prim.checkBO(wrap, wTransformationDif[0])) {
+        if (log) console.log('not BO');
+        if (log) console.log('wrap', JSON.stringify(wrap));
+        if (log) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
+        wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1), log);
     } 
-    else if (to.prim.checkRA(wrap) && to.prim.checkBO(wrap, transformation_dif[0])) {
-        to.prim.convertAA(wrap, transformation_dif[0]);
-        transformed_wraps = to.prim.LIT1(wrap, transformation_dif.slice(1));
+    else if (to.prim.checkRA(wrap) && to.prim.checkBO(wrap, wTransformationDif[0])) {
+        if (log) console.log('BO');
+        to.prim.convertAA(wrap, wTransformationDif[0]);
+        wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1));
     }
     else {
-        transformed_wraps = to.prim.LIT(to.prim.IT(wrap, transformation_dif[0]), transformation_dif.slice(1));
+        if (log) console.log('not RA');
+        wTransformedSubdifs = to.prim.LIT(to.prim.IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1));
     }
-    return transformed_wraps;
+    return wTransformedSubdifs;
 }
 
-to.prim.LET = function(wrapped_dif, transformation_dif) {
-    if (wrapped_dif.length === 0) return [];
-    let transformed_wraps_1 = to.prim.LET1(wrapped_dif[0], transformation_dif);
-    let transformed_wraps_2 = to.prim.LET(wrapped_dif.slice(1), transformation_dif);
-    return [...transformed_wraps_1, ...transformed_wraps_2];
+to.prim.LET = function(wDif, wTransformationDif) {
+    //process.stdout.write("E");
+    if (wDif.length === 0) return [];
+    let wTransformedSubdifs1 = to.prim.LET1(wDif[0], wTransformationDif);
+    let wTransformedSubdifs2 = to.prim.LET(wDif.slice(1), wTransformationDif);
+    return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
 }
-to.prim.LET1 = function(wrap, transformation_dif) {
-    let transformed_wraps = [];
-    if (transformation_dif.length === 0) {
-        transformed_wraps = [wrap];
+to.prim.LET1 = function(wrap, wTransformationDif) {
+    //process.stdout.write("E1");
+    let wTransformedSubdifs = [];
+    if (wTransformationDif.length === 0) {
+        wTransformedSubdifs = [wrap];
     }
     else if (to.prim.checkRA(wrap)) {
-        transformed_wraps = [wrap];
+        wTransformedSubdifs = [wrap];
     }
     else {
-        transformed_wraps = to.prim.LET(to.prim.ET(wrap, transformation_dif[0]), transformation_dif.slice(1));
+        wTransformedSubdifs = to.prim.LET(to.prim.ET(wrap, wTransformationDif[0]), wTransformationDif.slice(1));
     }
-    return transformed_wraps;
+    return wTransformedSubdifs;
 }
 
-to.prim.IT = function(wrap, transformer) {
+to.prim.IT = function(wrap, wTransformer) {
     let transformed_wraps = [];
     if (to.isAdd(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.IT_AA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.IT_AD(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.IT_AM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.IT_AN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.IT_AR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_AA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_AD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_AM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_AN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_AR(wrap, wTransformer));
     }
     else if (to.isDel(wrap)) {
-        if (to.isAdd(transformer)) {
-            let result = to.prim.IT_DA(wrap, transformer);
+        if (to.isAdd(wTransformer)) {
+            let result = to.prim.IT_DA(wrap, wTransformer);
             if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.IT_DD(wrap, transformer));
-        else if (to.isMove(transformer)) {
-            let result = to.prim.IT_DM(wrap, transformer);
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_DD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) {
+            let result = to.prim.IT_DM(wrap, wTransformer);
             if (isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.IT_DN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.IT_DR(wrap, transformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_DN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_DR(wrap, wTransformer));
     }
     else if (to.isMove(wrap)) {
-        if (to.isAdd(transformer)) {
-            let result = to.prim.IT_MA(wrap, transformer);
+        if (to.isAdd(wTransformer)) {
+            let result = to.prim.IT_MA(wrap, wTransformer);
             if (to.isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.IT_MD(wrap, transformer));
-        else if (to.isMove(transformer)) {
-            let result = to.prim.IT_MM(wrap, transformer);
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_MD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) {
+            let result = to.prim.IT_MM(wrap, wTransformer);
             if (isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.IT_MN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.IT_MR(wrap, transformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_MN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_MR(wrap, wTransformer));
     }
     else if (to.isNewline(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.IT_NA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.IT_ND(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.IT_NM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.IT_NN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.IT_NR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_NA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_ND(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_NM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_NN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_NR(wrap, wTransformer));
     }
     else if (to.isRemline(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.IT_RA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.IT_RD(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.IT_RM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.IT_RN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.IT_RR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_RA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_RD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_RM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_RN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_RR(wrap, wTransformer));
     }
     return transformed_wraps;
 }
-to.prim.ET = function(wrap, transformer) {
+to.prim.ET = function(wrap, wTransformer) {
     let transformed_wraps = [];
     if (to.isAdd(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.ET_AA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.ET_AD(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.ET_AM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.ET_AN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.ET_AR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_AA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_AD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_AM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_AN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_AR(wrap, wTransformer));
     }
     else if (to.isDel(wrap)) {
-        if (to.isAdd(transformer)) {
-            let result = to.prim.ET_DA(wrap, transformer);
+        if (to.isAdd(wTransformer)) {
+            let result = to.prim.ET_DA(wrap, wTransformer);
             if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isDel(transformer)) {
-            let result = to.prim.ET_DD(wrap, transformer);
+        else if (to.isDel(wTransformer)) {
+            let result = to.prim.ET_DD(wrap, wTransformer);
             if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isMove(transformer)) {
-            let result = to.prim.ET_DM(wrap, transformer);
+        else if (to.isMove(wTransformer)) {
+            let result = to.prim.ET_DM(wrap, wTransformer);
             if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.ET_DN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.ET_DR(wrap, transformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_DN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_DR(wrap, wTransformer));
     }
     else if (to.isMove(wrap)) {
-        if (to.isAdd(transformer)) {
-            let result = to.prim.ET_MA(wrap, transformer);
+        if (to.isAdd(wTransformer)) {
+            let result = to.prim.ET_MA(wrap, wTransformer);
             if (to.isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isDel(transformer)) {
-            let result = to.prim.ET_MD(wrap, transformer);
+        else if (to.isDel(wTransformer)) {
+            let result = to.prim.ET_MD(wrap, wTransformer);
             if (to.isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isMove(transformer)) {
-            let result = to.prim.ET_MM(wrap, transformer);
+        else if (to.isMove(wTransformer)) {
+            let result = to.prim.ET_MM(wrap, wTransformer);
             if (isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
             }
         }
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.ET_MN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.ET_MR(wrap, transformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_MN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_MR(wrap, wTransformer));
     }
     else if (to.isNewline(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.ET_NA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.ET_ND(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.ET_NM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.ET_NN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.ET_NR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_NA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_ND(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_NM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_NN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_NR(wrap, wTransformer));
     }
     else if (to.isRemline(wrap)) {
-        if (to.isAdd(transformer)) transformed_wraps.push(to.prim.ET_RA(wrap, transformer));
-        else if (to.isDel(transformer)) transformed_wraps.push(to.prim.ET_RD(wrap, transformer));
-        else if (to.isMove(transformer)) transformed_wraps.push(to.prim.ET_RM(wrap, transformer));
-        else if (to.isNewline(transformer)) transformed_wraps.push(to.prim.ET_RN(wrap, transformer));
-        else if (to.isRemline(transformer)) transformed_wraps.push(to.prim.ET_RR(wrap, transformer));
+        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_RA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_RD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_RM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_RN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_RR(wrap, wTransformer));
     }
     return transformed_wraps;
 }
 
 
-to.prim.IT_AA = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.IT_AA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (wrap.sub[1] < transformer[1]) return wrap;
     wrap.sub[1] += transformer[2].length;
     return wrap;
 }
-to.prim.IT_AD = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.IT_AD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (wrap.sub[1] <= transformer[1]) return wrap;
     if (wrap.sub[1] > transformer[1] + transformer[2]) {
         wrap.sub[1] -= transformer[2];
     }
     else {
-        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), transformer);
+        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer));
         wrap.sub[1] = transformer[1];
     }
     return wrap;
 }
-to.prim.IT_AM = function(wrap, transformer) {
+to.prim.IT_AM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         wrap = to.prim.IT_AD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
     }
@@ -966,13 +1243,15 @@ to.prim.IT_AM = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_AN = function(wrap, transformer) {
+to.prim.IT_AN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer <= wrap.sub[0]) {
         wrap.sub[0]++;
     }
     return wrap;
 }
-to.prim.IT_AR = function(wrap, transformer) {
+to.prim.IT_AR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]--;
     }
@@ -988,8 +1267,9 @@ to.prim.IT_AR = function(wrap, transformer) {
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.IT_DA = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.IT_DA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (transformer[1] >= wrap.sub[1] + wrap.sub[2]) return wrap;
     if (wrap.sub[1] >= transformer[1]) {
         wrap.sub[1] += transformer[2].length;
@@ -1000,14 +1280,15 @@ to.prim.IT_DA = function(wrap, transformer) {
                 to.prim.wrapSubdif(to.del(wrap.sub[0], transformer[1] + transformer[2].length, wrap.sub[2] - (transformer[1] - wrap.sub[1])))];
     }
 }
-to.prim.IT_DD = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.IT_DD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (transformer[1] >= wrap.sub[1] + wrap.sub[2]) return wrap;
     if (wrap.sub[1] >= transformer[1] + transformer[2]) {
         wrap.sub = to.del(wrap.sub[0], wrap.sub[1] - transformer[2], wrap.sub[2]);
     }
     else {
-        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), transformer);
+        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer));
         if (transformer[1] <= wrap.sub[1] && wrap.sub[1] + wrap.sub[2] <= transformer[1] + transformer[2]) {
             wrap.sub = to.del(wrap.sub[0], wrap.sub[1], 0);
         }
@@ -1024,7 +1305,8 @@ to.prim.IT_DD = function(wrap, transformer) {
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.IT_DM = function(wrap, transformer) {
+to.prim.IT_DM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         wrap = to.prim.IT_DD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
     }
@@ -1033,13 +1315,15 @@ to.prim.IT_DM = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_DN = function(wrap, transformer) {
+to.prim.IT_DN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer <= wrap.sub[0]) {
         wrap.sub[0]++;
     }
     return wrap;
 }
-to.prim.IT_DR = function(wrap, transformer) {
+to.prim.IT_DR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]--;
     }
@@ -1054,7 +1338,8 @@ to.prim.IT_DR = function(wrap, transformer) {
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.IT_MA = function(wrap, transformer) {
+to.prim.IT_MA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
         if (to.isDel(del_wrap)) {
@@ -1071,11 +1356,12 @@ to.prim.IT_MA = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_MD = function(wrap, transformer) {
+to.prim.IT_MD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         let del_wrap = to.prim.IT_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
         if (del_wrap.meta.informationLost) {
-            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), transformer, 'del');
+            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer), 'del');
         }
         wrap.sub[1] = del_wrap.sub[1];
         wrap.sub[4] = del_wrap.sub[2];
@@ -1083,14 +1369,15 @@ to.prim.IT_MD = function(wrap, transformer) {
     else if (wrap.sub[2] === transformer[0]) {
         let add_wrap = to.prim.IT_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
         if (add_wrap.meta.informationLost) {
-            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), transformer, 'add');
+            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer), 'add');
         }
         wrap.sub[3] = add_wrap[1];
     }
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.IT_MM = function(wrap, transformer) {
+to.prim.IT_MM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         wrap = to.prim.IT_MD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
     }
@@ -1121,12 +1408,14 @@ to.prim.IT_MM = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_MN = function(wrap, transformer) {
+to.prim.IT_MN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] >= transformer) wrap.sub[0]++;
     if (wrap.sub[2] >= transformer) wrap.sub[2]++;
     return wrap;
 }
-to.prim.IT_MR = function(wrap, transformer) {
+to.prim.IT_MR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) wrap.sub[0]--;
     else if (-transformer === wrap.sub[0]) {
         /**
@@ -1145,20 +1434,22 @@ to.prim.IT_MR = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_NA = function(wrap, transformer) {
+to.prim.IT_NA = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.IT_ND = function(wrap, transformer) {
+to.prim.IT_ND = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.IT_NM = function(wrap, transformer) {
+to.prim.IT_NM = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.IT_NN = function(wrap, transformer) {
+to.prim.IT_NN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer <= wrap.sub) wrap.sub++;
     return wrap;
 }
-to.prim.IT_NR = function(wrap, transformer) {
+to.prim.IT_NR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub) wrap.sub--;
     else if (-transformer === wrap.sub) {
         /**
@@ -1170,28 +1461,32 @@ to.prim.IT_NR = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.IT_RA = function(wrap, transformer) {
+to.prim.IT_RA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-wrap.sub === transformer[0]) {
         console.log("Transforming remline agains an add on the same row!");
         ///TODO: find out a way to handle this
     }
     return wrap;
 }
-to.prim.IT_RD = function(wrap, transformer) {
+to.prim.IT_RD = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.IT_RM = function(wrap, transformer) {
+to.prim.IT_RM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-wrap.sub === transformer[2]) {
         console.log("Transforming remline agains a move addition on the same row!");
         ///TODO: find out a way to handle this
     }
     return wrap;
 }
-to.prim.IT_RN = function(wrap, transformer) {
+to.prim.IT_RN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer <= -wrap.sub) wrap.sub--;
     return wrap;
 }
-to.prim.IT_RR = function(wrap, transformer) {
+to.prim.IT_RR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < -wrap.sub) wrap.sub++;
     if (transformer === wrap.sub) {
         /**
@@ -1203,21 +1498,23 @@ to.prim.IT_RR = function(wrap, transformer) {
     return wrap;
 }
 
-to.prim.ET_AA = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
-    if (wrap.sub[1] <= transformer[1]) return wrap;
+to.prim.ET_AA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
+    if (wrap.sub[1] < transformer[1]) return wrap; // equality removed because of the IT(ET([0, 0, '3'], [0, 0, '2']), [0, 0, '2']) => [0, 0, '3'] example
     if (wrap.sub[1] >= transformer[1] + transformer[2].length) {
         wrap.sub[1] -= transformer[2].length;
     }
     else {
         wrap.sub[1] -= transformer[1];
-        to.prim.saveRA(wrap, transformer);
+        to.prim.saveRA(wrap, to.prim.deepCopy(wTransformer));
     }
     return wrap;
 }
-to.prim.ET_AD = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
-    if (to.prim.checkLI(wrap, transformer)) {
+to.prim.ET_AD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
+    if (to.prim.checkLI(wrap, wTransformer)) {
         wrap.sub = to.prim.recoverLI(wrap);
     }
     else if (wrap.sub[1] <= transformer[1]) return wrap;
@@ -1226,7 +1523,8 @@ to.prim.ET_AD = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.ET_AM = function(wrap, transformer) {
+to.prim.ET_AM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         wrap.sub = to.prim.ET_AD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
     }
@@ -1235,21 +1533,24 @@ to.prim.ET_AM = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.ET_AN = function(wrap, transformer) {
+to.prim.ET_AN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < wrap.sub[0]) { ///TODO: revise this
         wrap.sub[0]--;
     }
     return wrap;
 }
-to.prim.ET_AR = function(wrap, transformer) {
+to.prim.ET_AR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]++;
     }
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.ET_DA = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.ET_DA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (wrap.sub[1] + wrap.sub[2] <= transformer[1]) return wrap;
     if (wrap.sub[1] >= transformer[1] + transformer[2].length) {
         wrap.sub[1] -= transformer[2].length;
@@ -1257,32 +1558,33 @@ to.prim.ET_DA = function(wrap, transformer) {
     else {
         if (transformer[1] <= wrap.sub[1] && wrap.sub[1] + wrap.sub[2] <= transformer[1] + transformer[2].length) {
             wrap.sub[1] -= transformer[1];
-            to.prim.saveRA(wrap, transformer);
+            to.prim.saveRA(wrap, wTransformer);
         }
         else if (transformer[1] <= wrap.sub[1] && wrap.sub[1] + wrap.sub[2] > transformer[1] + transformer[2].length) {
             let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1] - transformer[1], transformer[1] + transformer[2].length - wrap.sub[1]));
             let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], transformer[1], wrap.sub[1] + wrap.sub[2] - transformer[1] - transformer[2].length));
-            to.prim.saveRA(del1_wrap, transformer);
+            to.prim.saveRA(del1_wrap, wTransformer);
             return [del1_wrap, del2_wrap];
         }
         else if (transformer[1] > wrap.sub[1] && transformer[1] + transformer[2].length <= wrap.sub[1] + wrap.sub[2]) {
             let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, transformer[2].length));
             let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], wrap.sub[2] - transformer[2].length));
-            to.prim.saveRA(del1_wrap, transformer);
+            to.prim.saveRA(del1_wrap, wTransformer);
             return [del1_wrap, del2_wrap];
         }
         else {
             let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1]));
             let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], transformer[1] - wrap.sub[1]));
-            to.prim.saveRA(del1_wrap, transformer);
+            to.prim.saveRA(del1_wrap, wTransformer);
             return [del1_wrap, del2_wrap];
         }
     }
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.ET_DD = function(wrap, transformer) {
-    if (!to.prim.sameRow(wrap, transformer)) return wrap;
+to.prim.ET_DD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
+    if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
     if (to.prim.checkLI(wrap, transformer)) {
         wrap.sub = to.prim.recoverLI(wrap);
     }
@@ -1299,7 +1601,8 @@ to.prim.ET_DD = function(wrap, transformer) {
 }
 // @note May return an array with two subdifs
 ///TODO: the wrap might be losing some meta information here
-to.prim.ET_DM = function(wrap, transformer) {
+to.prim.ET_DM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         wrap = to.prim.ET_DD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
     }
@@ -1308,32 +1611,37 @@ to.prim.ET_DM = function(wrap, transformer) {
     }
     return wrap;
 }
-to.prim.ET_DN = function(wrap, transformer) {
+to.prim.ET_DN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < wrap.sub[0]) { ///TODO: revise this
         wrap.sub[0]--;
     }
     return wrap;
 }
-to.prim.ET_DR = function(wrap, transformer) {
+to.prim.ET_DR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]++;
     }
     return wrap;
 }
-to.prim.ET_DN = function(wrap, transformer) {
+to.prim.ET_DN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < wrap.sub[0]) { ///TODO: revise this
         wrap.sub[0]--;
     }
     return wrap;
 }
-to.prim.ET_DR = function(wrap, transformer) {
+to.prim.ET_DR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]++;
     }
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.ET_MA = function(wrap, transformer) {
+to.prim.ET_MA = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         let del_wrap = to.prim.ET_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
         if (to.isDel(del_wrap)) {
@@ -1360,7 +1668,8 @@ to.prim.ET_MA = function(wrap, transformer) {
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.ET_MD = function(wrap, transformer) {
+to.prim.ET_MD = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
         let del_wrap = to.prim.ET_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
         if (to.isDel(del_wrap)) {
@@ -1381,52 +1690,59 @@ to.prim.ET_MD = function(wrap, transformer) {
     return wrap;
 }
 // @note May return an array with two subdifs
-to.prim.ET_MM = function(wrap, transformer) {
+to.prim.ET_MM = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     ///TODO: finish
     console.log('Not implemented ET_MM');
     return wrap;
 }
-to.prim.ET_MN = function(wrap, transformer) {
+to.prim.ET_MN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < wrap.sub[0]) wrap.sub[0]--;
     if (transformer < wrap.sub[2]) wrap.sub[2]--;
     return wrap;
 }
-to.prim.ET_MR = function(wrap, transformer) {
+to.prim.ET_MR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) wrap.sub[0]++;
     if (-transformer < wrap.sub[2]) wrap.sub[2]++;
     return wrap;
 }
-to.prim.ET_NA = function(wrap, transformer) {
+to.prim.ET_NA = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_ND = function(wrap, transformer) {
+to.prim.ET_ND = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_NM = function(wrap, transformer) {
+to.prim.ET_NM = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_NN = function(wrap, transformer) {
+to.prim.ET_NN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < wrap.sub) wrap.sub--;
     return wrap;
 }
-to.prim.ET_NR = function(wrap, transformer) {
+to.prim.ET_NR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < wrap.sub) wrap.sub++;
     return wrap;
 }
-to.prim.ET_RA = function(wrap, transformer) {
+to.prim.ET_RA = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_RD = function(wrap, transformer) {
+to.prim.ET_RD = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_RM = function(wrap, transformer) {
+to.prim.ET_RM = function(wrap, wTransformer) {
     return wrap;
 }
-to.prim.ET_RN = function(wrap, transformer) {
+to.prim.ET_RN = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (transformer < -wrap.sub) wrap.sub++;
     return wrap;
 }
-to.prim.ET_RR = function(wrap, transformer) {
+to.prim.ET_RR = function(wrap, wTransformer) {
+    let transformer = wTransformer.sub;
     if (-transformer < -wrap.sub) wrap.sub--;
     return wrap;
 }
