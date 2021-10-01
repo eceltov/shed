@@ -45,7 +45,7 @@ class Server {
             connection.sendUTF(JSON.stringify(connection_metadata));
             connection.on('message', function(message) {
                 if (message.type === 'utf8') {
-                    //console.log('Received Message: ' + message.utf8Data);
+                    console.log('Received Message: ' + message.utf8Data);
                     that.sendToAllUsers(message);
                 }
                 else {

@@ -1,4 +1,6 @@
 var Client = require('./client_class');
+var to = require('../lib/dif');
+
 
 var test = {};
 
@@ -14,7 +16,10 @@ var test = {};
  test.getStatusPromise = function(statusChecker, checkCount=1, timeout=0) {
     return new Promise((resolve, reject) => {
         statusChecker.setCheckCount(checkCount);
-        if (statusChecker.ready()) resolve();
+        if (statusChecker.ready()) {
+            statusChecker.reset();
+            resolve();
+        } 
         statusChecker.setReadyCallback(resolve);
         if (timeout > 0) {
             setTimeout(reject, timeout);
@@ -51,6 +56,11 @@ test.sameDocumentState = function(clients) {
         }
     }
     return true;
+}
+
+test.checkSameDocumentState = function(clients, document) {
+    if (!test.sameDocumentState(clients)) return false;
+    return to.prim.deepEqual(clients[0].document, document);
 }
 
 test.setCSGlobalLatency = function(clients, latency) {

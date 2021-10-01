@@ -21,8 +21,9 @@ class Client {
     propagateLocalDif(dif) {
         this.applyDif(dif);
         this.pushLocalDifToHB(dif);
-        let message_obj = this.HBGetLast();
-    
+        let message_obj = to.prim.deepCopy(this.HBGetLast());
+        message_obj[1] = to.prim.unwrapDif(message_obj[1]);
+
         let message = JSON.stringify(message_obj);
         let that = this;
         setTimeout(function () {
@@ -37,10 +38,13 @@ class Client {
       let prev_userID = (this.server_ordering.length == 0) ? -1 : this.server_ordering[this.server_ordering.length - 1][0];
       let prev_commitSerialNumber = (this.server_ordering.length == 0) ? -1 : this.server_ordering[this.server_ordering.length - 1][1];
 
+      let wDif = to.prim.wrapDif(dif);
+
       this.HB.push([
-        [this.userID, this.commitSerialNumber, prev_userID, prev_commitSerialNumber], dif
+        [this.userID, this.commitSerialNumber, prev_userID, prev_commitSerialNumber], wDif
       ]);
       this.commitSerialNumber++;
+
     }
   
     /**

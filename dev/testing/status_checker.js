@@ -46,6 +46,7 @@ class StatusChecker {
     check(index) {
         this.status[index]++;
         if (this.readyCallback !== null && this.ready()) {
+            this.reset();
             this.readyCallback();
         }
     }

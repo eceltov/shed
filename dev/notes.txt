@@ -128,3 +128,12 @@ Possible problem:
     An operation A is transformed into two using some include/exclude transformation into A'_1 and A'_2.
     Another operation B is transformed into B' by excluding A and has relative addressing.
     Later B'' is created by including A'_1 and A'_2, but it is relatively addressed to A, therefore one of the A's need to have the same id as A. 
+
+makeIndependant():
+    It is not possible to call LIT on the incoming message dif directly, because msgDif[0]->msgDif[1]->... and LIT includes transformedMsgDif[i]
+    into the transformation dif when transforming msgDif[i + 1]. Therefore all previous subdifs would be included multiple times. to solve this,
+    the subdifs in msgDif are made independant, so that the transformed subdifs can be included in the transformation.
+
+    Similarly, it is not possible to call LET on any wDif, whose wSubdifs are not independant. If LET were to be called on dependant wSubdifs,
+    first some operations would be excluded from the first wSubdif (given the precondition that wTransformationDif[0]->wSubdif), but for
+    the next wSubdifs the precondition would not hold, as they are dependant.

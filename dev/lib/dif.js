@@ -227,20 +227,19 @@ to.undoDifTest = function(dif, document) {
     return document;
 }
 
-to.UDRTest = function(message, document, HB, SO_original, log) {
+to.UDRTest = function(message, document, wOriginalHB, SO_original, log) {
     // creating new document so that changing it is not propagated to the user
     if(log) console.log('before:', document);
-    let HBCopy = to.prim.deepCopy(HB);
-    let wHB = HBCopy.map(operation => [operation[0], to.prim.wrapDif(operation[1])]); // wrapping everything in HB (so that operations have an ID)
+    let wHB = to.prim.deepCopy(wOriginalHB);
     let SO = [...SO_original, message[0]];
 
-    if(log) console.log('wHB:', wHB);
+    //if(log) console.log('wHB:', JSON.stringify(wHB));
     if(log) console.log('message:', message);
 
     // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
     let TO_HBIndex = to.prim.findTOIndex(message, wHB, SO);
     let dependantHBIndex = to.prim.findLastDependancyIndex(message, wHB);
-    let msgSOIndex = to.prim.SOIndex(message, SO);
+    //let msgSOIndex = to.prim.SOIndex(message, SO);
     //if(log) console.log('TO_HB_index:', TO_HB_index);
 
     /*
@@ -299,20 +298,20 @@ to.UDRTest = function(message, document, HB, SO_original, log) {
     if (undoIndex === wHB.length) {
         if(log) console.log('UDR no ops need to be undone');
         let wTransformedMessage = to.GOTCA(wMessage, wHB, SO, log);
-        let transformedMessage = [wTransformedMessage[0], to.prim.unwrapDif(wTransformedMessage[1])];
-        if(log) console.log('transformedMessage:', transformedMessage);
-        document = to.applyDifTest(transformedMessage[1], document);
+        //let transformedMessage = [wTransformedMessage[0], to.merge(to.prim.unwrapDif(wTransformedMessage[1]))];
+        if(log) console.log('wTransformedMessage:', JSON.stringify(wTransformedMessage));
+
+        document = to.applyDifTest(to.prim.unwrapDif(wTransformedMessage[1]), document);
         //log(wTransformedMessage);
 
         if(log) console.log('after:', document);
 
         // unwrapping difs
-        let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
+        //let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
 
         return {
-            message: transformedMessage,
             document: document,
-            HB: [...newHB, transformedMessage]
+            HB: [...wHB, wTransformedMessage]
         };
     }
 
@@ -336,8 +335,9 @@ to.UDRTest = function(message, document, HB, SO_original, log) {
 
     // transforming and applying message
     let wTransformedMessage = to.GOTCA(wMessage, wHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
-    let transformedMessage = [wTransformedMessage[0], to.prim.unwrapDif(wTransformedMessage[1])];
-    document = to.applyDifTest(transformedMessage[1], document);
+    //wTransformedMessage[1] = to.prim.wrapDif(to.merge(to.prim.unwrapDif(wTransformedMessage[1]))); // cleaning the result, this may cause an empty dif
+    //let transformedMessage = [wTransformedMessage[0], to.prim.unwrapDif(wTransformedMessage[1])];
+    document = to.applyDifTest(to.prim.unwrapDif(wTransformedMessage[1]), document);
 
     if(log) console.log('wTransformedMessage:', JSON.stringify(wTransformedMessage));
 
@@ -357,39 +357,48 @@ to.UDRTest = function(message, document, HB, SO_original, log) {
     // transforming undone difs
     let wTransformedUndoneDifs = []; // undone difs that are transformed
     if(log) console.log('wUndoneDifs:', JSON.stringify(wUndoneDifs));
-    let wFirstTransformedUndoneDif = to.prim.LIT(wUndoneDifs[0], wTransformedMessage[1]);
+    let wIndependantFirstUndoneDif = to.prim.makeIndependant(wUndoneDifs[0]);
+    let wFirstTransformedUndoneDif = to.prim.LIT(wIndependantFirstUndoneDif, wTransformedMessage[1]);
     wTransformedUndoneDifs.push(wFirstTransformedUndoneDif);
     let wLETDif = [];
     let wLITDif = [...wTransformedMessage[1]];
     if(log) console.log('wFirstTransformedUndoneDif:', JSON.stringify(wFirstTransformedUndoneDif));
     for (let i = 1; i < wUndoneDifs.length; i++) {
-        if(log && i == 1) console.log('wUndoneDifs[i]:', JSON.stringify(wUndoneDifs[i]));
+        if(log) console.log('wUndoneDifs[i]:', JSON.stringify(wUndoneDifs[i]));
+        if(log) console.log();
         wLETDif.unshift(...wReversedUndoneDifs[wReversedUndoneDifs.length - i]);
-        let wExcludedDif = to.prim.LET(wUndoneDifs[i], wLETDif);
-        if(log && i == 1) console.log('wExcludedDif:', JSON.stringify(wExcludedDif));
+        if(log) console.log('wLETDif:', JSON.stringify(wLETDif));
+        if(log) console.log();
+        let wIndependantUndoneDif = to.prim.makeIndependant(wUndoneDifs[i]);
+        let wExcludedDif = to.prim.LET(wIndependantUndoneDif, wLETDif);
+        if(log) console.log('wExcludedDif:', JSON.stringify(wExcludedDif));
+        if(log) console.log();
         wLITDif.push(...wTransformedUndoneDifs[i - 1]);
-        if(log && i == 1) console.log('wLITDif:', JSON.stringify(wLITDif));
-        let transformed_wrap = to.prim.LIT(wExcludedDif, wLITDif, log);
-        if(log && i == 1) console.log('transformed_wrap:', JSON.stringify(transformed_wrap));
-        wTransformedUndoneDifs.push(transformed_wrap);
+        if(log) console.log('wLITDif:', JSON.stringify(wLITDif));
+        if(log) console.log();
+        let wTransformedUndoneDif = to.prim.LIT(wExcludedDif, wLITDif, log);
+        if(log) console.log('wTransformedUndoneDif:', JSON.stringify(wTransformedUndoneDif));
+        if(log) console.log();
+        wTransformedUndoneDifs.push(wTransformedUndoneDif);
     }
 
 
     // unwrapping transformed wraps
-    let transformedUndoneDifs = [];
-    wTransformedUndoneDifs.forEach(wrap => transformedUndoneDifs.push(to.prim.unwrapDif(wrap)));
+    //let transformedUndoneDifs = [];
+    //wTransformedUndoneDifs.forEach(wrap => transformedUndoneDifs.push(to.prim.unwrapDif(wrap)));
 
-    if(log) console.log('transformedUndoneDifs:', JSON.stringify(transformedUndoneDifs));
+    if(log) console.log('wTransformedUndoneDifs:', JSON.stringify(wTransformedUndoneDifs));
 
 
     // redoing undone difs
-    transformedUndoneDifs.forEach(dif => document = to.applyDifTest(dif, document));
+    //transformedUndoneDifs.forEach(dif => document = to.applyDifTest(dif, document));
+    wTransformedUndoneDifs.forEach(wDif => document = to.applyDifTest(to.prim.unwrapDif(wDif), document));
 
     // creating operations from undone difs
-    let transformedUndoneOperations = [];
-    transformedUndoneDifs.forEach((dif, i) => {
-        let transformed_operation = [wUndoneHB[i][0], dif];
-        transformedUndoneOperations.push(transformed_operation);
+    let wTransformedUndoneOperations = [];
+    wTransformedUndoneDifs.forEach((wDif, i) => {
+        let wTransformedOperation = [wUndoneHB[i][0], wDif];
+        wTransformedUndoneOperations.push(wTransformedOperation);
     });
 
     //if(log) console.log('mid HB:', HB);
@@ -397,7 +406,7 @@ to.UDRTest = function(message, document, HB, SO_original, log) {
 
     // updating HB
     wHB.push(wTransformedMessage);
-    transformedUndoneOperations.forEach(operation => wHB.push(operation));
+    wTransformedUndoneOperations.forEach(wOperation => wHB.push(wOperation));
 
     if(log) console.log('UDR full run');
     //log(transformed_message);
@@ -406,12 +415,11 @@ to.UDRTest = function(message, document, HB, SO_original, log) {
     //if(log) console.log('after HB:', HB);
 
     // unwrapping difs
-    let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
+    //let newHB = wHB.map(operation => [operation[0], to.prim.unwrapDif(operation[1])]);
 
     return {
-        message: transformedMessage,
         document: document,
-        HB: newHB
+        HB: wHB
     };
 }
 
@@ -546,7 +554,12 @@ to.GOTCA = function(wMessage, wHB, SO, log=false) {
         wIndependantDifs.push(wHB[i][1]);
     }
 
-    //if(log) console.log('wIndependantDifs:', JSON.stringify(wIndependantDifs));
+    if(log) console.log('wIndependantDifs:');
+    if(log) wIndependantDifs.forEach(wDif => console.log(JSON.stringify(wDif)));
+    console.log();
+    if(log) console.log('wLocallyDependantDifs:');
+    if(log) wLocallyDependantDifs.forEach(wDif => console.log(JSON.stringify(wDif)));
+    console.log();
 
 
     // there are no independant messages, therefore no transformation is needed
@@ -556,13 +569,17 @@ to.GOTCA = function(wMessage, wHB, SO, log=false) {
     }
 
     let wMessageDif = wMessage[1];
+    let wIndependantMessageDif = to.prim.makeIndependant(wMessageDif);
 
     // there are no locally dependant operations in HB, therefore all independant operations can be included directly
+    ///TODO: or if all locally dependant difs are empty
     if (wLocallyDependantDifs.length === 0) {
         if(log) console.log('GOTCA no locally dependant ops');
-        let transformation_dif = [];
-        wIndependantDifs.forEach(wDif => transformation_dif.push(...wDif));
-        let wTransformedMessageDif = to.prim.LIT(wMessageDif, transformation_dif);
+        let wTransformationDif = [];
+        wIndependantDifs.forEach(wDif => wTransformationDif.push(...wDif));
+        //if(log) console.log('wMessageDif', JSON.stringify(wMessageDif));
+        let wTransformedMessageDif = to.prim.LIT(wIndependantMessageDif, wTransformationDif, log);
+        //if(log) console.log('wTransformedMessageDif', JSON.stringify(wTransformedMessageDif));
         wMessage[1] = wTransformedMessageDif;
         //console.log('GOTCA no locally dependant operations');
         //log(message);
@@ -604,7 +621,7 @@ to.GOTCA = function(wMessage, wHB, SO, log=false) {
     }
     let wReversedTransformedDifs = to.prim.deepCopy(wTransformedDifs)
     wReversedTransformedDifs.reverse();
-    let wTransformedMessageDif = to.prim.LET(wMessageDif, to.prim.dissolveArrays(wReversedTransformedDifs));
+    let wTransformedMessageDif = to.prim.LET(wIndependantMessageDif, to.prim.dissolveArrays(wReversedTransformedDifs));
     if(log) console.log('wTransformedMessageDif post LET:', JSON.stringify(wTransformedMessageDif));
     let prependingIndependantDifs = wHB.slice(lastDirectlyDependantIndex + 1, to.prim.findFirstLocalDependancyIndex(wMessage, wHB)); // independant difs between the last directly and first locally dependant dif
     //let prependingIndependantDifs = HB.slice(lastDirectlyDependantIndex + 1, TO_HB_index); // independant difs between the last directly and first locally dependant dif
@@ -900,11 +917,10 @@ to.prim.wrapSubdif = function(subdif) {
     }
 }
 to.prim.unwrapSubdif = function(wrap) {
-    let s = wrap;
-    if (s.constructor === Object && s.hasOwnProperty('sub')) {
-        s = s.sub;
+    if (wrap.constructor === Object && wrap.hasOwnProperty('sub')) {
+        return wrap.sub;
     }
-    return s;
+    return wrap;
 }
 to.prim.wrapDif = function(dif) {
     for (let i = 0; i < dif.length; i++) {
@@ -1008,48 +1024,67 @@ to.prim.convertAA = function(wrap, wAddresser) {
     return wrap;
 }
 
+/**
+ * @brief Takes a wDif of chronologically dependant subdifs and returns a new wDif of independant subdifs.
+ */
+to.prim.makeIndependant = function(wDif) {
+    let wDifCopy = to.prim.deepCopy(wDif);
+    let wDifReversed = to.prim.deepCopy(wDif).reverse();
+    let wIndependantDif = [];
+    for (let i = 0; i < wDif.length; i++) {
+        let wrap = wDifCopy[i];
+        let wTransformedDif = to.prim.LET([wrap], wDifReversed.slice(wDifReversed.length - i)); // LET can return multiple subdifs
+        wIndependantDif.push(...wTransformedDif);
+    }
+    return wIndependantDif;
+}
+
 to.prim.LIT = function(wDif, wTransformationDif, log=false) {
-    //process.stdout.write("I");
     if (wDif.length === 0) return [];
+    if (wTransformationDif.length === 0) return wDif;
+    if (log && wDif.length === 1 && (wDif[0].meta.ID === 13 || wDif[0].meta.ID === 11)) console.log('wDif', JSON.stringify(wDif));
     let wTransformedSubdifs1 = to.prim.LIT1(wDif[0], wTransformationDif, log);
-    let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1]);
+    let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1], log);
+    //if (log) console.log('wTransformedSubdifs1', JSON.stringify(wTransformedSubdifs1));
+    //if (log) console.log('wTransformedSubdifs2', JSON.stringify(wTransformedSubdifs2));
     return [...wTransformedSubdifs1, ...wTransformedSubdifs2];    
 }
 to.prim.LIT1 = function(wrap, wTransformationDif, log=false) {
-    //process.stdout.write("I1");
-    if (log) console.log('LIT1:');
     let wTransformedSubdifs = [];
     if (wTransformationDif.length === 0) {
         wTransformedSubdifs = [wrap];
     }
     // if the wrap is relatively addressed and the transformer is not the target, then skip it
     else if (to.prim.checkRA(wrap) && !to.prim.checkBO(wrap, wTransformationDif[0])) {
-        if (log) console.log('not BO');
-        if (log) console.log('wrap', JSON.stringify(wrap));
-        if (log) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
+        //if (log) console.log('not BO');
+        //if (log) console.log('wrap', JSON.stringify(wrap));
+        //if (log) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1), log);
     } 
     else if (to.prim.checkRA(wrap) && to.prim.checkBO(wrap, wTransformationDif[0])) {
-        if (log) console.log('BO');
+        //if (log) console.log('BO');
         to.prim.convertAA(wrap, wTransformationDif[0]);
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1));
     }
     else {
-        if (log) console.log('not RA');
+        if (log) console.log('normal IT');
+        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('pre', JSON.stringify(wrap));
+        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('post', JSON.stringify(to.prim.IT(to.prim.deepCopy(wrap), wTransformationDif[0])));
+        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('wTransformationDif', JSON.stringify(wTransformationDif));
         wTransformedSubdifs = to.prim.LIT(to.prim.IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1));
+        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('post wTransformedSubdifs', JSON.stringify(wTransformedSubdifs));
     }
     return wTransformedSubdifs;
 }
 
 to.prim.LET = function(wDif, wTransformationDif) {
-    //process.stdout.write("E");
     if (wDif.length === 0) return [];
+    if (wTransformationDif.length === 0) return wDif;
     let wTransformedSubdifs1 = to.prim.LET1(wDif[0], wTransformationDif);
     let wTransformedSubdifs2 = to.prim.LET(wDif.slice(1), wTransformationDif);
     return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
 }
 to.prim.LET1 = function(wrap, wTransformationDif) {
-    //process.stdout.write("E1");
     let wTransformedSubdifs = [];
     if (wTransformationDif.length === 0) {
         wTransformedSubdifs = [wrap];
@@ -1585,7 +1620,7 @@ to.prim.ET_DA = function(wrap, wTransformer) {
 to.prim.ET_DD = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (!to.prim.sameRow(wrap, wTransformer)) return wrap;
-    if (to.prim.checkLI(wrap, transformer)) {
+    if (to.prim.checkLI(wrap, wTransformer)) {
         wrap.sub = to.prim.recoverLI(wrap);
     }
     else if (transformer[1] >= wrap.sub[1] + wrap.sub[2]) return wrap;
