@@ -137,3 +137,12 @@ makeIndependant():
     Similarly, it is not possible to call LET on any wDif, whose wSubdifs are not independant. If LET were to be called on dependant wSubdifs,
     first some operations would be excluded from the first wSubdif (given the precondition that wTransformationDif[0]->wSubdif), but for
     the next wSubdifs the precondition would not hold, as they are dependant.
+
+Mutual independancy:
+    When excluding a list of subdifs from a dif (aka LET(dif, subdifs)), the dif should be independant to satisfy the precondition.
+    After the exclusion, all of the subdifs in dif will be independant, as they were made independant to satisfy the precondition and
+    they could not be made dependant during exclusion. If the excluded dif will be later used in a inclusion transformation as the transformer,
+    the dif should be made dependant.
+
+    The rule of thumb: LET(mutually independant, mutually dependant) => mutually independant
+                       LIT(mutually independant, mutually dependant) => mutually dependant

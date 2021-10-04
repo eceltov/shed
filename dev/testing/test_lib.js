@@ -67,4 +67,20 @@ test.setCSGlobalLatency = function(clients, latency) {
     clients.forEach(client => client.CSLatency = latency);
 }
 
+test.sendAdds = function(clientMsgCount, clients) {
+    for (let i = 0; i < clients.length * clientMsgCount; i++) {
+        let dif = [to.add(0, 0, i.toString()), to.add(0, 1, i.toString())];
+        let index = Math.floor(i / clientMsgCount);
+        clients[index].propagateLocalDif(dif);
+    }
+}
+
+test.sendDels = function(clientMsgCount, clients) {
+    for (let i = 0; i < clients.length * clientMsgCount; i++) {
+        let dif = [to.del(0, i, 1), to.del(0, i + 1, 1)];
+        let index = Math.floor(i / clientMsgCount);
+        clients[index].propagateLocalDif(dif);
+    }
+}
+
 module.exports = test;

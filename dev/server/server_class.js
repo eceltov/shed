@@ -6,6 +6,7 @@ class Server {
         this.messageLog = []; ///TODO: testing only
         this.nextUserID = 0;
         this.users = [];
+        this.ordering = { on: false };
         this.server = http.createServer(function(request, response) {
             console.log((new Date()) + ' Received request for ' + request.url);
             console.log(request);
@@ -45,8 +46,35 @@ class Server {
             connection.sendUTF(JSON.stringify(connection_metadata));
             connection.on('message', function(message) {
                 if (message.type === 'utf8') {
-                    console.log('Received Message: ' + message.utf8Data);
-                    that.sendToAllUsers(message);
+                    if (that.ordering.on) {
+                        that.ordering.buffer.push(JSON.parse(message.utf8Data));
+                        if (that.ordering.buffer.length === that.ordering.packages[that.ordering.currentPackage]) {
+                            let userCount = -1;
+                            let userMessages = [];
+                            that.ordering.buffer.forEach(messageObj => userCount = (messageObj[0][0] > userCount) ? messageObj[0][0] : userCount);
+                            userCount++;
+                            for (let i = 0; i < userCount; i++) {
+                                userMessages.push([]);
+                                that.ordering.buffer.forEach(messageObj => {
+                                    if (messageObj[0][0] === i) {
+                                        userMessages[i].push(messageObj);
+                                    }
+                                });
+                            }
+                            let order = that.ordering.orders[that.ordering.currentPackage];
+                            order.forEach(userID => {
+                                let message = JSON.stringify(userMessages[userID].shift());
+                                console.log('Received Message: ' + message);
+                                that.sendToAllUsers(message, true);
+                            });
+                            that.ordering.buffer = [];
+                            that.ordering.currentPackage++;
+                        }                        
+                    }
+                    else {
+                        console.log('Received Message: ' + message.utf8Data);
+                        that.sendToAllUsers(message);
+                    }
                 }
                 else {
                     console.log('Received message in non UTF-8 format');
@@ -81,9 +109,14 @@ class Server {
         this.users.find(user => user.userID === userID).connection.sendUTF(message.utf8Data);
     }
 
-    sendToAllUsers(message) {
+    sendToAllUsers(message, stringified=false) {
         for (let user of this.users) {
-            user.connection.sendUTF(message.utf8Data);
+            if (stringified) {
+                user.connection.sendUTF(message);
+            }
+            else {
+                user.connection.sendUTF(message.utf8Data);
+            }
         }
     }
 
@@ -101,6 +134,22 @@ class Server {
     close() {
         this.wsServer.shutDown();
         this.server.close();
+    }
+
+    // example: [2, 4, 2, 1, 0, 0, 1, 1, 0] (two packages, first contains 4 messages, the second contains 2 packages)
+    setOrdering(orderingFormat) {
+        let orders = [];
+        let offset = 1 + orderingFormat[0];
+        for (let i = 0; i < orderingFormat[0]; i++) {
+            let order = orderingFormat.slice(offset, offset + orderingFormat[1 + i]);
+            orders.push(order);
+            offset += orderingFormat[1 + i];
+        }
+        this.ordering.packages = orderingFormat.slice(1, 1 + orderingFormat[0]);
+        this.ordering.orders = orders;
+        this.ordering.currentPackage = 0;
+        this.ordering.on = true;
+        this.ordering.buffer = [];
     }
 }
 

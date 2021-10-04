@@ -9,5 +9,9 @@
     "type": "git",
     "url": "git@gitlab.mff.cuni.cz:teaching/nprg045/krulis/2021-kloda-shared-web-editor.git"
   },
-  "author": "Vojtech Kloda"
+  "author": "Vojtech Kloda",
+  "dependencies": {
+    "jest": "^27.2.4",
+    "websocket": "^1.0.34"
+  }
 }

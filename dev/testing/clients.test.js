@@ -254,7 +254,46 @@ test('Add 2SpD Del 1SpD 2C intention test (two users attempt to delete the same 
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, ['1032210322'])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '1032210322' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Add 2SpD Del 2SpD 2C intention test (two users attempt to delete the same character multiple times).', () => {
+    initializeClients(2);
+    server.setOrdering([
+        4, 8, 6, 8, 6, 
+        0, 1, 0, 1, 0, 1, 0, 1,
+        0, 0, 1, 0, 1, 1,
+        0, 1, 0, 1, 1, 0, 1, 0,
+        0, 0, 1, 0, 1, 1
+    ]);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        let clientMsgCount = 4;
+        test.sendAdds(clientMsgCount, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 3;
+        test.sendDels(clientMsgCount, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 4;
+        test.sendAdds(clientMsgCount, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 3;
+        test.sendDels(clientMsgCount, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ '3106554431065544' ])).toBe(true);
     })
     .catch(() => {
         expect(false).toBe(true);
