@@ -1,5 +1,6 @@
 var Client = require('./client_class');
 var to = require('../lib/dif');
+const { client } = require('websocket');
 
 
 var test = {};
@@ -67,20 +68,43 @@ test.setCSGlobalLatency = function(clients, latency) {
     clients.forEach(client => client.CSLatency = latency);
 }
 
-test.sendAdds = function(clientMsgCount, clients) {
+test.sendAdds = function(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length * clientMsgCount; i++) {
-        let dif = [to.add(0, 0, i.toString()), to.add(0, 1, i.toString())];
+        let dif = [];
+        for (let j = 0; j < subdifCount; j++) {
+            dif.push(to.add(0, j, i.toString()));
+        }
         let index = Math.floor(i / clientMsgCount);
         clients[index].propagateLocalDif(dif);
     }
 }
 
-test.sendDels = function(clientMsgCount, clients) {
+test.sendDels = function(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length * clientMsgCount; i++) {
-        let dif = [to.del(0, i, 1), to.del(0, i + 1, 1)];
+        let dif = [];
+        for (let j = 0; j < subdifCount; j++) {
+            dif.push(to.del(0, i + j, 1));
+        }
         let index = Math.floor(i / clientMsgCount);
         clients[index].propagateLocalDif(dif);
     }
+}
+
+/**
+ * @brief Returns a dif simulating an Enter keypress on a specific row and position
+ */
+test.getRowSplitDif = function(client, row, position) {
+    let dif = [];
+    if (row >= client.document.length || position >= client.document[row].length) {
+        console.log("getRowSplitDif incorrect parameters!");
+        return dif;
+    }
+    dif.push(row + 1);
+    if (position > 0) {
+        let trailingRowText = client.document[row].substr(position);
+        dif.push(to.move(row, position, row + 1, 0, trailingRowText.length));
+    }
+    return dif;
 }
 
 module.exports = test;

@@ -146,3 +146,44 @@ Mutual independancy:
 
     The rule of thumb: LET(mutually independant, mutually dependant) => mutually independant
                        LIT(mutually independant, mutually dependant) => mutually dependant
+
+ET_MN:
+    If a move subdif is dependant on a newline subdif so that subdif[2] == newline, excluding the newline subdif from move will cause
+    the move operation to lose information, as the move target row is nonexistent. The IT_MN function therefore has to check is some
+    information was lost.
+
+    Generalization: If any operation takes place on a row that was added previously (basically any operation not on row 0), then excluding
+    that newline subdif makes the operation lose information.
+
+    Example: If we were to add a new row 1 and add some text on in and then decided to split that row by the Enter key, than the dif would
+    look something like this: [1, [1, 0, "text"], 2, [1, 2, 2, 0, 2]] (leaving "te" on row 1 and moving "xt" on the next row).
+    Making that dif independant will transform the move subdif in the following way: First, the addition part will lose information
+    due to the newline being excluded. Next the deletion part will lose information, as the text it was about to delete will be removed.
+    It was observed that when splitting lines with Enter a move subdif will always be preceded by a newline, but when deleting rows
+    and moving the text of the deleted row to the previous one, no newline precedes, therefore the move operation's information loss
+    needs to be seperated into the addition and deletion parts.
+
+Relative message chains:
+    Let there be clients 0 and 1. 0 creates a new line via subdif 1. Client 1 receives this subdif and decides to remove the line via 
+    subdif -1. Before 1's message arrives to 0, 0 adds some text on line 1 via subdif [1, 0, "text"].
+
+    If there were no other clients that would send messages in between, both 0's messages would be part of a message chain and therefore 
+    1's message would be totally ordered after both 0's messages and because it would attempt to delete a non empty line, it would be omitted.
+
+    If, however, some other clients were to send messages in between 0's messages, so that 0 receives a foreign message and after that
+    sends the second subdif [1, 0, "text"] (the foreign message would not interfere with 0's intend in any way), then 0's messages
+    would not be part of a message chain, because they do not depend on the same state.
+
+    Relative message chains attempt to fix that. Instead of a message chain being absolute, it would be relative in the sense that,
+    in the case of the above example, if 0's messages are not in a message chain BUT 1's message did not break the fact that it would
+    be a message chain (some other client broke it), than 0's messages would appear as a message chain for the purpose of processing
+    1's message.
+
+    Implementation:
+        From 0's perspective: 1's message is not present in the server_ordering linked to 0's second message, therefore 1's
+        message could not break 0's message chain.
+
+        From 1's perspective: First, 1's document state will have the line deleted, because 0's second message did not arrive yet.
+        After it's arrival, it's server_ordering does not contain 1's message and therefore it could not breake the message chain.
+
+        From 2+'s perspective: Same as 1's perspective, because 1's message will arrive first.

@@ -126,14 +126,14 @@ test('Add convergence test 2SpD (all users add random strings).', () => {
     });
 });
 
-test('Add convergence test 10SpD (all users add random strings).', () => {
+test('Add convergence test 5SpD (all users add random strings).', () => {
     initializeClients(5);
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        let clientMsgCount = 10;
+        let clientMsgCount = 5;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
             let dif = [];
-            for (let j = 0; j < 10; j++) dif.push(to.add(0, j, i.toString()));
+            for (let j = 0; j < 5; j++) dif.push(to.add(0, j, i.toString()));
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
@@ -211,46 +211,36 @@ test('Add Del Intention test 1SpD (two users attempt to delete the same characte
 
 test('Add 2SpD Del 1SpD 2C intention test (two users attempt to delete the same character).', () => {
     initializeClients(2);
-    clients[1].CSLatency = 50; // so that the first user's messages arrive first
+    server.setOrdering([
+        [0, 1, 0, 1],
+        [0, 1, 0, 1],
+        [0, 1, 0, 1],
+        [0, 1, 0, 1]
+    ]);
+
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
         let clientMsgCount = 2;
-        for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [to.add(0, 0, i.toString()), to.add(0, 1, i.toString())];
-            let index = Math.floor(i / clientMsgCount);
-            clients[index].propagateLocalDif(dif);
-        }
+        lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, ['11003322'])).toBe(true);
         let clientMsgCount = 2;
-        for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [to.del(0, i, 1)];
-            let index = Math.floor(i / clientMsgCount);
-            clients[index].propagateLocalDif(dif);
-        }
+        lib.sendDels(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, ['10322'])).toBe(true);
         let clientMsgCount = 2;
-        for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [to.add(0, 0, i.toString()), to.add(0, 1, i.toString())];
-            let index = Math.floor(i / clientMsgCount);
-            clients[index].propagateLocalDif(dif);
-        }
+        lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, ['1100332210322'])).toBe(true);
-        console.log(clients[0].document[0]);
         let clientMsgCount = 2;
-        for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [to.del(0, i, 1)];
-            let index = Math.floor(i / clientMsgCount);
-            clients[index].propagateLocalDif(dif);
-        }
+        lib.sendDels(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
@@ -264,32 +254,35 @@ test('Add 2SpD Del 1SpD 2C intention test (two users attempt to delete the same 
 test('Add 2SpD Del 2SpD 2C intention test (two users attempt to delete the same character multiple times).', () => {
     initializeClients(2);
     server.setOrdering([
-        4, 8, 6, 8, 6, 
-        0, 1, 0, 1, 0, 1, 0, 1,
-        0, 0, 1, 0, 1, 1,
-        0, 1, 0, 1, 1, 0, 1, 0,
-        0, 0, 1, 0, 1, 1
+        [0, 1, 0, 1, 0, 1, 0, 1],
+        [0, 0, 1, 0, 1, 1],
+        [0, 1, 0, 1, 1, 0, 1, 0],
+        [0, 0, 1, 0, 1, 1]
     ]);
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
         let clientMsgCount = 4;
-        test.sendAdds(clientMsgCount, clients);
+        lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
         let clientMsgCount = 3;
-        test.sendDels(clientMsgCount, clients);
+        lib.sendDels(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
         let clientMsgCount = 4;
-        test.sendAdds(clientMsgCount, clients);
+        lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
         let clientMsgCount = 3;
-        test.sendDels(clientMsgCount, clients);
+        lib.sendDels(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
@@ -300,4 +293,269 @@ test('Add 2SpD Del 2SpD 2C intention test (two users attempt to delete the same 
     });
 });
 
+test('Add 6SpD Del 4SpD 5C intention test (multiple users attempt to delete the same character multiple times).', () => {
+    initializeClients(5);
+    server.setOrdering([
+        [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0], 
+        [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
+        [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
+        [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
+    ]);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
+        let clientMsgCount = 5;
+        lib.sendAdds(clientMsgCount, 6, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
+        let clientMsgCount = 3;
+        lib.sendDels(clientMsgCount, 4, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
+        let clientMsgCount = 3;
+        lib.sendAdds(clientMsgCount, 6, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.sameDocumentState(clients)).toBe(true);
+        let clientMsgCount = 3;
+        lib.sendDels(clientMsgCount, 4, clients);
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients,
+            [ '244333333888888777777666666111111111111111111000000999999111111444444111111333333111111222222400999999888888777777666666555555111111444444111111333333111111222222111111111111111111000000111111999999111111888888111111777777111111666666111111555555222222444444222222333333222222222222222222111111222222000000' ]
+            )).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline 1SpD 5C simple convergence test.', () => {
+    initializeClients(5);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.newline(0)]);
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ '', ''])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline 3SpD 5C convergence test.', () => {
+    initializeClients(5);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.newline(0), to.newline(1), to.newline(2)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.newline(0), to.newline(1), to.newline(2)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let document = [];
+        for (let i = 0; i < 61; i++) document.push('');
+        expect(lib.checkSameDocumentState(clients, document)).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline Add 1SpD 5C convergence test.', () => {
+    initializeClients(5);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        clients[0].propagateLocalDif([to.newline(0)]);
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ '', 'Sample text with several words.' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
+    initializeClients(5);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.newline(0), to.newline(1), to.newline(2)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.remline(1), to.remline(1)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.newline(0), to.newline(1), to.newline(2)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let clientMsgCount = 2;
+        for (let i = 0; i < clientCount * clientMsgCount; i++) {
+            let dif = [to.remline(2), to.remline(5), to.remline(7)];
+            let index = Math.floor(i / clientMsgCount);
+            clients[index].propagateLocalDif(dif);
+        }
+        return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+    })
+    .then(() => {
+        let document = [];
+        for (let i = 0; i < 11; i++) document.push('');
+        expect(lib.checkSameDocumentState(clients, document)).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Move 5C simple convergence test.', () => {
+    initializeClients(5);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], 0, 6));
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Move 5C convergence test.', () => {
+    initializeClients(5);
+    let serverOrdering = [
+        [0],
+        [3, 2, 1, 0]
+    ];
+    
+    server.setOrdering(serverOrdering);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
+    })
+    .then(() => {
+        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], 0, 6));
+        clients[1].propagateLocalDif([to.add(0, 0, "Some ")]);
+        clients[2].propagateLocalDif([to.add(0, 6, "s")]);
+        clients[3].propagateLocalDif([to.add(0, 11, "s")]);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline Remline Add 5C message chain test (adding text to a new line and deleting it while not empty).', () => {
+    initializeClients(5);
+    server.setOrdering([
+        [0],
+        [0, 1]
+    ]);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.newline(1)]);
+        return lib.getStatusPromise(msgReceivedChecker);
+    })
+    .then(() => {
+        clients[0].propagateLocalDif([to.add(1, 0, "text")]);
+        clients[1].propagateLocalDif([to.remline(1)]);
+        return lib.getStatusPromise(msgReceivedChecker, 2);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ '', 'text' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
+
+test('Newline Remline Add 5C conflict test (adding text, newlining and remlining on the same row).', () => {
+    initializeClients(5);
+    let serverOrdering = [
+        [0],
+        [0, 1, 2, 3, 4]
+    ];
+    
+    server.setOrdering(serverOrdering);
+    
+    return lib.getStatusPromise(connectionChecker)
+    .then(() => {
+        clients[0].propagateLocalDif([to.newline(1)]);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
+    })
+    .then(() => {
+        clients[0].propagateLocalDif([to.add(1, 0, "text")]);
+        clients[1].propagateLocalDif([to.remline(1)]);
+        clients[2].propagateLocalDif([to.add(1, 0, "sample")]);
+        clients[3].propagateLocalDif([to.newline(1)]);
+        clients[4].propagateLocalDif([to.add(1, 0, "random")]);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
+    })
+    .then(() => {
+        expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ])).toBe(true);
+    })
+    .catch(() => {
+        expect(false).toBe(true);
+    });
+});
 

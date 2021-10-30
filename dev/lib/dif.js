@@ -62,6 +62,26 @@
     2) There exist an operation C, such that A *=> C => B
 */
 
+function dlog(name, obj, mode="default") {
+    if (mode === "default") {
+        console.log(name + ":", JSON.stringify(obj));
+        console.log();
+    }
+    else if (mode === "wDif") {
+        console.log(name + ":");
+        obj.forEach(wrap => console.log(JSON.stringify(wrap)));
+        console.log();
+    }
+    else if (mode === "wDifs") {
+        console.log(name + ":");
+        obj.forEach(wDif => {
+            wDif.forEach(wrap => console.log(JSON.stringify(wrap)));
+            console.log("-----------------------------");
+        });
+        console.log();
+    }
+}
+
 if (typeof to === 'undefined') {
     // Export for browsers
     var to = {};
@@ -165,8 +185,12 @@ to.undoDif = function(dif, document) {
     return document;
 }
 
-to.applyDifTest = function(dif, document) {
-    dif.forEach((subdif) => {
+to.applyDifTest = function(wDif, document) {
+    //dlog("wDif", wDif, "wDif");
+    //dlog("document", document);
+    
+    wDif.forEach((wrap) => {
+      let subdif = to.prim.unwrapSubdif(wrap);
       if (to.isAdd(subdif)) {
         let row = document[subdif[0]];
         document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
@@ -185,8 +209,12 @@ to.applyDifTest = function(dif, document) {
       else if (to.isNewline(subdif)) {
         document.splice(subdif, 0, "");
       }
-      else if (to.isRemline(subdif)) {
+      ///TODO: don't forget to implement the information lost bit in the live version
+      else if (to.isRemline(subdif) && !wrap.meta.informationLost) {
         document.splice(-subdif, 1);
+      }
+      else if (to.isRemline(subdif) && wrap.meta.informationLost) {
+        // do nothing
       }
       else {
           console.log("Received unknown subdif!", subdif);
@@ -252,14 +280,35 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
         }
     }
 
+    if(log && undoIndex === 0) console.log('Not part of chain');
+
     // handling the case when the message is not part of a 'message chain'
     // in this case, the message is placed according to total ordering
+    // the strategy is to take operations from HB from the back and determine their total ordering
     if (undoIndex === 0) {
         for (let i = wdHB.length - 1; i >= 0; i--) {
             let operation = wdHB[i];
             let operationSOIndex = to.prim.SOIndex(operation, SO);
-            // the operation is not present in SO, therefore it will be ordered after the message
+            let partOfChain = false;
+
+            // the operation is not in SO, but it could be part of a chain
             if (operationSOIndex === -1) {
+                for (let j = 0; j < i; j++) {
+                    let chainMember = wdHB[j];
+                    if (chainMember[0][0] === operation[0][0] && chainMember[0][2] === operation[0][2] && chainMember[0][3] === operation[0][3]) {
+                        // the operation is a part of a chain, but it could be a chain that has not yet arrived
+                        if (to.prim.SOIndex(chainMember, SO) === -1) {
+                            break;
+                        }
+                        // the operation is a part of a chain that partially arrived
+                        partOfChain = true;
+                        break;
+                    }
+                }
+            }
+
+            // the operation is not present in SO and is not part of a chain, therefore it will be ordered after the message
+            if (!partOfChain && operationSOIndex === -1) {
                 continue;
             }
             // because the message has to have a higher SOIndex than any message in HB, it will be placed after the first operation that is present in SO
@@ -282,7 +331,7 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
         //let transformedMessage = [wTransformedMessage[0], to.merge(to.prim.unwrapDif(wTransformedMessage[1]))];
         if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
 
-        document = to.applyDifTest(to.prim.unwrapDif(wdTransformedMessage[1]), document);
+        document = to.applyDifTest(wdTransformedMessage[1], document);
         //log(wTransformedMessage);
 
         if(log) console.log('after:', document);
@@ -301,13 +350,14 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
     }
 
     if(log) console.log('undo independant ops:', document);
-    //if(log) console.log('wdUndoneHB', wdUndoneHB.forEach(entry => console.log(JSON.stringify(entry))));
+    if(log) console.log('wdUndoneHB', wdUndoneHB.forEach(entry => console.log(JSON.stringify(entry))));
 
     // transforming and applying message
     let wdTransformedMessage = to.GOTCA(wdMessage, wdHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
-    document = to.applyDifTest(to.prim.unwrapDif(wdTransformedMessage[1]), document);
+    document = to.applyDifTest(wdTransformedMessage[1], document);
 
     if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
+    if(log) console.log();
 
     // preparing undone difs for transformation
     let wdUndoneDifs = [];
@@ -324,9 +374,11 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
 
     // transforming undone difs
     let wdTransformedUndoneDifs = []; // undone difs that are transformed
-    if(log) console.log('wdUndoneDifs:', JSON.stringify(wdUndoneDifs));
+    if(log) dlog('wdUndoneDifs', wdUndoneDifs, "wDifs");
     let wiFirstUndoneDif = to.prim.makeIndependant(wdUndoneDifs[0]);
+    if(log) dlog('wiFirstUndoneDif', wiFirstUndoneDif, "wDif");
     let wdFirstTransformedUndoneDif = to.prim.LIT(wiFirstUndoneDif, wdTransformedMessage[1]);
+    if(log) dlog('wdFirstTransformedUndoneDif', wdFirstTransformedUndoneDif, "wDif");
     wdTransformedUndoneDifs.push(wdFirstTransformedUndoneDif);
     let wdLETDif = []; // chronologically reversed
     let wdLITDif = [...wdTransformedMessage[1]];
@@ -355,12 +407,12 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
     //let transformedUndoneDifs = [];
     //wTransformedUndoneDifs.forEach(wrap => transformedUndoneDifs.push(to.prim.unwrapDif(wrap)));
 
-    if(log) console.log('wdTransformedUndoneDifs:', JSON.stringify(wdTransformedUndoneDifs));
 
 
+    if(log) dlog('wdTransformedUndoneDifs', wdTransformedUndoneDifs, "wDifs");
     // redoing undone difs
     //transformedUndoneDifs.forEach(dif => document = to.applyDifTest(dif, document));
-    wdTransformedUndoneDifs.forEach(wdDif => document = to.applyDifTest(to.prim.unwrapDif(wdDif), document));
+    wdTransformedUndoneDifs.forEach(wdDif => document = to.applyDifTest(wdDif, document));
 
     // creating operations from undone difs
     let wdTransformedUndoneOperations = [];
@@ -432,7 +484,7 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
         wdIndependantDifs.push(wdHB[i][1]);
     }
 
-    if(log) console.log('wdIndependantDifs:', JSON.stringify(wdIndependantDifs));
+    if(log) console.log('wdIndependantDifs:');
     if(log) wdIndependantDifs.forEach(wDif => console.log(JSON.stringify(wDif)));
     if(log) console.log();
     if(log) console.log('wdLocallyDependantDifs:');
@@ -456,6 +508,7 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
         let wdTransformationDif = [];
         wdIndependantDifs.forEach(wdDif => wdTransformationDif.push(...wdDif));
         if(log) console.log('wiMessageDif', JSON.stringify(wiMessageDif));
+        if(log) console.log();
         let wTransformedMessageDif = to.prim.LIT(wiMessageDif, wdTransformationDif);
         //if(log) console.log('wTransformedMessageDif', JSON.stringify(wTransformedMessageDif));
         wdMessage[1] = wTransformedMessageDif;
@@ -487,10 +540,12 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     let wdTransformedDifs = []; // EOL' in wrapped dif form
     let wdLETDif = to.prim.dissolveArrays(wdReversedTransformerDifs.slice(wdReversedTransformerDifs.length - (locallyDependantIndices[0] - (lastDirectlyDependantIndex + 1))));
     let wdLITDif = [];
-    //if(log) console.log('wdLocallyDependantDifs[0]:', JSON.stringify(wdLocallyDependantDifs[0]));
+    if(log) console.log('wdLocallyDependantDifs[0]:', JSON.stringify(wdLocallyDependantDifs[0]));
+    if(log) console.log();
     let wiFirstTransformedDif = to.prim.LET(to.prim.makeIndependant(wdLocallyDependantDifs[0]), wdLETDif); // this now has mutually independant subdifs, they need to be made dependant
     let wdFirstTransformedDif = to.prim.makeDependant(wiFirstTransformedDif);
-    //if(log) console.log('wdFirstTransformedDif:', JSON.stringify(wdFirstTransformedDif));
+    if(log) console.log('wdFirstTransformedDif:', JSON.stringify(wdFirstTransformedDif));
+    if(log) console.log();
     wdTransformedDifs.push(wdFirstTransformedDif);
     for (let i = 1; i < wdLocallyDependantDifs.length; i++) {
         wdLETDif = to.prim.dissolveArrays(wdReversedTransformerDifs.slice(wdReversedTransformerDifs.length - (locallyDependantIndices[i] - (lastDirectlyDependantIndex + 1))));
@@ -501,7 +556,18 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     }
     let wdReversedTransformedDifs = to.prim.deepCopy(wdTransformedDifs)
     wdReversedTransformedDifs.reverse();
-    let wiTransformedMessageDif = to.prim.LET(wiMessageDif, to.prim.dissolveArrays(wdReversedTransformedDifs));
+    wdReversedTransformedDifs.forEach(wdDif => wdDif.reverse());
+    if(log) console.log('wdReversedTransformedDifs:', JSON.stringify(to.prim.dissolveArrays(to.prim.deepCopy(wdReversedTransformedDifs))));
+    if(log) console.log();
+    if(log) console.log('wiMessageDif:', JSON.stringify(wiMessageDif));
+    if(log) console.log();
+
+    let wiExcludedMessageDif = to.prim.LET(wiMessageDif, to.prim.dissolveArrays(wdReversedTransformedDifs));
+    
+    if(log) console.log('wiExcludedMessageDif:', JSON.stringify(wiExcludedMessageDif));
+    if(log) console.log();
+    
+    
     let prependingIndependantDifs = wdHB.slice(lastDirectlyDependantIndex + 1, to.prim.findFirstLocalDependancyIndex(wdMessage, wdHB)); // independant difs between the last directly and first locally dependant dif
     //let prependingIndependantDifs = HB.slice(lastDirectlyDependantIndex + 1, TO_HB_index); // independant difs between the last directly and first locally dependant dif
     prependingIndependantDifs.forEach((operation, index) => prependingIndependantDifs[index] = operation[1]);
@@ -510,9 +576,10 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     for (let i = lastDirectlyDependantHBIndex + 1; i < wdHB.length; i++) {
         wdHBLITDif.push(...wdHB[i][1]);
     }
-
-    let wdTransformedMessageDif = to.prim.LIT(wiTransformedMessageDif, wdHBLITDif);
-    if(log) console.log('wdTransformedMessageDif post LIT:', JSON.stringify(wdTransformedMessageDif));
+    if(log) console.log('wdHBLITDif:', JSON.stringify(wdHBLITDif));
+    if(log) console.log();
+    let wdTransformedMessageDif = to.prim.LIT(wiExcludedMessageDif, wdHBLITDif);
+    //if(log) console.log('wdTransformedMessageDif post LIT:', JSON.stringify(wdTransformedMessageDif));
     wdMessage[1] = wdTransformedMessageDif;
     //console.log('GOTCA full run');
     //log(message);
@@ -832,21 +899,21 @@ to.prim.identicalSubdifs = function(subdif1, subdif2) {
     }
     return true;
 }
-to.prim.saveLI = function(wrap, subdif, transformer, mode='default') {
+to.prim.saveLI = function(wrap, wTransformer, mode='default') {
     if (mode === 'default') {
         wrap.meta.informationLost = true;
-        wrap.meta.context.original = subdif;
-        wrap.meta.context.transformer = transformer;
+        wrap.meta.context.original = to.prim.deepCopy(wrap.sub);
+        wrap.meta.context.wTransformer = to.prim.deepCopy(wTransformer);
     }
     else if (mode === 'add') {
         wrap.metaAdd.informationLost = true;
-        wrap.metaAdd.context.original = subdif;
-        wrap.metaAdd.context.transformer = transformer;
+        wrap.metaAdd.context.original = to.prim.deepCopy(wrap.sub);
+        wrap.metaAdd.context.wTransformer = to.prim.deepCopy(wTransformer);
     }
     else if (mode === 'del') {
         wrap.metaDel.informationLost = true;
-        wrap.metaDel.context.original = subdif;
-        wrap.metaDel.context.transformer = transformer;
+        wrap.metaDel.context.original = to.prim.deepCopy(wrap.sub);
+        wrap.metaDel.context.wTransformer = to.prim.deepCopy(wTransformer);
     }
     else {
         console.log('Unknown mode in saveLI!');
@@ -868,15 +935,58 @@ to.prim.saveRA = function(wrap, addresser) {
     wrap.meta.context.addresser = addresser;
     return wrap;
 }
-to.prim.checkLI = function(wrap, wTransformer) {
-    if (!wrap.meta.informationLost) {
-        return false;
+///TODO: what if the transformer is move?
+/**
+ * @brief Checks whether the wrap lost information due to the transformer.
+ * 
+ * @param {*} wrap 
+ * @param {*} wTransformer 
+ * @param {*} mode Used for move wraps. Either "add" or "del".
+ * @returns 
+ */
+to.prim.checkLI = function(wrap, wTransformer, mode="default") {
+    if (!to.isMove(wrap)) {
+        if (!wrap.meta.informationLost) {
+            return false;
+        }
+        return wrap.meta.context.wTransformer.meta.ID === wTransformer.meta.ID;
     }
-    return wrap.meta.context.transformer.meta.ID === wTransformer.meta.ID;
+    else {
+        if (mode="add") {
+            if (!wrap.metaAdd.informationLost) {
+                return false;
+            }
+            return wrap.metaAdd.context.wTransformer.meta.ID === wTransformer.meta.ID;
+        }
+        else if (mode="del") {
+            if (!wrap.metaDel.informationLost) {
+                return false;
+            }
+            return wrap.metaDel.context.wTransformer.meta.ID === wTransformer.meta.ID;
+        }
+    }
+    
 }
-to.prim.recoverLI = function(wrap) {
-    wrap.sub = wrap.meta.context.original;
-    wrap.meta.informationLost = false;
+to.prim.recoverLI = function(wrap, mode="default") {
+    if (!to.isMove(wrap)) {
+        wrap.sub = wrap.meta.context.original;
+        wrap.meta.informationLost = false;
+    }
+    else {
+        if (mode === "add") {
+            // the add part of move only handles where the moved text is pasted
+            wrap.sub[2] = wrap.metaAdd.context.original[2];
+            wrap.sub[3] = wrap.metaAdd.context.original[3];
+            wrap.metaAdd.informationLost = false;
+        }
+        else if (mode === "del") {
+            // the del part of move handles from where the text was taken and how much of it
+            wrap.sub[0] = wrap.metaDel.context.original[0];
+            wrap.sub[1] = wrap.metaDel.context.original[1];
+            wrap.sub[4] = wrap.metaDel.context.original[4];
+            wrap.metaDel.informationLost = false;
+        }
+    }
     //return wrap.meta.context.original;
 }
 to.prim.checkBO = function(wrap, wTransformer) {
@@ -938,35 +1048,45 @@ to.prim.LIT = function(wDif, wTransformationDif, log=false) {
     if (wTransformationDif.length === 0) return wDif;
     if (log && wDif.length === 1 && (wDif[0].meta.ID === 13 || wDif[0].meta.ID === 11)) console.log('wDif', JSON.stringify(wDif));
     let wTransformedSubdifs1 = to.prim.LIT1(wDif[0], wTransformationDif, log);
-    let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1], log);
+    let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1]);
     //if (log) console.log('wTransformedSubdifs1', JSON.stringify(wTransformedSubdifs1));
     //if (log) console.log('wTransformedSubdifs2', JSON.stringify(wTransformedSubdifs2));
     return [...wTransformedSubdifs1, ...wTransformedSubdifs2];    
 }
 to.prim.LIT1 = function(wrap, wTransformationDif, log=false) {
+    let logCondition = log && wrap.meta.ID == 45; ///TODO: test only
     let wTransformedSubdifs = [];
     if (wTransformationDif.length === 0) {
         wTransformedSubdifs = [wrap];
     }
     // if the wrap is relatively addressed and the transformer is not the target, then skip it
     else if (to.prim.checkRA(wrap) && !to.prim.checkBO(wrap, wTransformationDif[0])) {
-        //if (log) console.log('not BO');
-        //if (log) console.log('wrap', JSON.stringify(wrap));
-        //if (log) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
+        if (logCondition) console.log('not BO');
+        if (logCondition) console.log();
+        if (logCondition) console.log('wrap', JSON.stringify(wrap));
+        if (logCondition) console.log();
+        if (logCondition) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
+        if (logCondition) console.log();
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1), log);
     } 
     else if (to.prim.checkRA(wrap) && to.prim.checkBO(wrap, wTransformationDif[0])) {
-        //if (log) console.log('BO');
+        if (logCondition) console.log('BO');
+        if (logCondition) console.log();
         to.prim.convertAA(wrap, wTransformationDif[0]);
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1));
     }
     else {
-        if (log) console.log('normal IT');
-        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('pre', JSON.stringify(wrap));
-        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('post', JSON.stringify(to.prim.IT(to.prim.deepCopy(wrap), wTransformationDif[0])));
-        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('wTransformationDif', JSON.stringify(wTransformationDif));
-        wTransformedSubdifs = to.prim.LIT(to.prim.IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1));
-        if (log && (wrap.meta.ID == 13 || wrap.meta.ID == 11)) console.log('post wTransformedSubdifs', JSON.stringify(wTransformedSubdifs));
+        if (logCondition) console.log('normal IT');
+        if (logCondition) console.log();
+        if (logCondition) console.log('pre', JSON.stringify(wrap));
+        if (logCondition) console.log();
+        if (logCondition) console.log('post', JSON.stringify(to.prim.IT(to.prim.deepCopy(wrap), wTransformationDif[0])));
+        if (logCondition) console.log();
+        if (logCondition) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
+        if (logCondition) console.log();
+        wTransformedSubdifs = to.prim.LIT(to.prim.IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1), log);
+        if (logCondition) console.log('post wTransformedSubdifs', JSON.stringify(wTransformedSubdifs));
+        if (logCondition) console.log();
     }
     return wTransformedSubdifs;
 }
@@ -1040,7 +1160,7 @@ to.prim.IT = function(wrap, wTransformer) {
         else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_MD(wrap, wTransformer));
         else if (to.isMove(wTransformer)) {
             let result = to.prim.IT_MM(wrap, wTransformer);
-            if (isMove(result)) transformed_wraps.push(result);
+            if (to.isMove(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
@@ -1163,7 +1283,7 @@ to.prim.IT_AD = function(wrap, wTransformer) {
         wrap.sub[1] -= transformer[2];
     }
     else {
-        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer));
+        to.prim.saveLI(wrap, wTransformer);
         wrap.sub[1] = transformer[1];
     }
     return wrap;
@@ -1171,10 +1291,10 @@ to.prim.IT_AD = function(wrap, wTransformer) {
 to.prim.IT_AM = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        wrap = to.prim.IT_AD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
+        wrap = to.prim.IT_AD(wrap, to.prim.wrapSubdif(to.del(transformer[0], transformer[1], transformer[4])));
     }
     else if (wrap.sub[0] === transformer[2]) {
-        wrap = to.prim.IT_AA(wrap, to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4])));
+        wrap = to.prim.IT_AA(wrap, to.prim.wrapSubdif(to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4]))));
     }
     return wrap;
 }
@@ -1186,6 +1306,10 @@ to.prim.IT_AN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.IT_AR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]--;
@@ -1223,7 +1347,7 @@ to.prim.IT_DD = function(wrap, wTransformer) {
         wrap.sub = to.del(wrap.sub[0], wrap.sub[1] - transformer[2], wrap.sub[2]);
     }
     else {
-        to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer));
+        to.prim.saveLI(wrap, wTransformer);
         if (transformer[1] <= wrap.sub[1] && wrap.sub[1] + wrap.sub[2] <= transformer[1] + transformer[2]) {
             wrap.sub = to.del(wrap.sub[0], wrap.sub[1], 0);
         }
@@ -1258,6 +1382,10 @@ to.prim.IT_DN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.IT_DR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]--;
@@ -1276,7 +1404,7 @@ to.prim.IT_DR = function(wrap, wTransformer) {
 to.prim.IT_MA = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
+        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
         if (to.isDel(del_wrap)) {
             wrap.sub[1] = del_wrap.sub[1];
         }
@@ -1286,7 +1414,7 @@ to.prim.IT_MA = function(wrap, wTransformer) {
         } 
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.IT_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
+        let add_wrap = to.prim.IT_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
         wrap.sub[3] = add_wrap.sub[1];
     }
     return wrap;
@@ -1294,17 +1422,17 @@ to.prim.IT_MA = function(wrap, wTransformer) {
 to.prim.IT_MD = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.IT_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
+        let del_wrap = to.prim.IT_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
         if (del_wrap.meta.informationLost) {
-            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer), 'del');
+            to.prim.saveLI(wrap, wTransformer, 'del');
         }
         wrap.sub[1] = del_wrap.sub[1];
         wrap.sub[4] = del_wrap.sub[2];
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.IT_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
+        let add_wrap = to.prim.IT_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
         if (add_wrap.meta.informationLost) {
-            to.prim.saveLI(wrap, to.prim.deepCopy(wrap.sub), to.prim.deepCopy(wTransformer), 'add');
+            to.prim.saveLI(wrap, wTransformer, 'add');
         }
         wrap.sub[3] = add_wrap[1];
     }
@@ -1314,10 +1442,10 @@ to.prim.IT_MD = function(wrap, wTransformer) {
 to.prim.IT_MM = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        wrap = to.prim.IT_MD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
+        wrap = to.prim.IT_MD(wrap, to.prim.wrapSubdif(to.del(transformer[0], transformer[1], transformer[4])));
     }
     if (wrap.sub[0] === transformer[2]) {
-        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4])));
+        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), to.prim.wrapSubdif(to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4]))));
         if (to.isDel(del_wrap)) {
             wrap.sub[1] = del_wrap.sub[1];
         }
@@ -1335,21 +1463,33 @@ to.prim.IT_MM = function(wrap, wTransformer) {
             return [move1_wrap, move2_wrap];
         } 
     }
-    if (subdif[2] === transformer[0]) {
-        wrap = to.prim.IT_MD(wrap, to.del(transformer[0], transformer[1], transformer[4]));
+    if (wrap.sub[2] === transformer[0]) {
+        wrap = to.prim.IT_MD(wrap, to.prim.wrapSubdif(to.del(transformer[0], transformer[1], transformer[4])));
     }
-    if (subdif[2] === transformer[2]) {
-        wrap = to.prim.IT_MA(wrap, to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4])));
+    if (wrap.sub[2] === transformer[2]) {
+        wrap = to.prim.IT_MA(wrap, to.prim.wrapSubdif(to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4]))));
     }
     return wrap;
 }
 to.prim.IT_MN = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
+    if (to.prim.checkLI(wrap, wTransformer, "add")) {
+        to.prim.recoverLI(wrap, "add");
+        return wrap;
+    }
+    if (to.prim.checkLI(wrap, wTransformer, "del")) {
+        to.prim.recoverLI(wrap, "del");
+        return wrap;
+    }
     if (wrap.sub[0] >= transformer) wrap.sub[0]++;
     if (wrap.sub[2] >= transformer) wrap.sub[2]++;
     return wrap;
 }
 to.prim.IT_MR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) wrap.sub[0]--;
     else if (-transformer === wrap.sub[0]) {
@@ -1384,6 +1524,10 @@ to.prim.IT_NN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.IT_NR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub) wrap.sub--;
     else if (-transformer === wrap.sub) {
@@ -1399,8 +1543,8 @@ to.prim.IT_NR = function(wrap, wTransformer) {
 to.prim.IT_RA = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (-wrap.sub === transformer[0]) {
-        console.log("Transforming remline agains an add on the same row!");
-        ///TODO: find out a way to handle this
+        // disable the remline
+        to.prim.saveLI(wrap, wTransformer);
     }
     return wrap;
 }
@@ -1411,7 +1555,8 @@ to.prim.IT_RM = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (-wrap.sub === transformer[2]) {
         console.log("Transforming remline agains a move addition on the same row!");
-        ///TODO: find out a way to handle this
+        // disable the remline
+        to.prim.saveLI(wrap, wTransformer);
     }
     return wrap;
 }
@@ -1421,6 +1566,10 @@ to.prim.IT_RN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.IT_RR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < -wrap.sub) wrap.sub++;
     if (transformer === wrap.sub) {
@@ -1442,7 +1591,7 @@ to.prim.ET_AA = function(wrap, wTransformer) {
     }
     else {
         wrap.sub[1] -= transformer[1];
-        to.prim.saveRA(wrap, to.prim.deepCopy(wTransformer));
+        to.prim.saveRA(wrap, wTransformer);
     }
     return wrap;
 }
@@ -1476,6 +1625,10 @@ to.prim.ET_AN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.ET_AR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]++;
@@ -1554,6 +1707,10 @@ to.prim.ET_DN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.ET_DR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) {
         wrap.sub[0]++;
@@ -1634,10 +1791,21 @@ to.prim.ET_MM = function(wrap, wTransformer) {
 to.prim.ET_MN = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (transformer < wrap.sub[0]) wrap.sub[0]--;
+    else if (transformer === wrap.sub[0]) {
+        to.prim.saveLI(wrap, wTransformer, "del");
+    }
+
     if (transformer < wrap.sub[2]) wrap.sub[2]--;
+    else if (transformer === wrap.sub[2]) {
+        to.prim.saveLI(wrap, wTransformer, "add");
+    }
     return wrap;
 }
 to.prim.ET_MR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub[0]) wrap.sub[0]++;
     if (-transformer < wrap.sub[2]) wrap.sub[2]++;
@@ -1658,17 +1826,29 @@ to.prim.ET_NN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.ET_NR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < wrap.sub) wrap.sub++;
     return wrap;
 }
 to.prim.ET_RA = function(wrap, wTransformer) {
+    ///TODO: this might be redundant
+    if (to.prim.checkLI(wrap, wTransformer)) {
+        to.prim.recoverLI(wrap);
+    }
     return wrap;
 }
 to.prim.ET_RD = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.ET_RM = function(wrap, wTransformer) {
+    ///TODO: this might be redundant
+    if (to.prim.checkLI(wrap, wTransformer)) {
+        to.prim.recoverLI(wrap);
+    }
     return wrap;
 }
 to.prim.ET_RN = function(wrap, wTransformer) {
@@ -1677,6 +1857,10 @@ to.prim.ET_RN = function(wrap, wTransformer) {
     return wrap;
 }
 to.prim.ET_RR = function(wrap, wTransformer) {
+    // case when the remline is disabled
+    if (wTransformer.meta.informationLost) {
+        return wrap;
+    }
     let transformer = wTransformer.sub;
     if (-transformer < -wrap.sub) wrap.sub--;
     return wrap;

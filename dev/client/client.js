@@ -202,7 +202,7 @@ class App extends React.Component {
         let trailingText = this.state.editor.session.getLine(e.end.row);
         dif.push(e.end.row); // add new row
         if (trailingText.length > 0) {
-          dif.push([e.start.row, e.start.column, e.end.row, 0, trailingText.length]);
+          dif.push(to.move(e.start.row, e.start.column, e.end.row, 0, trailingText.length));
         }
       }
 
@@ -222,7 +222,7 @@ class App extends React.Component {
       else if (e.lines.length === 2 && e.lines[0] === "" && e.lines[1] === "") {
         let trailingText = this.state.editor.session.getLine(e.start.row).substr(e.start.column);
         if (trailingText.length > 0) {
-          dif.push([e.end.row, 0, e.start.row, e.start.column, trailingText.length]);
+          dif.push(to.move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
         }
         dif.push(-e.end.row); 
       }
