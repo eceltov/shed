@@ -153,8 +153,9 @@ class Server {
     createUserInitData(userID) {
         return {
             userID: userID,
-            serverDocument: this.document,
-            serverHB: this.HB
+            serverDocument: to.prim.deepCopy(this.document),
+            serverHB: to.prim.deepCopy(this.HB),
+            serverOrdering: to.prim.deepCopy(this.serverOrdering)
         }
     }
 
