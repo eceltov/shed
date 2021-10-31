@@ -114,7 +114,8 @@ class App extends React.Component {
     let document = new Document(this.state.editor.getSession().getDocument().getAllLines()); ///TODO: this should be a clean doc
 
     for (let i = 0; i < serverDocument.length; i++) {
-      document.insert({row: i, column: 0}, serverDocument[i]);
+      let line = (i == serverDocument.length - 1) ? serverDocument[i] : serverDocument[i] + "\n";
+      document.insert({row: i, column: 0}, line);
     }
 
     this.state.editor.setSession(new EditSession(document));
