@@ -1165,7 +1165,7 @@ to.prim.IT = function(wrap, wTransformer) {
         else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_DD(wrap, wTransformer));
         else if (to.isMove(wTransformer)) {
             let result = to.prim.IT_DM(wrap, wTransformer);
-            if (isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformed_wraps.push(result);
             else {
                 transformed_wraps.push(result[0]);
                 transformed_wraps.push(result[1]);
