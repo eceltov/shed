@@ -149,7 +149,8 @@ class App extends React.Component {
           that.createInitialDocument(message.serverDocument);
           that.setState({
             userID: message.userID,
-            HB: message.serverHB
+            HB: message.serverHB,
+            server_ordering: message.serverOrdering
           });
           //console.log(that.state.userID);
         }

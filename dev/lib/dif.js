@@ -209,9 +209,11 @@ to.undoDifAce = function(wDif, document) {
 }
 
 to.applyDifTest = function(wDif, document) {
+    console.log("before:",  document);
     wDif.forEach((wrap) => {
       let subdif = to.prim.unwrapSubdif(wrap);
       if (to.isAdd(subdif)) {
+        console.log("subdif:",  subdif);
         let row = document[subdif[0]];
         document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
       }
@@ -240,6 +242,7 @@ to.applyDifTest = function(wDif, document) {
           console.log("Received unknown subdif!", subdif);
       }
     });
+    console.log("after:", document);
     return document;
 }
 
@@ -655,13 +658,19 @@ to.merge = function(dif_ref) {
     // join adjacent Dels
     for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
         if (to.isDel(dif[i])) {
-            let end_pos = dif[i][1] + dif[i][2];
-            if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
-                end_pos === dif[i+1][1] &&           // they are adjacent
-                to.isDel(dif[i+1])                   // the next entry is of type Del
+            if (dif[i][0] === dif[i+1][0] &&        // they are on the same row
+                to.isDel(dif[i+1])                  // the next entry is of type Del
             ) {
-                dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
-                dif.splice(i+1, 1);
+                if (dif[i][1] + dif[i][2] === dif[i+1][1]) {    // they are adjacent (the next one is on a higher position)
+                    dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
+                    dif.splice(i+1, 1);
+                    i--;
+                }
+                else if (dif[i+1][1] + dif[i+1][2] == dif[i][1]) {  // they are adjacent (the next one is on a lower position)
+                    dif[i] = [dif[i][0], dif[i+1][1], dif[i][2] + dif[i+1][2]];
+                    dif.splice(i+1, 1);
+                    i--;
+                }
             }
         }
     }
