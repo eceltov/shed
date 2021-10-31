@@ -1,6 +1,6 @@
 const LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 const SERVER_URL = 'ws://dev.lan:8080/';
-var CSLatency = 3000;
+var CSLatency = 0;
 var SCLatency = 0;
 var Range = ace.require('ace/range').Range;
 var EditSession = ace.require("ace/edit_session").EditSession;
@@ -19,12 +19,13 @@ class App extends React.Component {
     this.intervalBufClear = this.intervalBufClear.bind(this);
     this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.createInitialDocument = this.createInitialDocument.bind(this);
     this.state = {
       editor: null,
       interval_buf: [],
       measuring: false, // true for half a second after the user changed the state
       connection: null,
-      userID: undefined,
+      userID: null,
       commitSerialNumber: 0,
 
       //entry format: [[userID, commitSerialNumber, preceding userID, preceding commitSerialNumber], dif]
@@ -68,15 +69,16 @@ class App extends React.Component {
   propagateLocalDif() {
     let dif = to.merge(this.state.interval_buf); // organise the dif
     this.intervalBufClear(); // clear the buffer for a new listening interval
-
     this.pushLocalDifToHB(dif); // push the dif into the history buffer and add the neccesary metadata
-    let message_obj = this.HBGetLast();
 
-    let message = JSON.stringify(message_obj);
+    let message = to.prim.deepCopy(this.HBGetLast());
+    message[1] = to.prim.unwrapDif(message[1]);
+
+    let messageString = JSON.stringify(message);
     let that = this;
     //console.log("message", message);
     setTimeout(function () {
-      that.state.connection.send(message);
+      that.state.connection.send(messageString);
     }, CSLatency); // latency testing
   }
 
@@ -91,9 +93,11 @@ class App extends React.Component {
     let prev_userID = (this.state.server_ordering.length == 0) ? -1 : this.state.server_ordering[this.state.server_ordering.length - 1][0];
     let prev_commitSerialNumber = (this.state.server_ordering.length == 0) ? -1 : this.state.server_ordering[this.state.server_ordering.length - 1][1];
 
+    let wDif = to.prim.wrapDif(dif);
+
     this.setState((prevState) => ({
       HB: [...prevState.HB, [
-        [prevState.userID, prevState.commitSerialNumber, prev_userID, prev_commitSerialNumber], dif
+        [prevState.userID, prevState.commitSerialNumber, prev_userID, prev_commitSerialNumber], wDif
       ]],
       commitSerialNumber: prevState.commitSerialNumber + 1
     }));
@@ -104,6 +108,17 @@ class App extends React.Component {
    */
   HBGetLast() {
     return (this.state.HB[this.state.HB.length - 1]);
+  }
+
+  createInitialDocument(serverDocument) {
+    let document = new Document(this.state.editor.getSession().getDocument().getAllLines()); ///TODO: this should be a clean doc
+
+    for (let i = 0; i < serverDocument.length; i++) {
+      document.insert({row: i, column: 0}, serverDocument[i]);
+    }
+
+    this.state.editor.setSession(new EditSession(document));
+    this.state.editor.session.on('change', this.handleChange);
   }
 
   /**
@@ -123,15 +138,17 @@ class App extends React.Component {
 
     };
 
-    connection.onmessage = function (message) {
-      let message_obj = JSON.parse(message.data);
+    connection.onmessage = function (messageWrapper) {
+      let message = JSON.parse(messageWrapper.data);
       //console.log("recv message obj", message_obj);
       //console.log("recv message", message.data);
 
-      if (that.state.userID === undefined) {
-        if (message_obj.hasOwnProperty('userID')) {
+      if (that.state.userID === null) {
+        if (message.hasOwnProperty('userID')) {
+          that.createInitialDocument(message.serverDocument);
           that.setState({
-            userID: message_obj.userID
+            userID: message.userID,
+            HB: message.serverHB
           });
           //console.log(that.state.userID);
         }
@@ -142,7 +159,7 @@ class App extends React.Component {
       }
       else {
         setTimeout(function () {
-          that.processIncomingMessage(message_obj);
+          that.processIncomingMessage(message);
           ///TODO: filter out own difs via a function
           ///TODO: this is setting state twice
         }, SCLatency); // latency testing
@@ -175,7 +192,8 @@ class App extends React.Component {
     }
     // GOT control algorithm
     else {
-      let final_state = to.UDR(message, this.state.editor, this.state.HB, this.state.server_ordering);
+      let document = new Document(this.state.editor.getSession().getDocument().getAllLines());
+      let final_state = to.UDRTest(message, document, this.state.HB, this.state.server_ordering);
       this.state.editor.setSession(new EditSession(final_state.document)); ///TODO: it might be a good idea to buffer changes
       this.state.editor.session.on('change', this.handleChange);
 

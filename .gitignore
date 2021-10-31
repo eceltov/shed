@@ -2,4 +2,6 @@ dev/dev
 dev/editor
 dev/testing/playground.js
 dev/testing/playground2.js
+dev/testing/document_states/docLive.txt
+dev/testing/document_states/docPlayground.txt
 node_modules

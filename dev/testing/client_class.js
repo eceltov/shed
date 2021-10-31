@@ -4,6 +4,7 @@ var WebSocketClient = require('websocket').client;
 class Client {
     constructor(serverURL) {
       this.connection = null;
+      this.WSClient = null;
       this.userID = null;
       this.commitSerialNumber = 0;
       this.HB = [];
@@ -21,13 +22,13 @@ class Client {
     propagateLocalDif(dif) {
         this.applyDif(dif);
         this.pushLocalDifToHB(dif);
-        let message_obj = to.prim.deepCopy(this.HBGetLast());
-        message_obj[1] = to.prim.unwrapDif(message_obj[1]);
+        let message = to.prim.deepCopy(this.HBGetLast());
+        message[1] = to.prim.unwrapDif(message[1]);
 
-        let message = JSON.stringify(message_obj);
+        let messageString = JSON.stringify(message);
         let that = this;
         setTimeout(function () {
-          that.connection.sendUTF(message);
+          that.connection.sendUTF(messageString);
         }, that.CSLatency); // latency testing
       }
   
@@ -58,25 +59,27 @@ class Client {
      * @brief Initializes a WobSocket connection with the server.
      */
     connect() {
-      let client = new WebSocketClient();
+      this.WSClient = new WebSocketClient();
   
       ///TODO: use hooks instead of 'that'?
       let that = this;
 
-      client.on('connect', function(connection) {
+      this.WSClient.on('connect', function(connection) {
         //console.log("[open] Connection established");
         that.connection = connection;
         if (that.onConnectionCallback !== null) {
           that.onConnectionCallback(that.onConnectionCallbackArgument);
         } 
 
-        connection.on('message', function (message) {
+        connection.on('message', function (messageWrapper) {
           //console.log('received message', message);
-          let message_obj = JSON.parse(message.utf8Data);
+          let message = JSON.parse(messageWrapper.utf8Data);
     
           if (that.userID === null) {
-            if (message_obj.hasOwnProperty('userID')) {
-              that.userID = message_obj.userID;
+            if (message.hasOwnProperty('userID')) {
+              that.userID = message.userID;
+              that.document = message.serverDocument; ///TODO: easy document implementation
+              that.HB = message.serverHB;
             }
             else {
               ///TODO: handle lost userID data
@@ -85,18 +88,19 @@ class Client {
           }
           else {
             setTimeout(function () {
+              // for debug purposes only, used for status checkers
               if (that.onMessageCallback !== null) {
                 that.onMessageCallback(that.onMessageCallbackArgument);
               } 
-              that.processIncomingMessage(message_obj);
+              that.processIncomingMessage(message);
             }, that.SCLatency); // latency testing
           }
         });
       });
 
-      client.connect(this.serverURL);
+      this.WSClient.connect(this.serverURL);
     }
-  
+
     /**
      * @brief Processes incoming server messages. If it is an external operation, executes it
        using the GOT control scheme.

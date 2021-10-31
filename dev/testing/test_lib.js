@@ -29,6 +29,19 @@ var test = {};
 }
 
 /**
+ * @brief Creates a single client, that will automatically attempt connect.
+ * @param serverURL The URL to which the client will connect.
+ * @param connectionChecker A StatusChecker linked to the client's connection status.
+ * @param msgReceivedChecker A StatusChecker linked to the client's message received status.
+ * @returns The new client.
+ */
+test.createClient = function(serverURL, connectionChecker, msgReceivedChecker) {
+    let client = new Client(serverURL);
+    client.onMessageReceived(msgReceivedChecker.check, 0).onConnection(connectionChecker.check, 0).connect();
+    return client;
+}
+
+/**
  * @brief Creates an array of clients, that will automatically attempt connect.
  * @param count The amount of clients to be created.
  * @param serverURL The URL to which the clients will connect.

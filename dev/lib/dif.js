@@ -131,8 +131,27 @@ to.isMove = function(subdif) {
     return (s.constructor === Array && s.length === 5);
 }
 
-to.applyDif = function(dif, document) {
-    dif.forEach((subdif) => {
+to.applyDif = function(wDif, document) {
+    if (document.constructor === Array) {
+        return to.applyDifTest(wDif, document);
+    }
+    else {
+        return to.applyDifAce(wDif, document);
+    }
+}
+
+to.undoDif = function(wDif, document) {
+    if (document.constructor === Array) {
+        return to.undoDifTest(wDif, document);
+    }
+    else {
+        return to.undoDifAce(wDif, document);
+    }
+}
+
+to.applyDifAce = function(wDif, document) {
+    wDif.forEach((wrap) => {
+        let subdif = wrap.sub;
         if (to.isAdd(subdif)) {
             document.insert({row: subdif[0], column: subdif[1]}, subdif[2]);
         }
@@ -147,8 +166,11 @@ to.applyDif = function(dif, document) {
         else if (to.isNewline(subdif)) {
             document.insertNewLine({row: subdif, column: 0});
         }
-        else if (to.isRemline(subdif)) {
+        else if (to.isRemline(subdif) && !wrap.meta.informationLost) {
             document.removeNewLine(-subdif - 1);
+        }
+        else if (to.isRemline(subdif) && wrap.meta.informationLost) {
+        // do nothing
         }
         else {
             console.log("Received unknown subdif!", subdif);
@@ -157,10 +179,11 @@ to.applyDif = function(dif, document) {
     return document;
 }
 
-to.undoDif = function(dif, document) {
-    let dif_copy = to.prim.deepCopy(dif);
-    dif_copy.reverse(); // subdifs need to be undone in reverse order
-    dif_copy.forEach((subdif) => {
+to.undoDifAce = function(wDif, document) {
+    let wDifCopy = to.prim.deepCopy(wDif);
+    wDifCopy.reverse(); // subdifs need to be undone in reverse order
+    wDifCopy.forEach((wrap) => {
+        let subdif = wrap.sub;
         if (to.isAdd(subdif)) {
             document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2].length);
         }
@@ -186,9 +209,6 @@ to.undoDif = function(dif, document) {
 }
 
 to.applyDifTest = function(wDif, document) {
-    //dlog("wDif", wDif, "wDif");
-    //dlog("document", document);
-    
     wDif.forEach((wrap) => {
       let subdif = to.prim.unwrapSubdif(wrap);
       if (to.isAdd(subdif)) {
@@ -223,10 +243,11 @@ to.applyDifTest = function(wDif, document) {
     return document;
 }
 
-to.undoDifTest = function(dif, document) {
-    let dif_copy = to.prim.deepCopy(dif);
-    dif_copy.reverse(); // subdifs need to be undone in reverse order
-    dif_copy.forEach((subdif) => {
+to.undoDifTest = function(wDif, document) {
+    let wDifCopy = to.prim.deepCopy(wDif);
+    wDifCopy.reverse(); // subdifs need to be undone in reverse order
+    wDifCopy.forEach((wrap) => {
+        let subdif = wrap.sub;
         if (to.isAdd(subdif)) {
             let row = document[subdif[0]];
             document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2].length);
@@ -285,6 +306,9 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
     // handling the case when the message is not part of a 'message chain'
     // in this case, the message is placed according to total ordering
     // the strategy is to take operations from HB from the back and determine their total ordering
+    // if the operation in HB is part of a message chain, and it's first member is present in SO, then the
+    //  received message will be placed after the last message chain member (the message chain effectively shares
+    //  it's first member's SO)
     if (undoIndex === 0) {
         for (let i = wdHB.length - 1; i >= 0; i--) {
             let operation = wdHB[i];
@@ -293,6 +317,8 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
 
             // the operation is not in SO, but it could be part of a chain
             if (operationSOIndex === -1) {
+                // look from the beginning of HB to find the first member of the message chain, if any
+                // if the first member is present in SO, than the message has to be placed after the last message chain member
                 for (let j = 0; j < i; j++) {
                     let chainMember = wdHB[j];
                     if (chainMember[0][0] === operation[0][0] && chainMember[0][2] === operation[0][2] && chainMember[0][3] === operation[0][3]) {
@@ -331,7 +357,7 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
         //let transformedMessage = [wTransformedMessage[0], to.merge(to.prim.unwrapDif(wTransformedMessage[1]))];
         if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
 
-        document = to.applyDifTest(wdTransformedMessage[1], document);
+        document = to.applyDif(wdTransformedMessage[1], document);
         //log(wTransformedMessage);
 
         if(log) console.log('after:', document);
@@ -346,7 +372,7 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
     wdHB = wdHB.slice(0, undoIndex);
     // undo independant operations
     for (let i = wdUndoneHB.length - 1; i >= 0; i--) {
-        document = to.undoDifTest(to.prim.unwrapDif(wdUndoneHB[i][1]), document);
+        document = to.undoDif(wdUndoneHB[i][1], document);
     }
 
     if(log) console.log('undo independant ops:', document);
@@ -354,7 +380,7 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
 
     // transforming and applying message
     let wdTransformedMessage = to.GOTCA(wdMessage, wdHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
-    document = to.applyDifTest(wdTransformedMessage[1], document);
+    document = to.applyDif(wdTransformedMessage[1], document);
 
     if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
     if(log) console.log();
@@ -411,8 +437,8 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
 
     if(log) dlog('wdTransformedUndoneDifs', wdTransformedUndoneDifs, "wDifs");
     // redoing undone difs
-    //transformedUndoneDifs.forEach(dif => document = to.applyDifTest(dif, document));
-    wdTransformedUndoneDifs.forEach(wdDif => document = to.applyDifTest(wdDif, document));
+    //transformedUndoneDifs.forEach(dif => document = to.applyDif(dif, document));
+    wdTransformedUndoneDifs.forEach(wdDif => document = to.applyDif(wdDif, document));
 
     // creating operations from undone difs
     let wdTransformedUndoneOperations = [];

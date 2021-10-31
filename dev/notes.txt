@@ -187,3 +187,61 @@ Relative message chains:
         After it's arrival, it's server_ordering does not contain 1's message and therefore it could not breake the message chain.
 
         From 2+'s perspective: Same as 1's perspective, because 1's message will arrive first.
+
+Garbage collection scheme:
+    (this section does not have consistent naming, dependency and metadata timestamp refer to basically the same thing)
+    Operations stored in HB that will certainly not be used in any following transformations can be treated as garbage, as they
+    do not add any value but take up space and slow down the algorithm (as it traverses the HB).
+
+    The solution is for the server to send a prompt to all users to send it back the information about their last received message
+    from the server (metadata of the last member in the local SO). The server collects all answers, selects the metadata pointing
+    at the oldest message (according to SO) and send all users a message saying that everything older than the selected metadata
+    is garbage.
+
+    This scheme works for the following reasons:
+        In case there were no message chains (no user can send two messages after one another unseperated by an incoming message from server): 
+            After a user sends the requested metadata to the server, all of his following messages will have the same of newer metadata
+            timestamp (the last two members of the metadata structure, representing the local SO state).
+            That means that after the server collects all the requested metadata and selects the oldest one, all following messages it receives
+            will have a newer (or same) metadata timestamp. Therefore, all operations in HBs with an older timestamp can be removed, as they
+            are independant of all following messages. Those with the same timestamp are dependant on the operation with that timestamp.
+
+            Special case: What about local unreceived messages with a older timestamp?
+                The problem is that when a user send a local message A and receives a foreign one B, then receives the server prompt to send the
+                metadata, the server could select the metadata of B. That means that the server wants the user to delete everything older that B,
+                that could also include dependencies of A. The user would later receive A and could not process it because it would not known
+                it's dependencies.
+
+                However, this is not a problem. This is because before the user receives the information about what operations to delete from HB, 
+                the user will have already received message A, because it was sent before the response to the server's prompt and therefore
+                it had to be received before the instruction to garbage collect.
+
+        In case there were message chains:
+            Similarily to the previous case, local message chains are not a problem because any unreceived local message chains older than the
+            sent metadata to the server will be received before the garbage collection instructions and local message chains send after sending 
+            the metadata to the server (case when a local message chain started and the server prompt was received in the middle of the chain)
+            will still have it's dependency untouched, as the server instructs to delete messages older than the oldest metadata (possibly the
+            local message chains dependency), therefore the local chain's dependency will be untouched.
+
+            Foreign message chains will also not cause problems, because:
+                If the foreign message chain's dependancy is older than the one sent by the local user to the server, it will not cause a problem,
+                because the foreign user therefore sent a some older dependancy to the server (possibly, or he sent a newer, but then he will receive
+                his old message chain prior to the garbage collection instruction. The local user will also receive the foreign message chain prior to the
+                GC instruction, because the server sends it after collecting information from all users, by which point he had to receive the foreign message
+                chain and sent it already to the local user.)
+
+                If the foreign message chain's dependancy is the same or newer than the one send by the local user to the server, it is not a problem at all.
+                It's dependancy will not be garbage collected.
+
+    Handle special cases:
+        - User disconnects in critical parts of the scheme
+
+Persistent server state scheme:
+    In order for the server to be able to hold any state, all the GOTCA algorithms need to be added. The servers document state has to be stored in order to be
+    sent to newly joined users. The server will therefore relay messages to other users and run the message through the algorithms to update it's state.
+    The server state can be a simple array of strings representing rows. The state should also be recorded in a file from time to time, to prevent outages
+    and to make the state persistent during runtimes.
+
+App structure:
+    The app has to allow concurrent runs of multiple file instances, therefore a central controler has to be implemented, that will start the individual
+    'servers'.

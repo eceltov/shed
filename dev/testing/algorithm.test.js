@@ -25,6 +25,7 @@ function initializeClients(count) {
 
 beforeEach(() => {
     server = new Server();
+    server.initialize();
     server.listen(8080);
 });
 
