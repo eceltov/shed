@@ -22,7 +22,7 @@ class App extends React.Component {
     this.createInitialDocument = this.createInitialDocument.bind(this);
     this.state = {
       editor: null,
-      interval_buf: [],
+      intervalBuf: [],
       measuring: false, // true for half a second after the user changed the state
       connection: null,
       userID: null,
@@ -30,21 +30,21 @@ class App extends React.Component {
 
       //entry format: [[userID, commitSerialNumber, preceding userID, preceding commitSerialNumber], dif]
       HB: [],
-      server_ordering: [], // contains elements: [userID, commitSerialNumber, prev_userID, prev_commitSerialNumber], where the information is taken from incoming messages
+      serverOrdering: [], // contains elements: [userID, commitSerialNumber, prevUserID, prevCommitSerialNumber], where the information is taken from incoming messages
     };
   }
 
   intervalBufAddDif(dif) {
     this.intervalTimerStart(); // starts the timer
     this.setState((prevState) => ({
-      interval_buf: [...prevState.interval_buf, ...dif],
+      intervalBuf: [...prevState.intervalBuf, ...dif],
     }));
     //logDif();
   }
 
   intervalBufClear() {
     this.setState((prevState) => ({
-      interval_buf: [],
+      intervalBuf: [],
     }));
   }
 
@@ -67,7 +67,7 @@ class App extends React.Component {
   }
 
   propagateLocalDif() {
-    let dif = to.merge(this.state.interval_buf); // organise the dif
+    let dif = to.compress(this.state.intervalBuf); // organise the dif
     this.intervalBufClear(); // clear the buffer for a new listening interval
     this.pushLocalDifToHB(dif); // push the dif into the history buffer and add the neccesary metadata
 
@@ -90,14 +90,14 @@ class App extends React.Component {
    * @brief Pushed the dif to HB and adds the neccessary metadata.
    */
   pushLocalDifToHB(dif) {
-    let prev_userID = (this.state.server_ordering.length == 0) ? -1 : this.state.server_ordering[this.state.server_ordering.length - 1][0];
-    let prev_commitSerialNumber = (this.state.server_ordering.length == 0) ? -1 : this.state.server_ordering[this.state.server_ordering.length - 1][1];
+    let prevUserID = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][0];
+    let prevCommitSerialNumber = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][1];
 
     let wDif = to.prim.wrapDif(dif);
 
     this.setState((prevState) => ({
       HB: [...prevState.HB, [
-        [prevState.userID, prevState.commitSerialNumber, prev_userID, prev_commitSerialNumber], wDif
+        [prevState.userID, prevState.commitSerialNumber, prevUserID, prevCommitSerialNumber], wDif
       ]],
       commitSerialNumber: prevState.commitSerialNumber + 1
     }));
@@ -150,7 +150,7 @@ class App extends React.Component {
           that.setState({
             userID: message.userID,
             HB: message.serverHB,
-            server_ordering: message.serverOrdering
+            serverOrdering: message.serverOrdering
           });
           //console.log(that.state.userID);
         }
@@ -174,34 +174,34 @@ class App extends React.Component {
    * @brief Processes incoming server messages. If it is an external operation, executes it
      using the GOT control scheme.
 
-   * @note Manages server_ordering
+   * @note Manages serverOrdering
    * 
    * @param message Operation send by the server
    */
   processIncomingMessage(message) {
     console.log('incoming message:');
     log(message);
-    //let prev_userID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
-    //let prev_commitSerialNumber = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][1];
+    //let prevUserID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
+    //let prevCommitSerialNumber = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][1];
 
     let authorID = message[0][0];
 
     // own message
     if (authorID === this.state.userID) {
       this.setState((prevState) => ({
-       server_ordering: [...prevState.server_ordering, [message[0][0], message[0][1], message[0][2], message[0][3]]] // append server_ordering
+       serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]] // append serverOrdering
       }));
     }
     // GOT control algorithm
     else {
       let document = new Document(this.state.editor.getSession().getDocument().getAllLines());
-      let final_state = to.UDRTest(message, document, this.state.HB, this.state.server_ordering);
-      this.state.editor.setSession(new EditSession(final_state.document)); ///TODO: it might be a good idea to buffer changes
+      let finalState = to.UDRTest(message, document, this.state.HB, this.state.serverOrdering);
+      this.state.editor.setSession(new EditSession(finalState.document)); ///TODO: it might be a good idea to buffer changes
       this.state.editor.session.on('change', this.handleChange);
 
       this.setState((prevState) => ({
-        server_ordering: [...prevState.server_ordering, [message[0][0], message[0][1], message[0][2], message[0][3]]], // append server_ordering
-        HB: final_state.HB
+        serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]], // append serverOrdering
+        HB: finalState.HB
        }));
     }
   }

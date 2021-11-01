@@ -9,7 +9,7 @@ class Client {
       this.commitSerialNumber = 0;
       this.HB = [];
       this.document = [""];
-      this.server_ordering = [];
+      this.serverOrdering = [];
       this.serverURL = null;
       this.SCLatency = 0;
       this.CSLatency = 0;
@@ -36,13 +36,13 @@ class Client {
      * @brief Pushed the dif to HB and adds the neccessary metadata.
      */
     pushLocalDifToHB(dif) {
-      let prev_userID = (this.server_ordering.length == 0) ? -1 : this.server_ordering[this.server_ordering.length - 1][0];
-      let prev_commitSerialNumber = (this.server_ordering.length == 0) ? -1 : this.server_ordering[this.server_ordering.length - 1][1];
+      let prevUserID = (this.serverOrdering.length == 0) ? -1 : this.serverOrdering[this.serverOrdering.length - 1][0];
+      let prevCommitSerialNumber = (this.serverOrdering.length == 0) ? -1 : this.serverOrdering[this.serverOrdering.length - 1][1];
 
       let wDif = to.prim.wrapDif(dif);
 
       this.HB.push([
-        [this.userID, this.commitSerialNumber, prev_userID, prev_commitSerialNumber], wDif
+        [this.userID, this.commitSerialNumber, prevUserID, prevCommitSerialNumber], wDif
       ]);
       this.commitSerialNumber++;
 
@@ -105,7 +105,7 @@ class Client {
      * @brief Processes incoming server messages. If it is an external operation, executes it
        using the GOT control scheme.
   
-     * @note Manages server_ordering
+     * @note Manages serverOrdering
      * 
      * @param message Operation send by the server
      */
@@ -116,14 +116,14 @@ class Client {
   
       // own message
       if (authorID === this.userID) {
-        this.server_ordering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append server_ordering
+        this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
       }
       // GOT control algorithm
       else {
-        let final_state = to.UDRTest(message, this.document, this.HB, this.server_ordering, this.log);
-        this.server_ordering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append server_ordering
-        this.HB = final_state.HB;
-        this.document = final_state.document;
+        let finalState = to.UDRTest(message, this.document, this.HB, this.serverOrdering, this.log);
+        this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
+        this.HB = finalState.HB;
+        this.document = finalState.document;
       }
     }
 

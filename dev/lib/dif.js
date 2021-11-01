@@ -20,7 +20,7 @@
       Example: applying the subdif [3, 1, 4] where the content of row 3 is '123456789'
       will result in the new content of row 3 being '16789' (4 characters after the 1st will be removed).
 
-    - move: [source_row, source_position, target_row, target_position, length]; where all variables are positive integers or zeroes.
+    - move: [sourceRow, sourcePosition, targetRow, targetPosition, length]; where all variables are positive integers or zeroes.
       Example: let the content on row 0 be "1234" and content on row 1 be "abcd". Applying the subdif [0, 1, 1, 2, 2]
       will result in row 0 being "14" and row 1 being "ab23cd". For sake of implementation simplicity, it is assumed
       that the move instruction cannot move content on the same row.
@@ -29,7 +29,7 @@
 
     @note Operation definition: An operation is an array with two elements. The first is an array
     containing user transaction metadata (userID, commitSerialNumber, preceding userID,
-    preceding commitSerialNumber) and the second element is a merged dif describing the changes
+    preceding commitSerialNumber) and the second element is a dif describing the changes
     made by the author. 
 
     Note that an operation contains enough information to determine its total ordering.
@@ -95,8 +95,8 @@ to.add = function(row, position, content) {
 to.del = function(row, position, count) {
     return [row, position, count];
 }
-to.move = function(source_row, source_position, target_row, target_position, length) {
-    return [source_row, source_position, target_row, target_position, length];
+to.move = function(sourceRow, sourcePosition, targetRow, targetPosition, length) {
+    return [sourceRow, sourcePosition, targetRow, targetPosition, length];
 }
 to.newline = function(row) {
     return row;
@@ -209,11 +209,9 @@ to.undoDifAce = function(wDif, document) {
 }
 
 to.applyDifTest = function(wDif, document) {
-    console.log("before:",  document);
     wDif.forEach((wrap) => {
       let subdif = to.prim.unwrapSubdif(wrap);
       if (to.isAdd(subdif)) {
-        console.log("subdif:",  subdif);
         let row = document[subdif[0]];
         document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
       }
@@ -242,7 +240,6 @@ to.applyDifTest = function(wDif, document) {
           console.log("Received unknown subdif!", subdif);
       }
     });
-    console.log("after:", document);
     return document;
 }
 
@@ -279,16 +276,15 @@ to.undoDifTest = function(wDif, document) {
     return document;
 }
 
-to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
+to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
     // creating new document so that changing it is not propagated to the user
     if(log) console.log('before:', document);
-    let wdHB = to.prim.deepCopy(wdOriginalHB);
-    let SO = [...SO_original, dMessage[0]];
+    let wdHB = to.prim.deepCopy(wdInitialHB);
+    let SO = [...initialSO, dMessage[0]];
 
     if(log) console.log('message:', dMessage);
 
     // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
-    let TO_HBIndex = to.prim.findTOIndex(dMessage, wdHB, SO);
     let dependantHBIndex = to.prim.findLastDependancyIndex(dMessage, wdHB);
     
     let undoIndex = 0;
@@ -348,7 +344,6 @@ to.UDRTest = function(dMessage, document, wdOriginalHB, SO_original, log) {
 
     if(log) console.log('dependantHBIndex:', dependantHBIndex);
     if(log) console.log('undoIndex:', undoIndex);
-    if(log) console.log('TO_HBIndex:', TO_HBIndex);
     if(log) console.log('wdHB', wdHB.forEach(entry => console.log(JSON.stringify(entry))));
 
     let wdMessage = [dMessage[0], to.prim.wrapDif(dMessage[1])];
@@ -549,10 +544,8 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     // preparing difs for transformation
     wdLocallyDependantDifs = to.prim.deepCopy(wdLocallyDependantDifs);
 
-    //let TO_HB_index = to.prim.findTOIndex(message, HB, SO);
     let dependantHBIndex = to.prim.findLastDependancyIndex(wdMessage, wdHB);
     let wdReversedTransformerDifs = [];
-    //for (let i = TO_HB_index; i > lastDirectlyDependantIndex; i--) {
     for (let i = dependantHBIndex; i > lastDirectlyDependantIndex; i--) {
         let wdDif = to.prim.deepCopy(wdHB[i][1]);
         wdDif.reverse();
@@ -598,7 +591,6 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     
     
     let prependingIndependantDifs = wdHB.slice(lastDirectlyDependantIndex + 1, to.prim.findFirstLocalDependancyIndex(wdMessage, wdHB)); // independant difs between the last directly and first locally dependant dif
-    //let prependingIndependantDifs = HB.slice(lastDirectlyDependantIndex + 1, TO_HB_index); // independant difs between the last directly and first locally dependant dif
     prependingIndependantDifs.forEach((operation, index) => prependingIndependantDifs[index] = operation[1]);
 
     let wdHBLITDif = [];
@@ -615,8 +607,13 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     return wdMessage;
 }
 
-to.merge = function(dif_ref) {
-    let dif = JSON.parse(JSON.stringify(dif_ref)); // deep copy ///TODO: use the function for this
+/**
+ * @brief Creates a new dif that has the same effects as the input dif but is compressed.
+ * @param {*} inputDif The dif to be compressed.
+ * @returns Compressed dif.
+ */
+to.compress = function(inputDif) {
+    let dif = to.prim.deepCopy(inputDif);
 
     // remove empty Adds/Dels/Moves
     for (let i = 0; i < dif.length; ++i) {
@@ -643,14 +640,14 @@ to.merge = function(dif_ref) {
     // join adjacent Adds
     for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
         if (to.isAdd(dif[i])) {
-            let end_pos = dif[i][1] + dif[i][2].length;
+            let endPos = dif[i][1] + dif[i][2].length;
             if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
-                end_pos === dif[i+1][1] &&           // they are adjacent
+                endPos === dif[i+1][1] &&           // they are adjacent
                 to.isAdd(dif[i+1])                   // the next entry is of type Add
             ) {
                 dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
                 dif.splice(i+1, 1);
-                i--; // decrement i so that the merged subdif will be compared with the next one
+                i--; // decrement i so that the compressed subdif will be compared with the next one
             }
         }
     }
@@ -767,18 +764,6 @@ to.merge = function(dif_ref) {
 
 to.prim.wrapID = 0; // id for wrapped difs (used in relative addressing)
 
-/**
- * @brief Finds the index of an HB entry that the operation directly follows.
- * 
- * @returns Index of the HB entry or -1 if not found.
- */
-to.prim.findTOIndex = function(operation, HB, SO) {
-    let SO_index = SO.findIndex((entry) => entry[0] === operation[0][0] && entry[1] === operation[0][1]); // index of operation
-    //console.log('SO_index', SO_index);
-    if (SO_index === 0) return -1;
-    let HB_index = HB.findIndex((entry) => entry[0][0] === SO[SO_index - 1][0] && entry[0][1] === SO[SO_index - 1][1]); // index of entry before operation
-    return HB_index;
-}
 to.prim.findLastDependancyIndex = function(operation, HB) {
     let user = operation[0][0];
     let directDependancyUser = operation[0][2]; // the user the operation is directly dependant on
@@ -913,9 +898,9 @@ to.prim.wrapDif = function(dif) {
     return dif;
 }
 to.prim.unwrapDif = function(dif) {
-    let ret_dif = [];
-    dif.forEach(wrap => ret_dif.push(to.prim.unwrapSubdif(wrap)));
-    return ret_dif;
+    let unwrappedDif = [];
+    dif.forEach(wrap => unwrappedDif.push(to.prim.unwrapSubdif(wrap)));
+    return unwrappedDif;
 }
 to.prim.identicalSubdifs = function(subdif1, subdif2) {
     if (typeof subdif1 === 'number' && typeof subdif2 === 'number') {
@@ -1154,152 +1139,152 @@ to.prim.LET1 = function(wrap, wTransformationDif, log) {
 }
 
 to.prim.IT = function(wrap, wTransformer) {
-    let transformed_wraps = [];
+    let transformedWraps = [];
     if (to.isAdd(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_AA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_AD(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_AM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_AN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_AR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.IT_AA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.IT_AD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.IT_AM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.IT_AN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.IT_AR(wrap, wTransformer));
     }
     else if (to.isDel(wrap)) {
         if (to.isAdd(wTransformer)) {
             let result = to.prim.IT_DA(wrap, wTransformer);
-            if (to.isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_DD(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.IT_DD(wrap, wTransformer));
         else if (to.isMove(wTransformer)) {
             let result = to.prim.IT_DM(wrap, wTransformer);
-            if (to.isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_DN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_DR(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.IT_DN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.IT_DR(wrap, wTransformer));
     }
     else if (to.isMove(wrap)) {
         if (to.isAdd(wTransformer)) {
             let result = to.prim.IT_MA(wrap, wTransformer);
-            if (to.isMove(result)) transformed_wraps.push(result);
+            if (to.isMove(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_MD(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.IT_MD(wrap, wTransformer));
         else if (to.isMove(wTransformer)) {
             let result = to.prim.IT_MM(wrap, wTransformer);
-            if (to.isMove(result)) transformed_wraps.push(result);
+            if (to.isMove(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_MN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_MR(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.IT_MN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.IT_MR(wrap, wTransformer));
     }
     else if (to.isNewline(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_NA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_ND(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_NM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_NN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_NR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.IT_NA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.IT_ND(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.IT_NM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.IT_NN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.IT_NR(wrap, wTransformer));
     }
     else if (to.isRemline(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.IT_RA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.IT_RD(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.IT_RM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.IT_RN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.IT_RR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.IT_RA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.IT_RD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.IT_RM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.IT_RN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.IT_RR(wrap, wTransformer));
     }
-    return transformed_wraps;
+    return transformedWraps;
 }
 to.prim.ET = function(wrap, wTransformer) {
-    let transformed_wraps = [];
+    let transformedWraps = [];
     if (to.isAdd(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_AA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_AD(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_AM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_AN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_AR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.ET_AA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.ET_AD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.ET_AM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.ET_AN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.ET_AR(wrap, wTransformer));
     }
     else if (to.isDel(wrap)) {
         if (to.isAdd(wTransformer)) {
             let result = to.prim.ET_DA(wrap, wTransformer);
-            if (to.isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
         else if (to.isDel(wTransformer)) {
             let result = to.prim.ET_DD(wrap, wTransformer);
-            if (to.isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
         else if (to.isMove(wTransformer)) {
             let result = to.prim.ET_DM(wrap, wTransformer);
-            if (to.isDel(result)) transformed_wraps.push(result);
+            if (to.isDel(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_DN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_DR(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.ET_DN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.ET_DR(wrap, wTransformer));
     }
     else if (to.isMove(wrap)) {
         if (to.isAdd(wTransformer)) {
             let result = to.prim.ET_MA(wrap, wTransformer);
-            if (to.isMove(result)) transformed_wraps.push(result);
+            if (to.isMove(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
         else if (to.isDel(wTransformer)) {
             let result = to.prim.ET_MD(wrap, wTransformer);
-            if (to.isMove(result)) transformed_wraps.push(result);
+            if (to.isMove(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
         else if (to.isMove(wTransformer)) {
             let result = to.prim.ET_MM(wrap, wTransformer);
-            if (isMove(result)) transformed_wraps.push(result);
+            if (isMove(result)) transformedWraps.push(result);
             else {
-                transformed_wraps.push(result[0]);
-                transformed_wraps.push(result[1]);
+                transformedWraps.push(result[0]);
+                transformedWraps.push(result[1]);
             }
         }
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_MN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_MR(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.ET_MN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.ET_MR(wrap, wTransformer));
     }
     else if (to.isNewline(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_NA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_ND(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_NM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_NN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_NR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.ET_NA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.ET_ND(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.ET_NM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.ET_NN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.ET_NR(wrap, wTransformer));
     }
     else if (to.isRemline(wrap)) {
-        if (to.isAdd(wTransformer)) transformed_wraps.push(to.prim.ET_RA(wrap, wTransformer));
-        else if (to.isDel(wTransformer)) transformed_wraps.push(to.prim.ET_RD(wrap, wTransformer));
-        else if (to.isMove(wTransformer)) transformed_wraps.push(to.prim.ET_RM(wrap, wTransformer));
-        else if (to.isNewline(wTransformer)) transformed_wraps.push(to.prim.ET_RN(wrap, wTransformer));
-        else if (to.isRemline(wTransformer)) transformed_wraps.push(to.prim.ET_RR(wrap, wTransformer));
+        if (to.isAdd(wTransformer)) transformedWraps.push(to.prim.ET_RA(wrap, wTransformer));
+        else if (to.isDel(wTransformer)) transformedWraps.push(to.prim.ET_RD(wrap, wTransformer));
+        else if (to.isMove(wTransformer)) transformedWraps.push(to.prim.ET_RM(wrap, wTransformer));
+        else if (to.isNewline(wTransformer)) transformedWraps.push(to.prim.ET_RN(wrap, wTransformer));
+        else if (to.isRemline(wTransformer)) transformedWraps.push(to.prim.ET_RR(wrap, wTransformer));
     }
-    return transformed_wraps;
+    return transformedWraps;
 }
 
 
@@ -1439,37 +1424,37 @@ to.prim.IT_DR = function(wrap, wTransformer) {
 to.prim.IT_MA = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
-        if (to.isDel(del_wrap)) {
-            wrap.sub[1] = del_wrap.sub[1];
+        let delWrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
+        if (to.isDel(delWrap)) {
+            wrap.sub[1] = delWrap.sub[1];
         }
         else {
-            return [to.prim.wrapSubdif(to.move(wrap.sub[0], del_wrap[0].sub[1], wrap.sub[2], wrap.sub[3], del_wrap[0].sub[2])),
-                    to.prim.wrapSubdif(to.move(wrap.sub[0], del_wrap[1].sub[1], wrap.sub[2], wrap.sub[3] + del_wrap[0].sub[2], del_wrap[1].sub[2]))];
+            return [to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap[0].sub[1], wrap.sub[2], wrap.sub[3], delWrap[0].sub[2])),
+                    to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap[1].sub[1], wrap.sub[2], wrap.sub[3] + delWrap[0].sub[2], delWrap[1].sub[2]))];
         } 
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.IT_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
-        wrap.sub[3] = add_wrap.sub[1];
+        let addWrap = to.prim.IT_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
+        wrap.sub[3] = addWrap.sub[1];
     }
     return wrap;
 }
 to.prim.IT_MD = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.IT_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
-        if (del_wrap.meta.informationLost) {
+        let delWrap = to.prim.IT_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer);
+        if (delWrap.meta.informationLost) {
             to.prim.saveLI(wrap, wTransformer, 'del');
         }
-        wrap.sub[1] = del_wrap.sub[1];
-        wrap.sub[4] = del_wrap.sub[2];
+        wrap.sub[1] = delWrap.sub[1];
+        wrap.sub[4] = delWrap.sub[2];
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.IT_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
-        if (add_wrap.meta.informationLost) {
+        let addWrap = to.prim.IT_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), wTransformer);
+        if (addWrap.meta.informationLost) {
             to.prim.saveLI(wrap, wTransformer, 'add');
         }
-        wrap.sub[3] = add_wrap[1];
+        wrap.sub[3] = addWrap[1];
     }
     return wrap;
 }
@@ -1480,22 +1465,22 @@ to.prim.IT_MM = function(wrap, wTransformer) {
         wrap = to.prim.IT_MD(wrap, to.prim.wrapSubdif(to.del(transformer[0], transformer[1], transformer[4])));
     }
     if (wrap.sub[0] === transformer[2]) {
-        let del_wrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), to.prim.wrapSubdif(to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4]))));
-        if (to.isDel(del_wrap)) {
-            wrap.sub[1] = del_wrap.sub[1];
+        let delWrap = to.prim.IT_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), to.prim.wrapSubdif(to.add(transformer[2], transformer[3], to.prim.mockupString(transformer[4]))));
+        if (to.isDel(delWrap)) {
+            wrap.sub[1] = delWrap.sub[1];
         }
         else {
             // splitting the move into two sections
-            let move1_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del_wrap[0].sub[1], wrap.sub[2], wrap.sub[3], del_wrap[0].sub[2]));
-            let move2_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del_wrap[1].sub[1], wrap.sub[2], wrap.sub[3] + del_wrap[0].sub[2], del_wrap[1].sub[2]));
+            let moveWrap1 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap[0].sub[1], wrap.sub[2], wrap.sub[3], delWrap[0].sub[2]));
+            let moveWrap2 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap[1].sub[1], wrap.sub[2], wrap.sub[3] + delWrap[0].sub[2], delWrap[1].sub[2]));
             ///TODO: implement this
             /*if (wrap.sub[2] === transformer[0]) {
-                let add_wrap = to.prim.IT_AD(to.add(move1[2], move1[3], to.prim.mockupString(move1[4])), to.del(transformer[0], transformer[1], transformer[4]));
-                move1[3] = add_wrap[1];
-                move2[3] = add_wrap[1] + move1[4]; // appending the second move right after the first one
+                let addWrap = to.prim.IT_AD(to.add(move1[2], move1[3], to.prim.mockupString(move1[4])), to.del(transformer[0], transformer[1], transformer[4]));
+                move1[3] = addWrap[1];
+                move2[3] = addWrap[1] + move1[4]; // appending the second move right after the first one
             }*/
             console.log('IT_MM not implemented');
-            return [move1_wrap, move2_wrap];
+            return [moveWrap1, moveWrap2];
         } 
     }
     if (wrap.sub[2] === transformer[0]) {
@@ -1684,22 +1669,22 @@ to.prim.ET_DA = function(wrap, wTransformer) {
             to.prim.saveRA(wrap, wTransformer);
         }
         else if (transformer[1] <= wrap.sub[1] && wrap.sub[1] + wrap.sub[2] > transformer[1] + transformer[2].length) {
-            let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1] - transformer[1], transformer[1] + transformer[2].length - wrap.sub[1]));
-            let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], transformer[1], wrap.sub[1] + wrap.sub[2] - transformer[1] - transformer[2].length));
-            to.prim.saveRA(del1_wrap, wTransformer);
-            return [del1_wrap, del2_wrap];
+            let delWrap1 = to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1] - transformer[1], transformer[1] + transformer[2].length - wrap.sub[1]));
+            let delWrap2 = to.prim.wrapSubdif(to.del(wrap.sub[0], transformer[1], wrap.sub[1] + wrap.sub[2] - transformer[1] - transformer[2].length));
+            to.prim.saveRA(delWrap1, wTransformer);
+            return [delWrap1, delWrap2];
         }
         else if (transformer[1] > wrap.sub[1] && transformer[1] + transformer[2].length <= wrap.sub[1] + wrap.sub[2]) {
-            let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, transformer[2].length));
-            let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], wrap.sub[2] - transformer[2].length));
-            to.prim.saveRA(del1_wrap, wTransformer);
-            return [del1_wrap, del2_wrap];
+            let delWrap1 = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, transformer[2].length));
+            let delWrap2 = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], wrap.sub[2] - transformer[2].length));
+            to.prim.saveRA(delWrap1, wTransformer);
+            return [delWrap1, delWrap2];
         }
         else {
-            let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1]));
-            let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], transformer[1] - wrap.sub[1]));
-            to.prim.saveRA(del1_wrap, wTransformer);
-            return [del1_wrap, del2_wrap];
+            let delWrap1 = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1]));
+            let delWrap2 = to.prim.wrapSubdif(to.del(wrap.sub[0],  wrap.sub[1], transformer[1] - wrap.sub[1]));
+            to.prim.saveRA(delWrap1, wTransformer);
+            return [delWrap1, delWrap2];
         }
     }
     return wrap;
@@ -1716,9 +1701,9 @@ to.prim.ET_DD = function(wrap, wTransformer) {
         wrap.sub[1] += transformer[2];
     }
     else {
-        let del1_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1]));
-        let del2_wrap = to.prim.wrapSubdif(to.del(wrap.sub[0],  transformer[1] + transformer[2], wrap.sub[1] + wrap.sub[2] - transformer[1]));
-        return [del1_wrap, del2_wrap];
+        let delWrap1 = to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1]));
+        let delWrap2 = to.prim.wrapSubdif(to.del(wrap.sub[0],  transformer[1] + transformer[2], wrap.sub[1] + wrap.sub[2] - transformer[1]));
+        return [delWrap1, delWrap2];
     }
     return wrap;
 }
@@ -1770,27 +1755,27 @@ to.prim.ET_DR = function(wrap, wTransformer) {
 to.prim.ET_MA = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.ET_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
-        if (to.isDel(del_wrap)) {
-            wrap.sub[1] = del_wrap.sub[1];
-            wrap.metaDel.relative = del_wrap.meta.relative;
-            wrap.metaDel.context.addresser = del_wrap.meta.context.addresser;
+        let delWrap = to.prim.ET_DA(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
+        if (to.isDel(delWrap)) {
+            wrap.sub[1] = delWrap.sub[1];
+            wrap.metaDel.relative = delWrap.meta.relative;
+            wrap.metaDel.context.addresser = delWrap.meta.context.addresser;
         }
         else {
-            let del1_wrap = del_wrap[0];
-            let del2_wrap = del_wrap[1];
-            let move1_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del1_wrap.sub[1], wrap.sub[2], wrap.sub[3], del1_wrap.sub[2]));
-            move1_wrap.metaDel = del1_wrap.meta;
-            let move2_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del2_wrap.sub[1], wrap.sub[2], wrap.sub[3] + del1_wrap.sub[2], del2_wrap.sub[2]));
-            move2_wrap.metaDel = del2_wrap.meta;
-            return [move1_wrap, move2_wrap];
+            let delWrap1 = delWrap[0];
+            let delWrap2 = delWrap[1];
+            let moveWrap1 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap1.sub[1], wrap.sub[2], wrap.sub[3], delWrap1.sub[2]));
+            moveWrap1.metaDel = delWrap1.meta;
+            let moveWrap2 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2]));
+            moveWrap2.metaDel = delWrap2.meta;
+            return [moveWrap1, moveWrap2];
         } 
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.ET_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
-        wrap.sub[3] = add_wrap.sub[1];
-        wrap.metaAdd.relative = add_wrap.meta.relative;
-        wrap.metaAdd.context.addresser = add_wrap.meta.context.addresser;
+        let addWrap = to.prim.ET_AA(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
+        wrap.sub[3] = addWrap.sub[1];
+        wrap.metaAdd.relative = addWrap.meta.relative;
+        wrap.metaAdd.context.addresser = addWrap.meta.context.addresser;
     }
     return wrap;
 }
@@ -1798,21 +1783,21 @@ to.prim.ET_MA = function(wrap, wTransformer) {
 to.prim.ET_MD = function(wrap, wTransformer) {
     let transformer = wTransformer.sub;
     if (wrap.sub[0] === transformer[0]) {
-        let del_wrap = to.prim.ET_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
-        if (to.isDel(del_wrap)) {
-            wrap.sub = del_wrap.sub;
+        let delWrap = to.prim.ET_DD(to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer);
+        if (to.isDel(delWrap)) {
+            wrap.sub = delWrap.sub;
         }
         else {
-            let del1_wrap = del_wrap[0];
-            let del2_wrap = del_wrap[1];
-            let move1_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del1_wrap.sub[1], wrap.sub[2], wrap.sub[3], del1_wrap.sub[2]));
-            let move2_wrap = to.prim.wrapSubdif(to.move(wrap.sub[0], del2_wrap.sub[1], wrap.sub[2], wrap.sub[3] + del1_wrap.sub[2], del2_wrap.sub[2]));
-            return [move1_wrap, move2_wrap];
+            let delWrap1 = delWrap[0];
+            let delWrap2 = delWrap[1];
+            let moveWrap1 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap1.sub[1], wrap.sub[2], wrap.sub[3], delWrap1.sub[2]));
+            let moveWrap2 = to.prim.wrapSubdif(to.move(wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2]));
+            return [moveWrap1, moveWrap2];
         }
     }
     else if (wrap.sub[2] === transformer[0]) {
-        let add_wrap = to.prim.ET_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
-        wrap.sub[3] = add_wrap[1];
+        let addWrap = to.prim.ET_AD(to.prim.wrapSubdif(to.add(wrap.sub[2], wrap.sub[3], to.prim.mockupString(wrap.sub[4]))), transformer);
+        wrap.sub[3] = addWrap[1];
     }
     return wrap;
 }
@@ -1902,26 +1887,26 @@ to.prim.ET_RR = function(wrap, wTransformer) {
 }
 
 
-to.applyAdd = function(previous_value, subdif) {
-    if (subdif[1] > previous_value.length) {
+to.applyAdd = function(previousValue, subdif) {
+    if (subdif[1] > previousValue.length) {
         console.log('applyAdd subdif position too large!');
         console.log(subdif);
-        console.log(previous_value);
-        return previous_value;
+        console.log(previousValue);
+        return previousValue;
     }
 
-    return (previous_value.substring(0, subdif[1]) + subdif[2] + previous_value.substring(subdif[1]));
+    return (previousValue.substring(0, subdif[1]) + subdif[2] + previousValue.substring(subdif[1]));
 }
 
-to.applyDel = function(previous_value, subdif) {
-    if (subdif[1] + subdif[2] > previous_value.length) {
+to.applyDel = function(previousValue, subdif) {
+    if (subdif[1] + subdif[2] > previousValue.length) {
         console.log('applyDel subdif position too large!');
-        console.log(previous_value);
+        console.log(previousValue);
         console.log(subdif);
-        return previous_value;
+        return previousValue;
     }
 
-    return (previous_value.substring(0, subdif[1])) + previous_value.substring(subdif[1] + subdif[2]);
+    return (previousValue.substring(0, subdif[1])) + previousValue.substring(subdif[1] + subdif[2]);
 }
 
 
