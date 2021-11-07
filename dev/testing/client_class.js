@@ -1,8 +1,12 @@
 var to = require('../lib/dif');
+var com = require('../lib/communication');
 var WebSocketClient = require('websocket').client;
 
 class Client {
     constructor(serverURL) {
+      this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
+      this.processIncomingMessage = this.processIncomingMessage.bind(this);
+
       this.connection = null;
       this.WSClient = null;
       this.userID = null;
@@ -10,6 +14,7 @@ class Client {
       this.HB = [];
       this.document = [""];
       this.serverOrdering = [];
+      this.firstSOMessageNumber = 0; // the total serial number of the first SO entry
       this.serverURL = null;
       this.SCLatency = 0;
       this.CSLatency = 0;
@@ -19,6 +24,13 @@ class Client {
       this.log = false;
     }
 
+    sendMessageToServer(messageString) {
+      let that = this;
+      setTimeout(function () {
+        that.connection.sendUTF(messageString);
+      }, that.CSLatency); // latency testing
+    }
+
     propagateLocalDif(dif) {
         this.applyDif(dif);
         this.pushLocalDifToHB(dif);
@@ -26,10 +38,7 @@ class Client {
         message[1] = to.prim.unwrapDif(message[1]);
 
         let messageString = JSON.stringify(message);
-        let that = this;
-        setTimeout(function () {
-          that.connection.sendUTF(messageString);
-        }, that.CSLatency); // latency testing
+        this.sendMessageToServer(messageString);
       }
   
     /**
@@ -54,6 +63,77 @@ class Client {
     HBGetLast() {
       return (this.HB[this.HB.length - 1]);
     }
+
+    serverMessageProcessor(message) {
+      let that = this;
+      if (message.hasOwnProperty('msgType')) {
+        if (message.msgType === com.msgTypes.initialize) { ///TODO: what if this is lost somehow?
+          this.initializeClient(message);
+        }
+        else if (message.msgType === com.msgTypes.GCMetadataRequest) {
+          this.sendGCMetadata();
+        }
+        else if (message.msgType === com.msgTypes.GC) {
+          this.GC(message.GCOldestMessageNumber);
+        }
+      }
+      // message is an operation
+      else {
+        setTimeout(function () {
+          // for debug purposes only, used for status checkers
+          if (that.onMessageCallback !== null) {
+            that.onMessageCallback(that.onMessageCallbackArgument);
+          } 
+          that.processIncomingMessage(message);
+        }, that.SCLatency); // latency testing
+      }
+    }
+
+    initializeClient(message) {
+      this.userID = message.userID;
+      this.document = message.serverDocument;
+      this.HB = message.serverHB;
+      this.serverOrdering = message.serverOrdering;
+    }
+
+    sendGCMetadata() {
+      let dependancy = this.firstSOMessageNumber + this.serverOrdering.length - 1; // is -1 if SO is empty
+
+      let message = {
+        msgType: com.msgTypes.GCMetadataResponse,
+        userID: this.userID,
+        dependancy: dependancy
+      };
+      let messageString = JSON.stringify(message);
+      this.sendMessageToServer(messageString);
+    }
+
+    GC(GCOldestMessageNumber) {
+      let SOGarbageIndex = GCOldestMessageNumber - this.firstSOMessageNumber;
+
+      if (SOGarbageIndex < 0 || SOGarbageIndex >= this.serverOrdering.length) {
+        console.log("GC Bad SO index");
+        return;
+      }
+
+      let GCUserID = this.serverOrdering[SOGarbageIndex][0];
+      let GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
+
+      let HBGarbageIndex = 0;
+
+      for (let i = 0; i < this.HB.length; i++) {
+        let HBUserID = this.HB[i][0][0];
+        let HBCommitSerialNumber = this.HB[i][0][1];
+        if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+          HBGarbageIndex = i;
+          break;
+        }
+      }
+
+      this.HB = this.HB.slice(HBGarbageIndex);
+      this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
+      this.firstSOMessageNumber += SOGarbageIndex;
+    }
   
     /**
      * @brief Initializes a WobSocket connection with the server.
@@ -74,27 +154,7 @@ class Client {
         connection.on('message', function (messageWrapper) {
           //console.log('received message', message);
           let message = JSON.parse(messageWrapper.utf8Data);
-    
-          if (that.userID === null) {
-            if (message.hasOwnProperty('userID')) {
-              that.userID = message.userID;
-              that.document = message.serverDocument; ///TODO: easy document implementation
-              that.HB = message.serverHB;
-            }
-            else {
-              ///TODO: handle lost userID data
-              //console.log('userID lost!');
-            }
-          }
-          else {
-            setTimeout(function () {
-              // for debug purposes only, used for status checkers
-              if (that.onMessageCallback !== null) {
-                that.onMessageCallback(that.onMessageCallbackArgument);
-              } 
-              that.processIncomingMessage(message);
-            }, that.SCLatency); // latency testing
-          }
+          that.serverMessageProcessor(message);
         });
       });
 

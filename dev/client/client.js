@@ -19,6 +19,7 @@ class App extends React.Component {
     this.intervalBufClear = this.intervalBufClear.bind(this);
     this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
     this.handleChange = this.handleChange.bind(this);
+    this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
     this.createInitialDocument = this.createInitialDocument.bind(this);
     this.state = {
       editor: null,
@@ -31,6 +32,7 @@ class App extends React.Component {
       //entry format: [[userID, commitSerialNumber, preceding userID, preceding commitSerialNumber], dif]
       HB: [],
       serverOrdering: [], // contains elements: [userID, commitSerialNumber, prevUserID, prevCommitSerialNumber], where the information is taken from incoming messages
+      firstSOMessageNumber: 0, // the total serial number of the first SO entry
     };
   }
 
@@ -66,6 +68,13 @@ class App extends React.Component {
     that.propagateLocalDif();
   }
 
+  sendMessageToServer(messageString) {
+    let that = this;
+    setTimeout(function () {
+      that.state.connection.send(messageString);
+    }, CSLatency); // latency testing
+  }
+
   propagateLocalDif() {
     let dif = to.compress(this.state.intervalBuf); // organise the dif
     this.intervalBufClear(); // clear the buffer for a new listening interval
@@ -75,11 +84,7 @@ class App extends React.Component {
     message[1] = to.prim.unwrapDif(message[1]);
 
     let messageString = JSON.stringify(message);
-    let that = this;
-    //console.log("message", message);
-    setTimeout(function () {
-      that.state.connection.send(messageString);
-    }, CSLatency); // latency testing
+    this.sendMessageToServer(messageString);
   }
 
   /**
@@ -122,6 +127,77 @@ class App extends React.Component {
     this.state.editor.session.on('change', this.handleChange);
   }
 
+  initializeClient(message) {
+    this.setState({
+      userID: message.userID,
+      HB: message.serverHB,
+      serverOrdering: message.serverOrdering
+    });
+    this.createInitialDocument(message.serverDocument);
+  }
+
+  sendGCMetadata() {
+    let dependancy = this.state.firstSOMessageNumber + this.state.serverOrdering.length - 1; // is -1 if SO is empty
+
+    let message = {
+      msgType: com.msgTypes.GCMetadataResponse,
+      userID: this.state.userID,
+      dependancy: dependancy
+    };
+    let messageString = JSON.stringify(message);
+    this.sendMessageToServer(messageString);
+  }
+
+  GC(GCOldestMessageNumber) {
+    let SOGarbageIndex = GCOldestMessageNumber - this.state.firstSOMessageNumber;
+
+    if (SOGarbageIndex < 0 || SOGarbageIndex >= this.state.serverOrdering.length) {
+      console.log("GC Bad SO index");
+      return;
+    }
+
+    let GCUserID = this.state.serverOrdering[SOGarbageIndex][0];
+    let GCCommitSerialNumber = this.state.serverOrdering[SOGarbageIndex][1];
+
+    let HBGarbageIndex = 0;
+
+    for (let i = 0; i < this.state.HB.length; i++) {
+      let HBUserID = this.state.HB[i][0][0];
+      let HBCommitSerialNumber = this.state.HB[i][0][1];
+      if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+        HBGarbageIndex = i;
+        break;
+      }
+    }
+
+    this.setState((prevState) => ({
+      HB: prevState.HB.slice(HBGarbageIndex),
+      serverOrdering: prevState.serverOrdering.slice(SOGarbageIndex),
+      firstSOMessageNumber: prevState.firstSOMessageNumber + SOGarbageIndex
+     }));
+  }
+
+  serverMessageProcessor(message) {
+    let that = this;
+    if (message.hasOwnProperty('msgType')) {
+      if (message.msgType === com.msgTypes.initialize) { ///TODO: what if this is lost somehow?
+        this.initializeClient(message);
+      }
+      else if (message.msgType === com.msgTypes.GCMetadataRequest) {
+        this.sendGCMetadata();
+      }
+      else if (message.msgType === com.msgTypes.GC) {
+        this.GC(message.GCOldestMessageNumber);
+      }
+    }
+    // message is an operation
+    else {
+      setTimeout(function () {
+        that.processIncomingMessage(message);
+      }, that.SCLatency); // latency testing
+    }
+  }
+
   /**
    * @brief Initializes a WobSocket connection with the server.
    */
@@ -143,30 +219,7 @@ class App extends React.Component {
       let message = JSON.parse(messageWrapper.data);
       //console.log("recv message obj", message_obj);
       //console.log("recv message", message.data);
-
-      if (that.state.userID === null) {
-        if (message.hasOwnProperty('userID')) {
-          that.createInitialDocument(message.serverDocument);
-          that.setState({
-            userID: message.userID,
-            HB: message.serverHB,
-            serverOrdering: message.serverOrdering
-          });
-          //console.log(that.state.userID);
-        }
-        else {
-          ///TODO: handle lost userID data
-          //console.log('userID lost!');
-        }
-      }
-      else {
-        setTimeout(function () {
-          that.processIncomingMessage(message);
-          ///TODO: filter out own difs via a function
-          ///TODO: this is setting state twice
-        }, SCLatency); // latency testing
-        //console.log(that.state.HB_inverse);
-      }
+      that.serverMessageProcessor(message);
     }
   }
 

@@ -27,31 +27,31 @@
 
     Example dif: [2, -3, [1, 2, 'abc'], [3, 3, 1]]
 
-    @note Operation definition: An operation is an array with two elements. The first is an array
+ *  @note Operation definition: An operation is an array with two elements. The first is an array
     containing user transaction metadata (userID, commitSerialNumber, preceding userID,
     preceding commitSerialNumber) and the second element is a dif describing the changes
     made by the author. 
 
     Note that an operation contains enough information to determine its total ordering.
 
-    @note Server ordering (SO): Server ordering is defined by the order the server relays
+ *  @note Server ordering (SO): Server ordering is defined by the order the server relays
     operations to other users. The operation are received by all users in the same order,
     therefore server ordering stays the same for all users. 
 
-    @note Direct dependancy: An operation is directly dependant on the operation described by its
+ *  @note Direct dependancy: An operation is directly dependant on the operation described by its
     preceding userID and preceding commitSerialNumber and all operations before that in server
     ordering.
 
-    @note Local dependancy: An operation is locally dependant on all previous operations made by
+ *  @note Local dependancy: An operation is locally dependant on all previous operations made by
     the same user. Note that local dependancy may contain operations not included in direct
     dependancy. This happens when a user sends multiple operations before receiving them from
     the server, as these operations may all have the same preceding userID and preceding
     commitSerialNumber.
 
-    @note An operation is only dependant an all directly and locally dependant operations.
+ *  @note An operation is only dependant an all directly and locally dependant operations.
     All other operations are independant.
 
-    @note Total ordering:
+ *  @note Total ordering:
     Given the operations A and B: A => B (B directly follows A) if and only if B directly
     follows A in server ordering.
 
@@ -85,9 +85,8 @@ function dlog(name, obj, mode="default") {
 if (typeof to === 'undefined') {
     // Export for browsers
     var to = {};
+    to.prim = {};
 }
-
-to.prim = {};
 
 to.add = function(row, position, content) {
     return [row, position, content];
@@ -306,8 +305,8 @@ to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
     // in this case, the message is placed according to total ordering
     // the strategy is to take operations from HB from the back and determine their total ordering
     // if the operation in HB is part of a message chain, and it's first member is present in SO, then the
-    //  received message will be placed after the last message chain member (the message chain effectively shares
-    //  it's first member's SO)
+    //      received message will be placed after the last message chain member (the message chain effectively shares
+    //      it's first member's SO)
     if (undoIndex === 0) {
         for (let i = wdHB.length - 1; i >= 0; i--) {
             let operation = wdHB[i];
@@ -1138,6 +1137,7 @@ to.prim.LET1 = function(wrap, wTransformationDif, log) {
     return wTransformedSubdifs;
 }
 
+///TODO: consider returning an array from all prim transform functions
 to.prim.IT = function(wrap, wTransformer) {
     let transformedWraps = [];
     if (to.isAdd(wrap)) {

@@ -233,8 +233,24 @@ Garbage collection scheme:
                 If the foreign message chain's dependancy is the same or newer than the one send by the local user to the server, it is not a problem at all.
                 It's dependancy will not be garbage collected.
 
+    Implementation details:
+        How to get rid of the garbage? (Let garbage refer to all operations that should be garbage collected.)
+            For the server, this is as easy as simply deleting all operations up to the selected metadata.
+
+            For the client this should also be the case, for the same reasons discussed in why the GC scheme works, as the only difference to the server's
+            HB is that it contains yet unreceived local operations.
+
+        Optimalization: 
+            Clients do not have to send all metadata about the oldest message, but only it's index in SO. However, clients do not have to have the same SO,
+            because some took part in GC and some not, therefore instead of an index, it would be the total message serial number.
+
     Handle special cases:
-        - User disconnects in critical parts of the scheme
+        User disconnects in critical parts of the scheme:
+            If a client disconnects after he was added to the garbageRoster (array of userIDs of clients partaking in GC), his userID has to be removed
+            from the garbageRoster, so that the server does not wait for his response.
+        
+        A new user joins after the server sends out the prompt:
+            Simply do not include new clients in the process. Handle them the next time the GC is invoked.
 
 Persistent server state scheme:
     In order for the server to be able to hold any state, all the GOTCA algorithms need to be added. The servers document state has to be stored in order to be

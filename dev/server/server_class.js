@@ -1,28 +1,36 @@
 var WebSocketServer = require('websocket').server;
 var http = require('http');
+var StatusChecker = require('../lib/status_checker');
 var to = require('../lib/dif');
+var com = require('../lib/communication');
 var fs = require('fs');
 
 
 class Server {
     constructor() {
-        this.handleMessage = this.handleMessage.bind(this);
+        this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
         this.debugHandleMessage = this.debugHandleMessage.bind(this);
         this.processMessage = this.processMessage.bind(this);
+        this.GC = this.GC.bind(this);
 
         // attributes for document maintenance
         this.HB = [];
         this.serverOrdering = [];
+        this.firstSOMessageNumber = 0; // the total serial number of the first SO entry
         this.document = null;
         this.documentPath = null; // the document path will always be provided by the Controller
 
         // attributes for user management
         this.nextUserID = 0;
-        this.users = [];
+        this.users = new Map(); // maps userIDs to connections
 
         // attribute for garbage collection
         this.garbageCount = 0; // current amount of messages since last GC
-        this.garbageMessageMax = 100; // after how many messages to GC
+        this.garbageMax = 5; // after how many messages to GC
+        this.GCInProgress = false;
+        this.garbageRoster = []; // array of userIDs that are partaking in garbage collection
+        this.garbageRosterChecker = null; // StatusChecker got the garbageRoster
+        this.GCOldestMessageNumber = null;
 
         // attributes for testing
         this.messageLog = [];
@@ -72,7 +80,7 @@ class Server {
             let userInitData = that.createUserInitData(userID);
         
             connection.sendUTF(JSON.stringify(userInitData));
-            connection.on('message', that.handleMessage);
+            connection.on('message', that.clientMessageProcessor);
             connection.on('close', function(reasonCode, description) {
                 //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
                 that.removeConnection(userID); // can userID be used, or is it not in the scope?
@@ -80,7 +88,13 @@ class Server {
         });
     }
 
-    // the Controller will create the initial document for the server, this is not implemented yet however
+    /**
+     * @brief Retrieves the initial document state from a file.
+     * @note The file should always be present. The case when documentPath is null
+             is for testing purposes only.
+     * @param documentPath The path to the file.
+     * @returns The initial document state.
+     */
     getInitialDocument(documentPath) {
         let document;
         if (documentPath === null) {
@@ -132,26 +146,90 @@ class Server {
         }
     }
 
-    GC() {
-        this.garbageCount++;
-        if (this.garbageCount >= this.garbageMessageMax) {
-            ///TODO: implement GC
+    /**
+     * @brief Starts the garbage collection process after enough calls. Sends a message to clients
+              prompting them to send metadata needed for the GC process.
+
+     * @note Also saves the current document state to a file for the sake of data loss prevention. ///TODO: should it be in this function?
+     */
+    startGC() {
+            this.garbageCount++;
+        if (this.garbageCount >= this.garbageMax && !this.GCInProgress) {
+            console.log("Started GC");
+            this.GCInProgress = true;
+            this.GCOldestMessageNumber = null; // reset the oldest message number so a new can be selected
+            let message = { msgType: com.msgTypes.GCMetadataRequest };
+
+            // clean up the garbage roster and fill it with current clients
+            this.garbageRoster = [];
+            let userIterator = this.users.keys();
+            for (let i = 0; i < this.users.size; i++) {
+                this.garbageRoster.push(userIterator.next().value);
+            }
+            this.garbageRosterChecker = new StatusChecker(this.garbageRoster.length);
+            this.garbageRosterChecker.setReadyCallback(this.GC);
+
+            // send the message to each client
+            this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+
+            // reset the counter
             this.garbageCount = 0;
             this.updateDocumentFile();
+
+            ///TODO: start GC timeout clock
         }
+    }
+
+    processGCResponse(message) {
+        if (this.GCOldestMessageNumber === null || message.dependancy < this.GCOldestMessageNumber) {
+            this.GCOldestMessageNumber = message.dependancy;
+        }
+        let userIndex = this.garbageRoster.indexOf(message.userID);
+        this.garbageRosterChecker.check(userIndex);
+    }
+
+    GC() {
+        console.log("GC");
+        // need to subtract this.firstSOMessageNumber, because that is how many SO entries from the beginning are missing
+        let SOGarbageIndex = this.GCOldestMessageNumber - this.firstSOMessageNumber;
+
+        let GCUserID = this.serverOrdering[SOGarbageIndex][0];
+        let GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
+
+        let HBGarbageIndex = 0;
+        for (let i = 0; i < this.HB.length; i++) {
+            let HBUserID = this.HB[i][0][0];
+            let HBCommitSerialNumber = this.HB[i][0][1];
+            if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+              HBGarbageIndex = i;
+              break;
+            }
+          }
+    
+        this.HB = this.HB.slice(HBGarbageIndex);
+        this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
+        this.firstSOMessageNumber += SOGarbageIndex;
+
+        let message = {
+            msgType: com.msgTypes.GC,
+            GCOldestMessageNumber: this.GCOldestMessageNumber
+        };
+        this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+
+        this.garbageRoster = [];
+        this.GCInProgress = false;
+        this.GCOldestMessageNumber = null;
     }
 
     addConnection(connection) {
         let userID = this.getNextUserID();
-        this.users.push({
-            connection: connection,
-            userID: userID
-        });
+        this.users.set(userID, connection);
         return userID;
     }
 
     createUserInitData(userID) {
         return {
+            msgType: com.msgTypes.initialize,
             userID: userID,
             serverDocument: to.prim.deepCopy(this.document),
             serverHB: to.prim.deepCopy(this.HB),
@@ -160,10 +238,9 @@ class Server {
     }
 
     removeConnection(userID) {
-        let idx = this.users.findIndex(user => user.userID === userID);
-        this.users.splice(idx, 1);
+        this.users.delete(userID);
         // write to file if all users left
-        if (this.users.length == 0) {
+        if (this.users.size == 0) {
             this.updateDocumentFile();
         }
     }
@@ -172,13 +249,14 @@ class Server {
         return this.nextUserID++;
     }
 
-    sendToUser(userID, message) {
-        this.users.find(user => user.userID === userID).connection.sendUTF(message.utf8Data);
+    sendMessageToClient(userID, messageString) {
+        this.users.get(userID).sendUTF(messageString);
     }
 
-    sendToAllUsers(message) {
-        for (let user of this.users) {
-            user.connection.sendUTF(message.utf8Data);
+    sendMessageToClients(messageString) {
+        let userIterator = this.users.values();
+        for (let i = 0; i < this.users.size; i++) {
+            userIterator.next().value.sendUTF(messageString);
         }
     }
 
@@ -212,26 +290,31 @@ class Server {
         this.log = true;
     }
 
-    handleMessage(message) {
-        if (message.type === 'utf8') {
+    clientMessageProcessor(messageWrapper) {
+        let messageString = messageWrapper.utf8Data;
+        let message = JSON.parse(messageString);
+        if(this.log) console.log('Received Message: ' + messageString);
+
+        if (message.hasOwnProperty('msgType')) {
+            if (message.msgType === com.msgTypes.GCMetadataResponse) {
+                this.processGCResponse(message);
+            }
+        }
+        // message is an operation
+        else {
+            this.sendMessageToClients(messageString);
             if (this.ordering.on) {
                 this.debugHandleMessage(message);
+                this.startGC();
             }
             else {
                 this.processMessage(message);
-                this.GC();
+                this.startGC();
             }
-        }
-        else {
-            if(that.log) console.log('Received message in non UTF-8 format');
         }
     }
 
-    processMessage(messageWrapper) {
-        if(this.log) console.log('Received Message: ' + messageWrapper.utf8Data);
-        this.sendToAllUsers(messageWrapper);
-
-        let message = JSON.parse(messageWrapper.utf8Data);
+    processMessage(message) {
         let resultingState = to.UDRTest(message, this.document, this.HB, this.serverOrdering);
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
         this.HB = resultingState.HB;
@@ -239,24 +322,24 @@ class Server {
     }
 
     debugHandleMessage(message) {
-        this.ordering.buffer.push(JSON.parse(message.utf8Data));
+        this.ordering.buffer.push(message);
         if (this.ordering.buffer.length === this.ordering.orders[this.ordering.currentPackage].length) {
             let userCount = -1;
             let userMessages = [];
-            this.ordering.buffer.forEach(messageObj => userCount = (messageObj[0][0] > userCount) ? messageObj[0][0] : userCount);
+            this.ordering.buffer.forEach(message => userCount = (message[0][0] > userCount) ? message[0][0] : userCount);
             userCount++;
             for (let i = 0; i < userCount; i++) {
                 userMessages.push([]);
-                this.ordering.buffer.forEach(messageObj => {
-                    if (messageObj[0][0] === i) {
-                        userMessages[i].push(messageObj);
+                this.ordering.buffer.forEach(message => {
+                    if (message[0][0] === i) {
+                        userMessages[i].push(message);
                     }
                 });
             }
             let order = this.ordering.orders[this.ordering.currentPackage];
             order.forEach(userID => {
-                let message = JSON.stringify(userMessages[userID].shift());
-                this.processMessage({ utf8Data: message });
+                let storedMessage = userMessages[userID].shift();
+                this.processMessage(storedMessage);
             });
             this.ordering.buffer = [];
             this.ordering.currentPackage++;
