@@ -478,24 +478,24 @@ test('Move 5C simple convergence test.', () => {
 
 test('Move 5C convergence test.', () => {
     initializeClients(5);
-    let serverOrdering = [
+    let messageOrdering = [
         [0],
         [3, 2, 1, 0]
     ];
     
-    server.setOrdering(serverOrdering);
+    server.setOrdering(messageOrdering);
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
         clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
-        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
+        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[0].length);
     })
     .then(() => {
         clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], 0, 6));
         clients[1].propagateLocalDif([to.add(0, 0, "Some ")]);
         clients[2].propagateLocalDif([to.add(0, 6, "s")]);
         clients[3].propagateLocalDif([to.add(0, 11, "s")]);
-        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
+        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[1].length);
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ])).toBe(true);
@@ -532,17 +532,17 @@ test('Newline Remline Add 5C message chain test (adding text to a new line and d
 
 test('Newline Remline Add 5C conflict test (adding text, newlining and remlining on the same row).', () => {
     initializeClients(5);
-    let serverOrdering = [
+    let messageOrdering = [
         [0],
         [0, 1, 2, 3, 4]
     ];
     
-    server.setOrdering(serverOrdering);
+    server.setOrdering(messageOrdering);
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
         clients[0].propagateLocalDif([to.newline(1)]);
-        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
+        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[0].length);
     })
     .then(() => {
         clients[0].propagateLocalDif([to.add(1, 0, "text")]);
@@ -550,7 +550,7 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
         clients[2].propagateLocalDif([to.add(1, 0, "sample")]);
         clients[3].propagateLocalDif([to.newline(1)]);
         clients[4].propagateLocalDif([to.add(1, 0, "random")]);
-        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
+        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[1].length);
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ])).toBe(true);

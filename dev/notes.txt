@@ -252,6 +252,13 @@ Garbage collection scheme:
         A new user joins after the server sends out the prompt:
             Simply do not include new clients in the process. Handle them the next time the GC is invoked.
 
+    THIS DOES NOT WORK:
+        Basing the GC on the last message present in clients' SO is insufficient (basing it on the first two entries of the metadata), because of unreceived external
+        messages with an earlier timestamp. The solution is to base it on the latter two entries in the metadata. 
+
+        The algrithm above proposed to base the GC on the userID and commitSerialNumber of the last SO entry, but it should be based in the previousUserID and
+        previousCommitSerialNumber, because that is the oldest SO entry that is depended on.
+
 Persistent server state scheme:
     In order for the server to be able to hold any state, all the GOTCA algorithms need to be added. The servers document state has to be stored in order to be
     sent to newly joined users. The server will therefore relay messages to other users and run the message through the algorithms to update it's state.
@@ -269,4 +276,19 @@ Async:
     Implications:
         - One run of GC can collect less messages, this could be fixed by some message serialization, but then the client would send the request after all the
         previous messages had been processed, which could lead to timeouts.
+
+    Example:
+        The server starts the GC process after 5 messages. 7 clients send a message at the same time, writing a character at the first position. The server
+        receives them at the same time. The server relays the first 5 messages, then starts the GC process, sends the GC requests and then sends the remaining
+        two messages. The clients process 2 messages, then send a GC response to server. The server determines that the 2nd message is the GC breakpoint and
+        sends the clients the information. The clients have processed the first 6 messages but then the GC prompt arrives, so they delete the first message.
+        Then they receive the last 7th message, but it is not transformed the right way. Instead of it being [0, 6, '6'], it's [0, 0, '6']. It is because
+        the dif [0, 0, '6'] is being transformed agains difs [0, 1, '1'], [0, 2, '2'],... but not agains [0, 0, '0'], because it was deleted.
+
+        The jist of the problem: What if several clients send a message from the same state, but after some of these messages arrive, the GC is triggered and
+        some of these messages, that have been already processed by clients, are deleted and the rest of messages can't be transformed correctly?
+
+        Solution: The problem is in the implementation, not the theory. The client GC responses need to be based on the metadata the last SO entry is dependant on,
+        not on the last SO entry itself.
+
         

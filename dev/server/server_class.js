@@ -156,7 +156,9 @@ class Server {
     startGC() {
         this.garbageCount++;
         if (this.garbageCount >= this.garbageMax && !this.GCInProgress) {
-            console.log("Started GC");
+            //if (this.log) console.log("-------------------------------");
+            //if (this.log) console.log("Started GC");
+            //if (this.log) console.log("-------------------------------");
             this.GCInProgress = true;
             this.GCOldestMessageNumber = null; // reset the oldest message number so a new can be selected
             let message = { msgType: com.msgTypes.GCMetadataRequest };
@@ -200,7 +202,18 @@ class Server {
     }
 
     GC() {
-        console.log("GC");
+        //if (this.log) console.log("-------------------------------");
+        //if (this.log) console.log("GC");
+        //if (this.log) console.log("-------------------------------");
+
+        // some client has no garbage
+        if (this.GCOldestMessageNumber === -1) {
+            this.garbageRoster = [];
+            this.GCInProgress = false;
+            this.GCOldestMessageNumber = null;
+            return; // no need to send messages to clients, because they have no state
+        }
+
         // need to subtract this.firstSOMessageNumber, because that is how many SO entries from the beginning are missing
         let SOGarbageIndex = this.GCOldestMessageNumber - this.firstSOMessageNumber;
 
@@ -304,21 +317,21 @@ class Server {
     clientMessageProcessor(messageWrapper) {
         let messageString = messageWrapper.utf8Data;
         let message = JSON.parse(messageString);
-        if(this.log) console.log('Received Message: ' + messageString);
 
         if (message.hasOwnProperty('msgType')) {
+            if (this.log) console.log('Received Message: ' + messageString);
             if (message.msgType === com.msgTypes.GCMetadataResponse) {
                 this.processGCResponse(message);
             }
         }
         // message is an operation
         else {
-            this.sendMessageToClients(messageString);
             if (this.ordering.on) {
                 this.debugHandleMessage(message);
-                this.startGC();
             }
             else {
+                if (this.log) console.log('Received Message: ' + messageString);
+                this.sendMessageToClients(messageString);
                 this.processMessage(message);
                 this.startGC();
             }
@@ -339,6 +352,7 @@ class Server {
             let userMessages = [];
             this.ordering.buffer.forEach(message => userCount = (message[0][0] > userCount) ? message[0][0] : userCount);
             userCount++;
+            // create a list of lists of messages so that the outer list can be indexed with userID
             for (let i = 0; i < userCount; i++) {
                 userMessages.push([]);
                 this.ordering.buffer.forEach(message => {
@@ -350,7 +364,11 @@ class Server {
             let order = this.ordering.orders[this.ordering.currentPackage];
             order.forEach(userID => {
                 let storedMessage = userMessages[userID].shift();
+                let messageString = JSON.stringify(storedMessage);
+                if(this.log) console.log('Received Message: ' + messageString);
+                this.sendMessageToClients(messageString);
                 this.processMessage(storedMessage);
+                this.startGC();
             });
             this.ordering.buffer = [];
             this.ordering.currentPackage++;

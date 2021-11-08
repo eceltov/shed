@@ -137,8 +137,15 @@ class App extends React.Component {
   }
 
   sendGCMetadata() {
-    let dependancy = this.state.firstSOMessageNumber + this.state.serverOrdering.length - 1; // is -1 if SO is empty
+    let dependancy = -1; // value if there is no garbage
 
+    if (this.state.serverOrdering.length > 0) {
+      let lastEntry = this.state.serverOrdering[this.state.serverOrdering.length - 1];
+      dependancy =  this.state.serverOrdering.findIndex(entry => entry[0] === lastEntry[2] && entry[1] === lastEntry[3]);
+      dependancy += this.state.firstSOMessageNumber; // so that the offset is correct
+    }
+
+    //console.log(this.serverOrdering);
     let message = {
       msgType: com.msgTypes.GCMetadataResponse,
       userID: this.state.userID,

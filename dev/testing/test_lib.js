@@ -65,6 +65,14 @@ test.createClients = function(count, serverURL, connectionChecker, msgReceivedCh
     return clients;
 }
 
+test.reorderClients = function(clients) {
+    reorderedClients = Array(clients.length);
+    for (let i = 0; i < clients.length; i++) {
+        reorderedClients[clients[i].userID] = clients[i];
+    }
+    return reorderedClients;
+}
+
 /**
  * @returns Returns true if all clients have the same document state.
  */
