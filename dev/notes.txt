@@ -261,3 +261,12 @@ Persistent server state scheme:
 App structure:
     The app has to allow concurrent runs of multiple file instances, therefore a central controler has to be implemented, that will start the individual
     'servers'.
+
+Async:
+    Given the situation when a client receives messages and GCMetadataRequests, even if the request was sent after all messages by the server, the request can
+    be processed by the client before all messages had been processed.
+
+    Implications:
+        - One run of GC can collect less messages, this could be fixed by some message serialization, but then the client would send the request after all the
+        previous messages had been processed, which could lead to timeouts.
+        

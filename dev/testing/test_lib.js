@@ -28,6 +28,12 @@ var test = {};
     });
 }
 
+test.getDelayPromise = function(delay) {
+    return new Promise((resolve, reject) => {
+        setTimeout(resolve, delay);
+    });
+}
+
 /**
  * @brief Creates a single client, that will automatically attempt connect.
  * @param serverURL The URL to which the client will connect.
@@ -66,16 +72,129 @@ test.sameDocumentState = function(clients) {
     let document = JSON.stringify(clients[0].document);
     for (let i = 1; i < clients.length; i++) {
         if (document !== JSON.stringify(clients[i].document)) {
+            console.log("Document mismatch!");
+            console.log("client 0 document:", document);
+            console.log("client " + i + " document:", JSON.stringify(clients[i].document));
             return false;
         }
     }
     return true;
 }
 
+/**
+ * @returns Returns true if all clients have the specified document state.
+ */
 test.checkSameDocumentState = function(clients, document) {
     if (!test.sameDocumentState(clients)) return false;
-    return to.prim.deepEqual(clients[0].document, document);
+    if (!to.prim.deepEqual(clients[0].document, document)) {
+        console.log("Clients have the same document, but a different one than the one provided!")
+        console.log("Client document:", JSON.stringify(clients[0].document));
+        console.log("Provided document:", JSON.stringify(document));
+        return false;
+    }
+    return true;
 }
+
+/**
+ * @returns Returns true if all clients have the same serverOrdering.
+ */
+test.sameServerOrdering = function(clients) {
+    let serverOrderingString = JSON.stringify(clients[0].serverOrdering);
+    for (let i = 1; i < clients.length; i++) {
+        if (serverOrderingString !== JSON.stringify(clients[i].serverOrdering)) {
+            console.log("serverOrdering mismatch!");
+            console.log("client 0 serverOrdering:", serverOrderingString);
+            console.log("client " + i + " serverOrdering:", JSON.stringify(clients[i].serverOrdering));
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @returns Returns true if all clients have the specified serverOrdering.
+ */
+test.checkSameServerOrdering = function(clients, serverOrdering) {
+    if (!test.sameServerOrdering(clients)) return false;
+    if (!to.prim.deepEqual(clients[0].serverOrdering, serverOrdering)) {
+        console.log("Clients have the same serverOrdering, but a different one than the one provided!")
+        console.log("Client serverOrdering:", JSON.stringify(clients[0].serverOrdering));
+        console.log("Provided serverOrdering:", JSON.stringify(serverOrdering));
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @returns Returns true if all clients have the same HB length.
+ */
+ test.sameHBLength = function(clients) {
+    let HBLength = clients[0].HB.length;
+    for (let i = 1; i < clients.length; i++) {
+        if (HBLength !== clients[i].HB.length) {
+            console.log("HB length mismatch!");
+            console.log("client 0 HB length:", HBLength);
+            console.log("client " + i + " HB length:", clients[i].HB.length);
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @returns Returns true if all clients have the specified HB length.
+ */
+test.checkSameHBLength = function(clients, length) {
+    if (!test.sameHBLength(clients)) return false;
+    if (!clients[0].HB.length === length) {
+        console.log("Clients have the same HB length, but a different one than the one provided!")
+        console.log("Client HB length:", clients[0].HB.length);
+        console.log("Provided HB length:", length);
+        return false;
+    }
+    return true;
+}
+
+/**
+ * @returns Returns true if there is a bijection between SO and HB entries. 
+ */
+test.bijectionSOHB = function(client) {
+    if (client.HB.length !== client.serverOrdering.length) {
+        console.log("SO and HB have different lengths!");
+        return false;
+    }
+    for (let i = 0; i < client.serverOrdering.length; i++) {
+        let SOMetadata = client.serverOrdering[i];
+        let match = false;
+        for (let j = 0; j < client.HB.length; j++) {
+            let HBMetadata = client.HB[j][0];
+            if (to.prim.deepEqual(SOMetadata, HBMetadata)) {
+                match = true;
+                break;
+            }
+        }
+        if (!match) {
+            console.log("No match found in HB!");
+            return false;
+        }
+    }
+    return true;
+}
+
+/**
+ * @returns Returns true if there is a bijection between SO and HB entries for all clients. 
+ */
+test.checkBijectionSOHB = function(clients) {
+    for (let i = 0; i < clients.length; i++) {
+        if (!test.bijectionSOHB(clients[i])) {
+            return false;
+        }
+    }
+    return true;
+}
+
+
+
 
 test.setCSGlobalLatency = function(clients, latency) {
     clients.forEach(client => client.CSLatency = latency);

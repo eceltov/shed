@@ -65,6 +65,7 @@ class Client {
     }
 
     serverMessageProcessor(message) {
+      console.log(this.userID, "received message: ", JSON.stringify(message));
       let that = this;
       if (message.hasOwnProperty('msgType')) {
         if (message.msgType === com.msgTypes.initialize) { ///TODO: what if this is lost somehow?
@@ -98,7 +99,7 @@ class Client {
 
     sendGCMetadata() {
       let dependancy = this.firstSOMessageNumber + this.serverOrdering.length - 1; // is -1 if SO is empty
-
+      console.log(this.serverOrdering);
       let message = {
         msgType: com.msgTypes.GCMetadataResponse,
         userID: this.userID,
@@ -111,7 +112,12 @@ class Client {
     GC(GCOldestMessageNumber) {
       let SOGarbageIndex = GCOldestMessageNumber - this.firstSOMessageNumber;
 
-      if (SOGarbageIndex < 0 || SOGarbageIndex >= this.serverOrdering.length) {
+      if (GCOldestMessageNumber < 0) {
+        console.log("Nothing to be GC'd.");
+        return;
+      }
+
+      if (SOGarbageIndex >= this.serverOrdering.length) {
         console.log("GC Bad SO index");
         return;
       }
@@ -133,6 +139,7 @@ class Client {
       this.HB = this.HB.slice(HBGarbageIndex);
       this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
       this.firstSOMessageNumber += SOGarbageIndex;
+      console.log("Free", SOGarbageIndex);
     }
   
     /**

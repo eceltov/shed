@@ -36,6 +36,7 @@ class Server {
         this.messageLog = [];
         this.ordering = { on: false };
         this.log = false;
+        this.GCStartDelay = 0;
     }
 
     /**
@@ -153,7 +154,7 @@ class Server {
      * @note Also saves the current document state to a file for the sake of data loss prevention. ///TODO: should it be in this function?
      */
     startGC() {
-            this.garbageCount++;
+        this.garbageCount++;
         if (this.garbageCount >= this.garbageMax && !this.GCInProgress) {
             console.log("Started GC");
             this.GCInProgress = true;
@@ -170,7 +171,17 @@ class Server {
             this.garbageRosterChecker.setReadyCallback(this.GC);
 
             // send the message to each client
-            this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+            // testing
+            if (this.GCStartDelay > 0) {
+                let that = this;
+                setTimeout(() => {
+                    that.garbageRoster.forEach(userID => that.sendMessageToClient(userID, JSON.stringify(message)));
+                }, that.GCStartDelay);
+
+            }
+            else {
+                this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+            }
 
             // reset the counter
             this.garbageCount = 0;
