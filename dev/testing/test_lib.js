@@ -219,6 +219,19 @@ test.sendAdds = function(clientMsgCount, subdifCount, clients) {
     }
 }
 
+test.sendAddsUserID = function(clientMsgCount, subdifCount, clients) {
+    for (let i = 0; i < clients.length; i++) {
+        let userID = clients[i].userID;
+        for (let j = 0; j < clientMsgCount; j++) {
+            let dif = [];
+            for (let k = 0; k < subdifCount; k++) {
+                dif.push(to.add(0, 0, userID.toString()));
+            }
+            clients[i].propagateLocalDif(dif);
+        }
+    }
+}
+
 test.sendDels = function(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length * clientMsgCount; i++) {
         let dif = [];

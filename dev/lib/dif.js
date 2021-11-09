@@ -413,6 +413,7 @@ to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false) {
 
     if(log) console.log('UDR full run');
     if(log) console.log('after:', document);
+    if(log) console.log();
 
     return {
         document: document,
