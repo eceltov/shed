@@ -31,7 +31,7 @@ afterEach(() => {
 });
 
 
-test('GC called after some time collects all but the last message', () => {
+test('GC does not do anything if all messages are dependant on an empty document.', () => {
     initializeClients(3);
     server.garbageMax = 3; // set the garbage limit low so that GC occurs earlier
     server.GCStartDelay = 200; // delay the start of GC so that all client messages are processed
@@ -53,8 +53,8 @@ test('GC called after some time collects all but the last message', () => {
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'abc' ])).toBe(true);
-        expect(lib.checkSameServerOrdering(clients, [ [ 2, 0, -1, -1 ] ])).toBe(true);
-        expect(lib.checkSameHBLength(clients, 1)).toBe(true);
+        expect(lib.checkSameServerOrdering(clients, [[0,0,-1,-1],[1,0,-1,-1],[2,0,-1,-1]])).toBe(true);
+        expect(lib.checkSameHBLength(clients, 3)).toBe(true);
         expect(lib.checkBijectionSOHB(clients)).toBe(true);
     })
     .catch(() => {
@@ -62,7 +62,7 @@ test('GC called after some time collects all but the last message', () => {
     });
 });
 
-test('The final GC call (called after some time) collects all remaining entries but the last message', () => {
+test('GC collects all entries but the last ones with the same dependancy and their one dependancy', () => {
     initializeClients(3);
     server.garbageMax = 3; // set the garbage limit low so that GC occurs earlier
     let messageOrdering = [
@@ -71,7 +71,7 @@ test('The final GC call (called after some time) collects all remaining entries 
         [0, 1, 2],
     ];
     server.setOrdering(messageOrdering);
-    server.enableLogging();
+    //server.enableLogging();
 
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
@@ -99,8 +99,8 @@ test('The final GC call (called after some time) collects all remaining entries 
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'ghidefabc' ])).toBe(true);
-        expect(lib.checkSameServerOrdering(clients, [ [ 2, 2, 2, 1 ] ])).toBe(true);
-        expect(lib.checkSameHBLength(clients, 1)).toBe(true);
+        expect(lib.checkSameServerOrdering(clients, [[2,1,2,0],[0,2,2,1],[1,2,2,1],[2,2,2,1]])).toBe(true);
+        expect(lib.checkSameHBLength(clients, 4)).toBe(true);
         expect(lib.checkBijectionSOHB(clients)).toBe(true);
     })
     .catch(() => {

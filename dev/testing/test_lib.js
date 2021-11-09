@@ -154,7 +154,7 @@ test.checkSameServerOrdering = function(clients, serverOrdering) {
  */
 test.checkSameHBLength = function(clients, length) {
     if (!test.sameHBLength(clients)) return false;
-    if (!clients[0].HB.length === length) {
+    if (clients[0].HB.length !== length) {
         console.log("Clients have the same HB length, but a different one than the one provided!")
         console.log("Client HB length:", clients[0].HB.length);
         console.log("Provided HB length:", length);
