@@ -255,7 +255,7 @@ class App extends React.Component {
     // GOT control algorithm
     else {
       let document = new Document(this.state.editor.getSession().getDocument().getAllLines());
-      let finalState = to.UDRTest(message, document, this.state.HB, this.state.serverOrdering);
+      let finalState = to.UDR(message, document, this.state.HB, this.state.serverOrdering);
       this.state.editor.setSession(new EditSession(finalState.document)); ///TODO: it might be a good idea to buffer changes
       this.state.editor.session.on('change', this.handleChange);
 

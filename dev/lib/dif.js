@@ -52,16 +52,23 @@
     All other operations are independant.
 
  *  @note Total ordering:
-    Given the operations A and B: A => B (B directly follows A) if and only if B directly
-    follows A in server ordering.
+    Given the operations A and B: A => B (B directly follows A) if and only if:
+    1) B is not part of a message chain and A is the last member of it's message chain.
+    Or
+    2) B is part of a message chain and A is the previous member of the message chain.
 
     Given the operations A and B: A *=> B (B follows A) if and only if:
-
     1) A => B
     OR
     2) There exist an operation C, such that A *=> C => B
 */
 
+/**
+ * @brief Logging function for debugging.
+ * @param {*} name Name of the object.
+ * @param {*} obj Object to be logged.
+ * @param {*} mode What kind of object it is. Supported: wDif, wDifs, wHB.
+ */
 function dlog(name, obj, mode="default") {
     if (mode === "default") {
         console.log(name + ":", JSON.stringify(obj));
@@ -80,6 +87,16 @@ function dlog(name, obj, mode="default") {
         });
         console.log();
     }
+    else if (mode == "wHB") {
+        console.log(name + ":");
+        obj.forEach(operation => {
+            console.log(JSON.stringify(operation[0]));
+            let wDif = operation[1];
+            wDif.forEach(wrap => console.log(JSON.stringify(wrap)));
+            console.log("-----------------------------");
+        });
+        console.log();
+    }
 }
 
 if (typeof to === 'undefined') {
@@ -88,6 +105,7 @@ if (typeof to === 'undefined') {
     to.prim = {};
 }
 
+// functions for dif creation
 to.add = function(row, position, content) {
     return [row, position, content];
 }
@@ -109,27 +127,29 @@ to.isAdd = function(subdif) {
     let s = to.prim.unwrapSubdif(subdif);
     return (s.constructor === Array && s.length === 3 && typeof s[2] === 'string');
 }
-
 to.isDel = function(subdif) {
     let s = to.prim.unwrapSubdif(subdif);
     return (s.constructor === Array && s.length === 3 && typeof s[2] === 'number');
 }
-
 to.isNewline = function(subdif) {
     let s = to.prim.unwrapSubdif(subdif);
     return (typeof s === 'number' && s >= 0);
 }
-
 to.isRemline = function(subdif) {  
     let s = to.prim.unwrapSubdif(subdif);
     return (typeof s === 'number' && s < 0); // line 0 cannot be deleted
 }
-
 to.isMove = function(subdif) {
     let s = to.prim.unwrapSubdif(subdif);
     return (s.constructor === Array && s.length === 5);
 }
 
+/**
+ * @brief Applies a wDif to the document. The document can be an Ace document or an array of strings.
+ * @param {*} wDif A wDif to be applied.
+ * @param {*} document The document to which the wDif will be applied to.
+ * @returns Returns the new document.
+ */
 to.applyDif = function(wDif, document) {
     if (document.constructor === Array) {
         return to.applyDifTest(wDif, document);
@@ -139,6 +159,13 @@ to.applyDif = function(wDif, document) {
     }
 }
 
+/**
+ * @brief Undoes a wDif from the document. The document can be an Ace document or an array of strings.
+ * @note Undoing Dels will result in the insertion of '#'s instead of the previously deleted characters.
+ * @param {*} wDif A wDif to be undone.
+ * @param {*} document The document from which the wDif will be undone.
+ * @returns Returns the new document.
+ */
 to.undoDif = function(wDif, document) {
     if (document.constructor === Array) {
         return to.undoDifTest(wDif, document);
@@ -275,87 +302,37 @@ to.undoDifTest = function(wDif, document) {
     return document;
 }
 
-to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
-    // creating new document so that changing it is not propagated to the user
+/**
+ * @brief The undo/do/redo algorithm. Applies a message to a document.
+ * @param {*} dMessage An operation to be applied.
+ * @param {*} document The document which is about to be changed.
+ * @param {*} wdInitialHB The wrapped HB corresponding to the current document.
+ * @param {*} initialSO The serverOrdering corresponding to the current document.
+ * @param {*} log Whether to print out debug messages to the console.
+ * @returns Returns an object: { document, HB }, containing the new document and updated HB.
+ */
+to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false) {
     if(log) console.log('before:', document);
     let wdHB = to.prim.deepCopy(wdInitialHB);
     let SO = [...initialSO, dMessage[0]];
 
     if(log) console.log('message:', dMessage);
 
-    // finding an operation in HB which satisfies: operation => message (message directly follows the operation)
-    let dependantHBIndex = to.prim.findLastDependancyIndex(dMessage, wdHB);
-    
-    let undoIndex = 0;
+    // find the total ordering of the message relative to the local HB and SO
+    let undoIndex = to.prim.findTotalOrderingHBIndex(dMessage, wdHB, SO);
 
-    ///TODO: could this be omitted?
-    // handling the case when the message is part of a 'message chain'
-    // if it is, it will be placed directly after the previous message in the chain (in HB)
-    for (let i = 0; i < wdHB.length; i++) {
-        let operation = wdHB[i];
-        // message is part of a chain
-        if (dMessage[0][0] === operation[0][0] && dMessage[0][2] === operation[0][2] && dMessage[0][3] === operation[0][3]) {
-            undoIndex = i + 1;
-        }
-    }
-
-    if(log && undoIndex === 0) console.log('Not part of chain');
-
-    // handling the case when the message is not part of a 'message chain'
-    // in this case, the message is placed according to total ordering
-    // the strategy is to take operations from HB from the back and determine their total ordering
-    // if the operation in HB is part of a message chain, and it's first member is present in SO, then the
-    //      received message will be placed after the last message chain member (the message chain effectively shares
-    //      it's first member's SO)
-    if (undoIndex === 0) {
-        for (let i = wdHB.length - 1; i >= 0; i--) {
-            let operation = wdHB[i];
-            let operationSOIndex = to.prim.SOIndex(operation, SO);
-            let partOfChain = false;
-
-            // the operation is not in SO, but it could be part of a chain
-            if (operationSOIndex === -1) {
-                // look from the beginning of HB to find the first member of the message chain, if any
-                // if the first member is present in SO, than the message has to be placed after the last message chain member
-                for (let j = 0; j < i; j++) {
-                    let chainMember = wdHB[j];
-                    if (chainMember[0][0] === operation[0][0] && chainMember[0][2] === operation[0][2] && chainMember[0][3] === operation[0][3]) {
-                        // the operation is a part of a chain, but it could be a chain that has not yet arrived
-                        if (to.prim.SOIndex(chainMember, SO) === -1) {
-                            break;
-                        }
-                        // the operation is a part of a chain that partially arrived
-                        partOfChain = true;
-                        break;
-                    }
-                }
-            }
-
-            // the operation is not present in SO and is not part of a chain, therefore it will be ordered after the message
-            if (!partOfChain && operationSOIndex === -1) {
-                continue;
-            }
-            // because the message has to have a higher SOIndex than any message in HB, it will be placed after the first operation that is present in SO
-            undoIndex = i + 1;
-            break;
-        }
-    }
-
-    if(log) console.log('dependantHBIndex:', dependantHBIndex);
     if(log) console.log('undoIndex:', undoIndex);
-    if(log) console.log('wdHB', wdHB.forEach(entry => console.log(JSON.stringify(entry))));
+    if(log) dlog("wdHB", wdHB, "wHB");
 
     let wdMessage = [dMessage[0], to.prim.wrapDif(dMessage[1])];
 
-    // case when no operations need to be undone
+    // case when no operations need to be undone, only the message is transformed and directly applied
     if (undoIndex === wdHB.length) {
         if(log) console.log('UDR no ops need to be undone');
         let wdTransformedMessage = to.GOTCA(wdMessage, wdHB, SO, log);
-        //let transformedMessage = [wTransformedMessage[0], to.merge(to.prim.unwrapDif(wTransformedMessage[1]))];
-        if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
+        if(log) dlog("wdTransformedMessage", wdTransformedMessage[1], "wDif");
 
         document = to.applyDif(wdTransformedMessage[1], document);
-        //log(wTransformedMessage);
 
         if(log) console.log('after:', document);
 
@@ -365,29 +342,31 @@ to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
         };
     }
 
+    // undoing independant operations
     let wdUndoneHB = wdHB.slice(undoIndex);
     wdHB = wdHB.slice(0, undoIndex);
-    // undo independant operations
     for (let i = wdUndoneHB.length - 1; i >= 0; i--) {
         document = to.undoDif(wdUndoneHB[i][1], document);
     }
 
     if(log) console.log('undo independant ops:', document);
-    if(log) console.log('wdUndoneHB', wdUndoneHB.forEach(entry => console.log(JSON.stringify(entry))));
+    if(log) dlog('wdUndoneHB', wdUndoneHB, "wHB");
 
     // transforming and applying message
     let wdTransformedMessage = to.GOTCA(wdMessage, wdHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
     document = to.applyDif(wdTransformedMessage[1], document);
 
-    if(log) console.log('wdTransformedMessage:', JSON.stringify(wdTransformedMessage));
-    if(log) console.log();
+    if(log) dlog("wdTransformedMessage", wdTransformedMessage[1], "wDif");
 
-    // preparing undone difs for transformation
+    // creating a list of undone difs for transformation
     let wdUndoneDifs = [];
     for (let i = 0; i < wdUndoneHB.length; i++) {
         wdUndoneDifs.push(to.prim.deepCopy(wdUndoneHB[i][1]));
     }
 
+    if(log) dlog('wdUndoneDifs', wdUndoneDifs, "wDifs");
+
+    // creating a list of undone difs but reversed
     let wdReversedUndoneDifs = [];
     for (let i = wdUndoneHB.length - 1; i >= 0; i--) {
         let wdUndoneDif = to.prim.deepCopy(wdUndoneHB[i][1]);
@@ -397,65 +376,43 @@ to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
 
     // transforming undone difs
     let wdTransformedUndoneDifs = []; // undone difs that are transformed
-    if(log) dlog('wdUndoneDifs', wdUndoneDifs, "wDifs");
     let wiFirstUndoneDif = to.prim.makeIndependant(wdUndoneDifs[0]);
     if(log) dlog('wiFirstUndoneDif', wiFirstUndoneDif, "wDif");
-    let wdFirstTransformedUndoneDif = to.prim.LIT(wiFirstUndoneDif, wdTransformedMessage[1]);
+    let wdFirstTransformedUndoneDif = to.prim.LIT(wiFirstUndoneDif, wdTransformedMessage[1]); // the first one is only transformed agains the message
     if(log) dlog('wdFirstTransformedUndoneDif', wdFirstTransformedUndoneDif, "wDif");
     wdTransformedUndoneDifs.push(wdFirstTransformedUndoneDif);
     let wdLETDif = []; // chronologically reversed
     let wdLITDif = [...wdTransformedMessage[1]];
-    //if(log) console.log('wdFirstTransformedUndoneDif:', JSON.stringify(wdFirstTransformedUndoneDif));
     for (let i = 1; i < wdUndoneDifs.length; i++) {
-        //if(log) console.log('wdUndoneDifs[i]:', JSON.stringify(wdUndoneDifs[i]));
-        //if(log) console.log();
+        // excluding the older undone difs so that the message and all transformed older undone difs can be included
         wdLETDif.unshift(...wdReversedUndoneDifs[wdReversedUndoneDifs.length - i]);
-        //if(log) console.log('wdLETDif:', JSON.stringify(wdLETDif));
-        //if(log) console.log();
         let wiUndoneDif = to.prim.makeIndependant(wdUndoneDifs[i]);
         let wiExcludedDif = to.prim.LET(wiUndoneDif, wdLETDif);
-        //if(log) console.log('wiExcludedDif:', JSON.stringify(wiExcludedDif));
-        //if(log) console.log();
+
+        // including the message and transformed older undone difs
         wdLITDif.push(...wdTransformedUndoneDifs[i - 1]);
-        //if(log) console.log('wdLITDif:', JSON.stringify(wdLITDif));
-        //if(log) console.log();
         let wdTransformedUndoneDif = to.prim.LIT(wiExcludedDif, wdLITDif, log);
-        //if(log) console.log('wdTransformedUndoneDif:', JSON.stringify(wdTransformedUndoneDif));
-        //if(log) console.log();
         wdTransformedUndoneDifs.push(wdTransformedUndoneDif);
     }
 
-
-    // unwrapping transformed wraps
-    //let transformedUndoneDifs = [];
-    //wTransformedUndoneDifs.forEach(wrap => transformedUndoneDifs.push(to.prim.unwrapDif(wrap)));
-
-
-
     if(log) dlog('wdTransformedUndoneDifs', wdTransformedUndoneDifs, "wDifs");
-    // redoing undone difs
-    //transformedUndoneDifs.forEach(dif => document = to.applyDif(dif, document));
+
+    // redoing transformed undone difs
     wdTransformedUndoneDifs.forEach(wdDif => document = to.applyDif(wdDif, document));
 
-    // creating operations from undone difs
+    // creating operations from undone difs (for HB)
     let wdTransformedUndoneOperations = [];
     wdTransformedUndoneDifs.forEach((wDif, i) => {
         let wdTransformedOperation = [wdUndoneHB[i][0], wDif];
         wdTransformedUndoneOperations.push(wdTransformedOperation);
     });
 
-    //if(log) console.log('mid HB:', HB);
-
-
-    // updating HB
+    // pushing the message and transformed undone difs to HB
     wdHB.push(wdTransformedMessage);
     wdTransformedUndoneOperations.forEach(wdOperation => wdHB.push(wdOperation));
 
     if(log) console.log('UDR full run');
-    //log(transformed_message);
-
     if(log) console.log('after:', document);
-    //if(log) console.log('after HB:', HB);
 
     return {
         document: document,
@@ -463,6 +420,15 @@ to.UDRTest = function(dMessage, document, wdInitialHB, initialSO, log) {
     };
 }
 
+/**
+ * @brief The General Operation Transformation Control Algorithm. Transforms an operation so that
+ *        it is dependant on the last HB entry.
+ * @param {*} wdMessage A wrapped operation to be transformed.
+ * @param {*} wdHB The wrapped HB against which to transform.
+ * @param {*} SO The serverOrdering agains which to transform.
+ * @param {*} log Whether to print out debug messages to the console.
+ * @returns Returns the wrapped transformed operation.
+ */
 to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     /**
      *  @note Due to the fact that all operations are being received by all clients in the same
@@ -479,8 +445,6 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
 
     let lastDirectlyDependantIndex = SO.findIndex((operation) => operation[0] === wdMessage[0][2] && operation[1] === wdMessage[0][3]);
     let lastDirectlyDependantHBIndex = -1;
-
-    //if(log) console.log('lastDirectlyDependantIndex', lastDirectlyDependantIndex);
 
     // finding independant and locally dependant operations in HB
     for (let i = 0; i < wdHB.length; i++) {
@@ -507,17 +471,13 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
         wdIndependantDifs.push(wdHB[i][1]);
     }
 
-    if(log) console.log('wdIndependantDifs:');
-    if(log) wdIndependantDifs.forEach(wDif => console.log(JSON.stringify(wDif)));
-    if(log) console.log();
-    if(log) console.log('wdLocallyDependantDifs:');
-    if(log) wdLocallyDependantDifs.forEach(wDif => console.log(JSON.stringify(wDif)));
-    if(log) console.log();
+    if(log) dlog('wdIndependantDifs', wdIndependantDifs, 'wDifs');
 
+    if(log) dlog('wdLocallyDependantDifs', wdLocallyDependantDifs, 'wDifs');
 
     // there are no independant messages, therefore no transformation is needed
     if (wdIndependantDifs.length === 0) {
-        //console.log('GOTCA no independant messages');
+        if(log) console.log('GOTCA no independant messages');
         return wdMessage; 
     }
 
@@ -530,13 +490,8 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
         if(log) console.log('GOTCA no locally dependant ops');
         let wdTransformationDif = [];
         wdIndependantDifs.forEach(wdDif => wdTransformationDif.push(...wdDif));
-        if(log) console.log('wiMessageDif', JSON.stringify(wiMessageDif));
-        if(log) console.log();
         let wTransformedMessageDif = to.prim.LIT(wiMessageDif, wdTransformationDif);
-        //if(log) console.log('wTransformedMessageDif', JSON.stringify(wTransformedMessageDif));
         wdMessage[1] = wTransformedMessageDif;
-        //console.log('GOTCA no locally dependant operations');
-        //log(message);
         return wdMessage;
     }
 
@@ -561,12 +516,10 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     let wdTransformedDifs = []; // EOL' in wrapped dif form
     let wdLETDif = to.prim.dissolveArrays(wdReversedTransformerDifs.slice(wdReversedTransformerDifs.length - (locallyDependantIndices[0] - (lastDirectlyDependantIndex + 1))));
     let wdLITDif = [];
-    if(log) console.log('wdLocallyDependantDifs[0]:', JSON.stringify(wdLocallyDependantDifs[0]));
-    if(log) console.log();
+    if(log) dlog('wdLocallyDependantDifs[0]', wdLocallyDependantDifs[0], 'wDif');
     let wiFirstTransformedDif = to.prim.LET(to.prim.makeIndependant(wdLocallyDependantDifs[0]), wdLETDif); // this now has mutually independant subdifs, they need to be made dependant
     let wdFirstTransformedDif = to.prim.makeDependant(wiFirstTransformedDif);
-    if(log) console.log('wdFirstTransformedDif:', JSON.stringify(wdFirstTransformedDif));
-    if(log) console.log();
+    if(log) dlog('wdFirstTransformedDif', wdFirstTransformedDif, 'wDif');
     wdTransformedDifs.push(wdFirstTransformedDif);
     for (let i = 1; i < wdLocallyDependantDifs.length; i++) {
         wdLETDif = to.prim.dissolveArrays(wdReversedTransformerDifs.slice(wdReversedTransformerDifs.length - (locallyDependantIndices[i] - (lastDirectlyDependantIndex + 1))));
@@ -578,15 +531,12 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     let wdReversedTransformedDifs = to.prim.deepCopy(wdTransformedDifs)
     wdReversedTransformedDifs.reverse();
     wdReversedTransformedDifs.forEach(wdDif => wdDif.reverse());
-    if(log) console.log('wdReversedTransformedDifs:', JSON.stringify(to.prim.dissolveArrays(to.prim.deepCopy(wdReversedTransformedDifs))));
-    if(log) console.log();
-    if(log) console.log('wiMessageDif:', JSON.stringify(wiMessageDif));
-    if(log) console.log();
+    if(log) dlog('wdReversedTransformedDifs', wdReversedTransformedDifs, 'wDifs');
+    if(log) dlog('wiMessageDif', wiMessageDif, 'wDif');
 
     let wiExcludedMessageDif = to.prim.LET(wiMessageDif, to.prim.dissolveArrays(wdReversedTransformedDifs));
     
-    if(log) console.log('wiExcludedMessageDif:', JSON.stringify(wiExcludedMessageDif));
-    if(log) console.log();
+    if(log) dlog('wiExcludedMessageDif', wiExcludedMessageDif, 'wDif');
     
     
     let prependingIndependantDifs = wdHB.slice(lastDirectlyDependantIndex + 1, to.prim.findFirstLocalDependancyIndex(wdMessage, wdHB)); // independant difs between the last directly and first locally dependant dif
@@ -596,13 +546,10 @@ to.GOTCA = function(wdMessage, wdHB, SO, log=false) {
     for (let i = lastDirectlyDependantHBIndex + 1; i < wdHB.length; i++) {
         wdHBLITDif.push(...wdHB[i][1]);
     }
-    if(log) console.log('wdHBLITDif:', JSON.stringify(wdHBLITDif));
-    if(log) console.log();
+    if(log) dlog('wdHBLITDif', wdHBLITDif, 'wDif');
     let wdTransformedMessageDif = to.prim.LIT(wiExcludedMessageDif, wdHBLITDif);
-    //if(log) console.log('wdTransformedMessageDif post LIT:', JSON.stringify(wdTransformedMessageDif));
     wdMessage[1] = wdTransformedMessageDif;
-    //console.log('GOTCA full run');
-    //log(message);
+    if(log) console.log('GOTCA full run');
     return wdMessage;
 }
 
@@ -641,8 +588,8 @@ to.compress = function(inputDif) {
         if (to.isAdd(dif[i])) {
             let endPos = dif[i][1] + dif[i][2].length;
             if (dif[i][0] === dif[i+1][0] &&      // they are on the same row
-                endPos === dif[i+1][1] &&           // they are adjacent
-                to.isAdd(dif[i+1])                   // the next entry is of type Add
+                endPos === dif[i+1][1] &&         // they are adjacent
+                to.isAdd(dif[i+1])                // the next entry is of type Add
             ) {
                 dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i+1][2]];
                 dif.splice(i+1, 1);
@@ -763,6 +710,77 @@ to.compress = function(inputDif) {
 
 to.prim.wrapID = 0; // id for wrapped difs (used in relative addressing)
 
+/**
+ * @brief Finds the index in HB at which a non present operation should be placed.
+ * @param {*} dMessage The operation whose TO index is being determined.
+ * @param {*} HB The history buffer.
+ * @param {*} SO The server ordering.
+ * @returns Returns the index.
+ */
+to.prim.findTotalOrderingHBIndex = function(dMessage, HB, SO) {
+    let totalOrderingIndex = 0;
+    // handling the case when the message is part of a 'message chain'
+    // if it is, it will be placed directly after the previous message in the chain (in HB)
+    for (let i = 0; i < HB.length; i++) {
+        let operation = HB[i];
+        // message is part of a chain
+        if (dMessage[0][0] === operation[0][0] && dMessage[0][2] === operation[0][2] && dMessage[0][3] === operation[0][3]) {
+            totalOrderingIndex = i + 1;
+        }
+    }
+
+    // handling the case when the message is not part of a 'message chain'
+    // in this case, the message is placed according to total ordering
+    // the strategy is to take operations from HB from the back and determine their total ordering
+    // if the operation in HB is part of a message chain, and it's first member is present in SO, then the
+    //      received message will be placed after the last message chain member (the message chain effectively shares
+    //      it's first member's SO)
+    if (totalOrderingIndex === 0) {
+        for (let i = HB.length - 1; i >= 0; i--) {
+            let operation = HB[i];
+            let operationSOIndex = to.prim.SOIndex(operation, SO);
+            let partOfChain = false;
+
+            // the operation is not in SO, but it could be part of a chain
+            if (operationSOIndex === -1) {
+                // look from the beginning of HB to find the first member of the message chain, if any
+                // if the first member is present in SO, than the message has to be placed after the last message chain member
+                for (let j = 0; j < i; j++) {
+                    let chainMember = HB[j];
+                    if (chainMember[0][0] === operation[0][0] && chainMember[0][2] === operation[0][2] && chainMember[0][3] === operation[0][3]) {
+                        // the operation is a part of a chain, but it could be a chain that has not yet arrived (not a single member)
+                        // in this case, the message chain will be placed after the message according to total ordering
+                        if (to.prim.SOIndex(chainMember, SO) === -1) {
+                            break;
+                        }
+                        // the operation is a part of a chain that partially arrived
+                        partOfChain = true;
+                        break;
+                    }
+                }
+            }
+
+            // the operation is not present in SO and is not part of a chain, therefore it will be ordered after the message
+            if (!partOfChain && operationSOIndex === -1) {
+                continue;
+            }
+
+            // the operation is present in SO or is part of a chain that at least partially arrived, therefore it has to be placed before the message
+            // because the HB is iterated over from the back and this is the first occurence of such an operation, the message must be placed directly after it
+            totalOrderingIndex = i + 1;
+            break;
+        }
+    }
+
+    return totalOrderingIndex;
+}
+
+/**
+ * @brief Finds the last HB index of an operation that is either locally or directly dependant on the input.
+ * @param {*} operation The input operation.
+ * @param {*} HB The history buffer.
+ * @returns Returns the index.
+ */
 to.prim.findLastDependancyIndex = function(operation, HB) {
     let user = operation[0][0];
     let directDependancyUser = operation[0][2]; // the user the operation is directly dependant on
@@ -770,6 +788,7 @@ to.prim.findLastDependancyIndex = function(operation, HB) {
 
     let DDIndex = -1;
     let LDIndex = -1;
+
     // find the last locally dependant operation and the last directly dependant operation
     HB.forEach((op, i) => {
         if (op[0][0] === directDependancyUser && op[0][1] === directDependancyCSN) {
@@ -781,25 +800,46 @@ to.prim.findLastDependancyIndex = function(operation, HB) {
     });
     return Math.max(DDIndex, LDIndex);
 }
+
+/**
+ * @brief Finds the first HB index of an operation that is locally dependant on the input.
+ * @param {*} operation The input operation.
+ * @param {*} HB The history buffer.
+ * @returns Returns the index.
+ */
 to.prim.findFirstLocalDependancyIndex = function(operation, HB) {
-    let user = operation[0][0];
+    let userID = operation[0][0];
     let directDependancyUser = operation[0][2]; // the user the operation is directly dependant on
     let directDependancyCSN = operation[0][3]; // the commitSerialNumber the operation is directly dependant on
 
-    // find the last locally dependant operation and the last directly dependant operation
     for (let i = 0; i < HB.length; i++) {
-        if (HB[i][0][0] === user && HB[i][0][2] === directDependancyUser && HB[i][0][3] === directDependancyCSN) {
+        if (HB[i][0][0] === userID && HB[i][0][2] === directDependancyUser && HB[i][0][3] === directDependancyCSN) {
             return i;
         }
     }
     return -1;
 }
+
+/**
+ * @brief Finds the server ordering index of an operation.
+ * @param {*} operation The input operation.
+ * @param {*} SO The server ordering.
+ * @returns Returns the index.
+ */
 to.prim.SOIndex = function(operation, SO) {
     return SO.findIndex(entry => entry[0] === operation[0][0] && entry[1] === operation[0][1]);
 }
+
+/**
+ * @brief Finds the HB index of an operation.
+ * @param {*} operation The input operation.
+ * @param {*} HB The history buffer.
+ * @returns Returns the index.
+ */
 to.prim.HBIndex = function(operation, HB) {
     return HB.findIndex(entry => entry[0][0] === operation[0][0] && entry[0][1] === operation[0][1]);
 }
+
 /**
  * @brief Takes an array of arrays and returns an array containing all nested elements
  */
@@ -808,9 +848,11 @@ to.prim.dissolveArrays = function(arrays) {
     arrays.forEach(array => a.push(...array));
     return a;
 }
+
 to.prim.deepCopy = function(object) {
     return JSON.parse(JSON.stringify(object));
 }
+
 to.prim.deepEqual = function(x, y) {
     if (x === y) {
         return true;
@@ -834,14 +876,17 @@ to.prim.deepEqual = function(x, y) {
       else 
         return false;
 }
+
 to.prim.sameRow = function(wrap, wTransformer) {
     return wrap.sub[0] === wTransformer.sub[0];
 }
+
 to.prim.mockupString = function(length) {
     return {
         length: length
     };
 }
+
 to.prim.wrapSubdif = function(subdif) {
     if (!to.isMove(subdif)) {
         return {
@@ -884,23 +929,27 @@ to.prim.wrapSubdif = function(subdif) {
         };
     }
 }
+
 to.prim.unwrapSubdif = function(wrap) {
     if (wrap.constructor === Object && wrap.hasOwnProperty('sub')) {
         return wrap.sub;
     }
     return wrap;
 }
+
 to.prim.wrapDif = function(dif) {
     for (let i = 0; i < dif.length; i++) {
         dif[i] = to.prim.wrapSubdif(dif[i]);
     }
     return dif;
 }
+
 to.prim.unwrapDif = function(dif) {
     let unwrappedDif = [];
     dif.forEach(wrap => unwrappedDif.push(to.prim.unwrapSubdif(wrap)));
     return unwrappedDif;
 }
+
 to.prim.identicalSubdifs = function(subdif1, subdif2) {
     if (typeof subdif1 === 'number' && typeof subdif2 === 'number') {
         return subdif1 === subdif2;
@@ -918,6 +967,7 @@ to.prim.identicalSubdifs = function(subdif1, subdif2) {
     }
     return true;
 }
+
 to.prim.saveLI = function(wrap, wTransformer, mode='default') {
     if (mode === 'default') {
         wrap.meta.informationLost = true;
@@ -939,6 +989,7 @@ to.prim.saveLI = function(wrap, wTransformer, mode='default') {
     }
     return wrap;
 }
+
 to.prim.checkRA = function(wrap) {
     // newlines and remlines are never relatively addressed
     if (to.isNewline(wrap) || to.isRemline(wrap)) {
@@ -949,11 +1000,13 @@ to.prim.checkRA = function(wrap) {
     }
     return wrap.metaAdd.relative || wrap.metaDel.relative;
 }
+
 to.prim.saveRA = function(wrap, addresser) {
     wrap.meta.relative = true;
     wrap.meta.context.addresser = addresser;
     return wrap;
 }
+
 ///TODO: what if the transformer is move?
 /**
  * @brief Checks whether the wrap lost information due to the transformer.
@@ -986,6 +1039,7 @@ to.prim.checkLI = function(wrap, wTransformer, mode="default") {
     }
     
 }
+
 to.prim.recoverLI = function(wrap, mode="default") {
     if (!to.isMove(wrap)) {
         wrap.sub = wrap.meta.context.original;
@@ -1008,6 +1062,7 @@ to.prim.recoverLI = function(wrap, mode="default") {
     }
     //return wrap.meta.context.original;
 }
+
 to.prim.checkBO = function(wrap, wTransformer) {
     if (!to.isMove(wrap)) {
         return wrap.meta.context.addresser.meta.ID === wTransformer.meta.ID;
@@ -1015,6 +1070,7 @@ to.prim.checkBO = function(wrap, wTransformer) {
     return wrap.metaAdd.context.addresser.meta.ID === wTransformer.meta.ID ||
            wrap.metaDel.context.addresser.meta.ID === wTransformer.meta.ID;
 }
+
 to.prim.convertAA = function(wrap, wAddresser) {
     if (!to.isMove(wrap)) {
         wrap.sub[1] += wAddresser.sub[1];
@@ -1068,8 +1124,6 @@ to.prim.LIT = function(wDif, wTransformationDif, log=false) {
     if (log && wDif.length === 1 && (wDif[0].meta.ID === 13 || wDif[0].meta.ID === 11)) console.log('wDif', JSON.stringify(wDif));
     let wTransformedSubdifs1 = to.prim.LIT1(wDif[0], wTransformationDif, log);
     let wTransformedSubdifs2 = to.prim.LIT(wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1]);
-    //if (log) console.log('wTransformedSubdifs1', JSON.stringify(wTransformedSubdifs1));
-    //if (log) console.log('wTransformedSubdifs2', JSON.stringify(wTransformedSubdifs2));
     return [...wTransformedSubdifs1, ...wTransformedSubdifs2];    
 }
 to.prim.LIT1 = function(wrap, wTransformationDif, log=false) {
@@ -1080,32 +1134,14 @@ to.prim.LIT1 = function(wrap, wTransformationDif, log=false) {
     }
     // if the wrap is relatively addressed and the transformer is not the target, then skip it
     else if (to.prim.checkRA(wrap) && !to.prim.checkBO(wrap, wTransformationDif[0])) {
-        if (logCondition) console.log('not BO');
-        if (logCondition) console.log();
-        if (logCondition) console.log('wrap', JSON.stringify(wrap));
-        if (logCondition) console.log();
-        if (logCondition) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
-        if (logCondition) console.log();
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1), log);
     } 
     else if (to.prim.checkRA(wrap) && to.prim.checkBO(wrap, wTransformationDif[0])) {
-        if (logCondition) console.log('BO');
-        if (logCondition) console.log();
         to.prim.convertAA(wrap, wTransformationDif[0]);
         wTransformedSubdifs = to.prim.LIT1(wrap, wTransformationDif.slice(1));
     }
     else {
-        if (logCondition) console.log('normal IT');
-        if (logCondition) console.log();
-        if (logCondition) console.log('pre', JSON.stringify(wrap));
-        if (logCondition) console.log();
-        if (logCondition) console.log('post', JSON.stringify(to.prim.IT(to.prim.deepCopy(wrap), wTransformationDif[0])));
-        if (logCondition) console.log();
-        if (logCondition) console.log('wTransformationDif[0]', JSON.stringify(wTransformationDif[0]));
-        if (logCondition) console.log();
         wTransformedSubdifs = to.prim.LIT(to.prim.IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1), log);
-        if (logCondition) console.log('post wTransformedSubdifs', JSON.stringify(wTransformedSubdifs));
-        if (logCondition) console.log();
     }
     return wTransformedSubdifs;
 }
@@ -1126,12 +1162,6 @@ to.prim.LET1 = function(wrap, wTransformationDif, log) {
         wTransformedSubdifs = [wrap];
     }
     else {
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log('pre', JSON.stringify(wrap));
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log();
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log('post', JSON.stringify(to.prim.ET(to.prim.deepCopy(wrap), wTransformationDif[0])));
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log();
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log('wTransformationDif[0])', JSON.stringify(wTransformationDif[0]));
-        if (log && (wrap.meta.ID == 17 || wrap.meta.ID == 11)) console.log();
         wTransformedSubdifs = to.prim.LET(to.prim.ET(wrap, wTransformationDif[0]), wTransformationDif.slice(1), log);
     }
     return wTransformedSubdifs;

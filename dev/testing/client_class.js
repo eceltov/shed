@@ -195,7 +195,7 @@ class Client {
       }
       // GOT control algorithm
       else {
-        let finalState = to.UDRTest(message, this.document, this.HB, this.serverOrdering, this.log);
+        let finalState = to.UDR(message, this.document, this.HB, this.serverOrdering, this.log);
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
         this.HB = finalState.HB;
         this.document = finalState.document;

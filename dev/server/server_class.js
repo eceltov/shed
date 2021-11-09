@@ -12,6 +12,7 @@ class Server {
         this.debugHandleMessage = this.debugHandleMessage.bind(this);
         this.processMessage = this.processMessage.bind(this);
         this.GC = this.GC.bind(this);
+        this.initializeClient = this.initializeClient.bind(this);
 
         // attributes for document maintenance
         this.HB = [];
@@ -65,28 +66,31 @@ class Server {
         });
 
         let that = this;
-        this.wsServer.on('request', function(request) {
-            ///TODO: always true
-            if (!that.originIsAllowed(request.origin)) {
-              // Make sure we only accept requests from an allowed origin
-              request.reject();
-              console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
-              return;
-            }
-            
-            let connection = request.accept('', request.origin); ///TODO: protocol
-            let userID = that.addConnection(connection);
-            if (that.log) console.log((new Date()) + ' Connection accepted.');
-        
-            let userInitData = that.createUserInitData(userID);
-        
-            connection.sendUTF(JSON.stringify(userInitData));
-            connection.on('message', that.clientMessageProcessor);
-            connection.on('close', function(reasonCode, description) {
-                //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-                that.removeConnection(userID); // can userID be used, or is it not in the scope?
-            });
-        });
+        this.wsServer.on('request', that.initializeClient);
+    }
+
+    initializeClient(request) {
+        ///TODO: always true
+        if (!this.originIsAllowed(request.origin)) {
+            // Make sure to only accept requests from an allowed origin
+            request.reject();
+            console.log((new Date()) + ' Connection from origin ' + request.origin + ' rejected.');
+            return;
+          }
+          
+          let connection = request.accept('', request.origin); ///TODO: protocol
+          let userID = this.addConnection(connection);
+          if (this.log) console.log((new Date()) + ' Connection accepted.');
+      
+          let userInitData = this.createUserInitData(userID);
+      
+          connection.sendUTF(JSON.stringify(userInitData));
+          let that = this;
+          connection.on('message', that.clientMessageProcessor);
+          connection.on('close', function(reasonCode, description) {
+              //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+              that.removeConnection(userID); // can userID be used, or is it not in the scope?
+          });
     }
 
     /**
@@ -339,7 +343,7 @@ class Server {
     }
 
     processMessage(message) {
-        let resultingState = to.UDRTest(message, this.document, this.HB, this.serverOrdering);
+        let resultingState = to.UDR(message, this.document, this.HB, this.serverOrdering);
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
         this.HB = resultingState.HB;
         this.document = resultingState.document;
