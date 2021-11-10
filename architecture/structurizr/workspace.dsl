@@ -4,21 +4,25 @@ workspace {
         user = person "User"
 
         main = softwareSystem "Shared Web Editor" {
-            controlApp = container "Controller Application" "Authenticates users and allows them to create and view documents." "JavaScript and React" "Browser"
-            documentApp = container "Document Application" "Shows the contents of a document and allows users to edit it." "JavaScript and React" "Browser"
+            mainPage = container "Main Page" "Authenticates users and allows them to create and view documents." "JavaScript and React" "Browser"
+            documentPage = container "Document Page" "Shows the contents of a document and allows users to edit it." "JavaScript and React" "Browser"
             database = container "Document Database" "Stores documents." "" "Database"
 
-            controlServer = container "Control Server" "Manages user authentication, document creation and starts/closes Document Instance Servers" "Node.js" {
-                loginApi = component "Login API" "Provides API for user authentication."
-                documentManagementApi = component "Document Management API" "Provides API for document creation and deletion."
-                documentAccessApi = component "Document Access API" "Provides API for document access."
-                documentManagementController = component "Document Management Controller" "Creates or deletes documents if the user has permission."
-                documentAccessController = component "Document Access Controller" "Starts the Document Instance server (if closed) and provides access to users (if they have the priviledge)."
-                userModel = component "User Model" "Holds information about users (privileges, document ownerships...)"
+            phpServer = container "PHP Server" "Manages user authentication, document creation/deletion and document access." "PHP" {
+                frontController = component "Front Controller" "Processes user requests and generates HTML pages." "PHP"
+                loginController = component "Login Controller" "Processes user authentication requests."
+                documentManagementController = component "Document Management Controller" "Processes document creation and deletion requests."
+                documentAccessController = component "Document Access Controller" "Processes document access requests. If the user has access, provides a redirect link to the document."
+                userModel = component "User Model" "Holds information about users (privileges, document ownerships, document names, document links)"
+            }
+
+            controlServer = container "Document Control Server" "Starts/closes Document Instance Servers based on user requests. Sends connection information to users." "Node.js" {
+                httpServer = component "HTTP Server" "" "HTTP Server"
+                documentController = component "Document Controller" "Starts/closes Document instance Servers"
             }
 
             documentServer = container "Document Instance Server" "Provides main document editing functionality." "Node.js" {
-                websocketServer = component "WebSocket Server" "Enables communication." "WebSocket Server"
+                websocketServer = component "WebSocket Server" "" "WebSocket Server"
                 operationController = component "Operation Controller" "Relays operations to other users and updates local document state. Also manages garbage collection."
                 clientController = component "Client Controller" "Initializes or removes clients."
                 clientModel = component "Client Model" "Holds information about clients."
@@ -31,50 +35,55 @@ workspace {
         user -> main "Uses"
         main -> authenticator "Authenticates user"
 
-        user -> controlApp "Visits the main page using"
-        user -> documentApp "Edits documents using"
+        user -> mainPage "Visits the main page"
+        user -> documentPage "Edits documents using"
 
-        controlApp -> documentApp "Redirects to"
-        controlApp -> controlServer "Makes API calls to" "JSON/HTTP"
-        controlApp -> loginApi "Authenticates using"
-        controlApp -> documentManagementApi "Creates and deletes documents using"
-        controlApp -> documentAccessApi "Accesses documents using"
+        mainPage -> documentPage "Redirects to"
+        mainPage -> phpServer "Sends requests to" "HTTP"
+        mainPage -> frontController "Sends requests to" "HTTP"
 
-        documentApp -> websocketServer "Sends changes to the document" "JSON/WebSocket"
+        documentPage -> websocketServer "Sends changes to the document" "JSON/WebSocket"
+        documentPage -> controlServer "Requests Document Instance Server port from"
 
 
-        controlServer -> database "Creates and deletes files from"
-        controlServer -> authenticator "Validates users using"
-        controlServer -> documentServer "Starts"
+        
 
-        //controlServer
-        loginApi -> authenticator "Validates user"
+        //phpServer
+        phpServer -> database "Creates and deletes files from"
+        phpServer -> authenticator "Authenticates users using"
 
-        documentManagementApi -> documentManagementController "Uses to access functionality"
+        frontController -> loginController "Authenticates using"
+        frontController -> documentManagementController "Creates and deletes documents using"
+        frontController -> documentAccessController "Redirects to documents using"
 
-        documentAccessApi -> documentAccessController "Uses to acces functionality"
+        loginController -> authenticator "Authenticates users using"
 
         documentManagementController -> database "Creates or deletes documents from"
         documentManagementController -> userModel "Checks for permissions"
 
-        documentAccessController -> documentServer "Starts"
-        documentAccessController -> userModel "Checks for permissions"
-        documentAccessController -> controlApp "Redirects to document"
+        documentAccessController -> userModel "Checks for permissions and gets redirect links from"
+
+        //controlServer
+        documentPage -> httpServer "Requests Document Instance Server port from"
+        controlServer -> documentServer "Starts/closes"
+        httpServer -> documentController "Makes API calls to"
+        documentController -> documentServer "Starts/closes"
+
 
         // documentServer
         documentServer -> database "Reads from and writes to"
-        documentServer -> documentApp "Updates client's document"
+        documentServer -> documentPage "Updates client's document" "JSON/WebSocket"
 
         websocketServer -> operationController "Uses to process operations"
         websocketServer -> clientController "Uses to manage clients"
 
         operationController -> documentModel "Updates the document"
         operationController -> clientModel "Uses to access client metadata"
-        operationController -> documentApp "Updates client's document"
+        operationController -> documentPage "Updates client's document"
 
         clientController -> documentModel "Reads the document"
         clientController -> clientModel "Updates client metadata"
-        clientController -> documentApp "Initializes local client document"
+        clientController -> documentPage "Initializes local client document"
 
         documentModel -> database "Persists the document"
 
@@ -89,7 +98,11 @@ workspace {
             include *
         }
 
-        component controlServer "ControlServer" {
+        component phpServer "phpServer" {
+            include *
+        }
+
+        component controlServer "documentControlServer" {
             include *
         }
 
