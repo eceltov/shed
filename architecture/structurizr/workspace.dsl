@@ -8,12 +8,12 @@ workspace {
             documentPage = container "Document Page" "Shows the contents of a document and allows users to edit it." "JavaScript and React" "Browser"
             database = container "Document Database" "Stores documents." "" "Database"
 
-            phpServer = container "PHP Server" "Manages user authentication, document creation/deletion and document access." "PHP" {
+            phpServer = container "PHP Server" "Manages user authentication, document creation/deletion and document access." "PHP Apache" {
                 frontController = component "Front Controller" "Processes user requests and generates HTML pages." "PHP"
                 loginController = component "Login Controller" "Processes user authentication requests."
                 documentManagementController = component "Document Management Controller" "Processes document creation and deletion requests."
-                documentAccessController = component "Document Access Controller" "Processes document access requests. If the user has access, provides a redirect link to the document."
-                userModel = component "User Model" "Holds information about users (privileges, document ownerships, document names, document links)"
+                documentAccessController = component "Document Access Controller" "Processes document access requests. If the user has access, returns the access parameters for the document."
+                userModel = component "User Model" "Holds information about users (privileges, document ownerships, document names, document access parameters)"
             }
 
             controlServer = container "Document Control Server" "Starts/closes Document Instance Servers based on user requests. Sends connection information to users." "Node.js" {
@@ -38,12 +38,12 @@ workspace {
         user -> mainPage "Visits the main page"
         user -> documentPage "Edits documents using"
 
-        mainPage -> documentPage "Redirects to"
+        mainPage -> documentPage 
         mainPage -> phpServer "Sends requests to" "HTTP"
         mainPage -> frontController "Sends requests to" "HTTP"
 
         documentPage -> websocketServer "Sends changes to the document" "JSON/WebSocket"
-        documentPage -> controlServer "Requests Document Instance Server port from"
+        documentPage -> controlServer "Requests Document Instance Server port from" "Websocket?"
 
 
         
@@ -54,14 +54,14 @@ workspace {
 
         frontController -> loginController "Authenticates using"
         frontController -> documentManagementController "Creates and deletes documents using"
-        frontController -> documentAccessController "Redirects to documents using"
+        frontController -> documentAccessController "Validates access using"
 
         loginController -> authenticator "Authenticates users using"
 
         documentManagementController -> database "Creates or deletes documents from"
         documentManagementController -> userModel "Checks for permissions"
 
-        documentAccessController -> userModel "Checks for permissions and gets redirect links from"
+        documentAccessController -> userModel "Checks for permissions and gets access parameters from"
 
         //controlServer
         documentPage -> httpServer "Requests Document Instance Server port from"
