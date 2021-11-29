@@ -311,7 +311,7 @@ to.undoDifTest = function(wDif, document) {
  * @param {*} log Whether to print out debug messages to the console.
  * @returns Returns an object: { document, HB }, containing the new document and updated HB.
  */
-to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false) {
+to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false, cursorPosition=null) {
     if(log) console.log('before:', document);
     let wdHB = to.prim.deepCopy(wdInitialHB);
     let SO = [...initialSO, dMessage[0]];
@@ -333,6 +333,7 @@ to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false) {
         if(log) dlog("wdTransformedMessage", wdTransformedMessage[1], "wDif");
 
         document = to.applyDif(wdTransformedMessage[1], document);
+        to.prim.changeCursorPosition(cursorPosition, wdTransformedMessage);
 
         if(log) console.log('after:', document);
 
@@ -355,6 +356,7 @@ to.UDR = function(dMessage, document, wdInitialHB, initialSO, log=false) {
     // transforming and applying message
     let wdTransformedMessage = to.GOTCA(wdMessage, wdHB, SO, log); // giving GOTCA only the relevant part of HB (from start to the last dependant operation)
     document = to.applyDif(wdTransformedMessage[1], document);
+    to.prim.changeCursorPosition(cursorPosition, wdTransformedMessage);
 
     if(log) dlog("wdTransformedMessage", wdTransformedMessage[1], "wDif");
 
@@ -710,6 +712,26 @@ to.compress = function(inputDif) {
 }
 
 to.prim.wrapID = 0; // id for wrapped difs (used in relative addressing)
+
+to.prim.changeCursorPosition = function(cursorPosition, wOperation) {
+    if (cursorPosition === null) return;
+    let row = cursorPosition.row;
+    let position = cursorPosition.column;
+    wOperation[1].forEach(wrap => {
+        if (to.isNewline(wrap) && wrap.sub <= row) {
+            row++;
+        }
+        if (to.isRemline(wrap) && -wrap.sub <= row) {
+            row--;
+        }
+        if (to.isMove(wrap) && row === wrap.sub[0] && position > wrap.sub[1] && position <= wrap.sub[1] + wrap.sub[4]) {
+            let cursorOffset = position - wrap.sub[1];
+            row = wrap.sub[2];
+            position = wrap.sub[3] + cursorOffset;
+        }
+    });
+    cursorPosition.row = row;
+}
 
 /**
  * @brief Finds the index in HB at which a non present operation should be placed.
