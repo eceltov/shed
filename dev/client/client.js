@@ -33,6 +33,10 @@ class App extends React.Component {
       HB: [],
       serverOrdering: [], // contains elements: [userID, commitSerialNumber, prevUserID, prevCommitSerialNumber], where the information is taken from incoming messages
       firstSOMessageNumber: 0, // the total serial number of the first SO entry
+
+      aceTheme: "ace/theme/monokai",
+      aceMode: "ace/mode/javascript"
+
     };
   }
 
@@ -231,6 +235,19 @@ class App extends React.Component {
     }
   }
 
+  setEditorStyle(editor=null) {
+    if (editor !== null) {
+      editor.setTheme(this.state.aceTheme);
+      editor.session.setMode(this.state.aceMode);
+      editor.session.on('change', this.handleChange);
+    }
+    else {
+      this.state.editor.setTheme(this.state.aceTheme);
+      this.state.editor.session.setMode(this.state.aceMode);
+      this.state.editor.session.on('change', this.handleChange);
+    }
+  }
+
   /**
    * @brief Processes incoming server messages. If it is an external operation, executes it
      using the GOT control scheme.
@@ -260,7 +277,7 @@ class App extends React.Component {
       let finalState = to.UDR(message, document, this.state.HB, this.state.serverOrdering, false, oldCursorPosition);
       this.state.editor.setSession(new EditSession(finalState.document)); ///TODO: it might be a good idea to buffer changes
       this.state.editor.moveCursorTo(oldCursorPosition.row, oldCursorPosition.column);  
-      this.state.editor.session.on('change', this.handleChange);
+      this.setEditorStyle();
       
 
       this.setState((prevState) => ({
@@ -334,10 +351,7 @@ class App extends React.Component {
 
 
     let editor = ace.edit("editor");
-    editor.setTheme("ace/theme/monokai");
-    editor.session.setMode("ace/mode/javascript");
-
-    editor.session.on('change', this.handleChange);
+    this.setEditorStyle(editor);
 
     this.setState((prevState) => ({
       editor: editor
