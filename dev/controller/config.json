@@ -1,0 +1,6 @@
+{
+    "controllerPort": 8060,
+    "serverPorts": [
+        8080
+    ]
+}
