@@ -131,7 +131,8 @@ class App extends React.Component {
     this.setState({
       userID: message.userID,
       HB: message.serverHB,
-      serverOrdering: message.serverOrdering
+      serverOrdering: message.serverOrdering,
+      firstSOMessageNumber: message.firstSOMessageNumber
     });
     this.createInitialDocument(message.serverDocument);
   }
@@ -256,10 +257,11 @@ class App extends React.Component {
     else {
       let oldCursorPosition = this.state.editor.getCursorPosition();
       let document = new Document(this.state.editor.getSession().getDocument().getAllLines());
-      let finalState = to.UDR(message, document, this.state.HB, this.state.serverOrdering);
+      let finalState = to.UDR(message, document, this.state.HB, this.state.serverOrdering, false, oldCursorPosition);
       this.state.editor.setSession(new EditSession(finalState.document)); ///TODO: it might be a good idea to buffer changes
       this.state.editor.moveCursorTo(oldCursorPosition.row, oldCursorPosition.column);  
       this.state.editor.session.on('change', this.handleChange);
+      
 
       this.setState((prevState) => ({
         serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]], // append serverOrdering

@@ -261,7 +261,8 @@ class Server {
             userID: userID,
             serverDocument: to.prim.deepCopy(this.document),
             serverHB: to.prim.deepCopy(this.HB),
-            serverOrdering: to.prim.deepCopy(this.serverOrdering)
+            serverOrdering: to.prim.deepCopy(this.serverOrdering),
+            firstSOMessageNumber: this.firstSOMessageNumber,
         }
     }
 
