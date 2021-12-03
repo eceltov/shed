@@ -1,0 +1,4 @@
+node
+npm
+express.js (npm install express)
+websocket (npm install websocket)
