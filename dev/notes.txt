@@ -291,4 +291,13 @@ Async:
         Solution: The problem is in the implementation, not the theory. The client GC responses need to be based on the metadata the last SO entry is dependant on,
         not on the last SO entry itself.
 
-        
+Consultation notes:
+    Each node server should host multiple documents, the overhead of starting a node server for each document is too high and there is only a limited amount
+    of ports. The amount of ports should be as low as possible. Therefore, some extra information has to be added to websocket transaction for authentication.
+
+    Data can either be stored in an SQL database (GraphQL) or locally. Local storage has the advantage of straightforward file access and no API call overhead,
+    but has disadvantages, like multiple resources being accessed at the same time (metadata read/write), which could result in race conditions and blocking.
+    A database has the advantage of atomicity, but could be overkill for this project.
+
+    A PHP front controller is probably not a good idea, compared to everything being handled by Node.js, because the bulk of the project is already written in JS.
+    The CAS authentication would be handled in PHP, but the rest can be done in Node. This would result in a SPA design.
