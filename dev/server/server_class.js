@@ -22,14 +22,14 @@ class Server {
         this.documentPath = null; // the document path will always be provided by the Controller
 
         // attributes for user management
-        this.nextUserID = 0;
-        this.users = new Map(); // maps userIDs to connections
+        this.nextClientID = 0;
+        this.users = new Map(); // maps clientIDs to connections
 
         // attribute for garbage collection
         this.garbageCount = 0; // current amount of messages since last GC
         this.garbageMax = 5; // after how many messages to GC
         this.GCInProgress = false;
-        this.garbageRoster = []; // array of userIDs that are partaking in garbage collection
+        this.garbageRoster = []; // array of clientIDs that are partaking in garbage collection
         this.garbageRosterChecker = null; // StatusChecker got the garbageRoster
         this.GCOldestMessageNumber = null;
 
@@ -79,17 +79,17 @@ class Server {
           }
           
           let connection = request.accept('', request.origin); ///TODO: protocol
-          let userID = this.addConnection(connection);
+          let clientID = this.addConnection(connection);
           if (this.log) console.log((new Date()) + ' Connection accepted.');
       
-          let userInitData = this.createUserInitData(userID);
+          let userInitData = this.createUserInitData(clientID);
       
           connection.sendUTF(JSON.stringify(userInitData));
           let that = this;
           connection.on('message', that.clientMessageProcessor);
           connection.on('close', function(reasonCode, description) {
               //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-              that.removeConnection(userID); // can userID be used, or is it not in the scope?
+              that.removeConnection(clientID); // can clientID be used, or is it not in the scope?
           });
     }
 
@@ -181,12 +181,12 @@ class Server {
             if (this.GCStartDelay > 0) {
                 let that = this;
                 setTimeout(() => {
-                    that.garbageRoster.forEach(userID => that.sendMessageToClient(userID, JSON.stringify(message)));
+                    that.garbageRoster.forEach(clientID => that.sendMessageToClient(clientID, JSON.stringify(message)));
                 }, that.GCStartDelay);
 
             }
             else {
-                this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+                this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
             }
 
             // reset the counter
@@ -201,7 +201,7 @@ class Server {
         if (this.GCOldestMessageNumber === null || message.dependancy < this.GCOldestMessageNumber) {
             this.GCOldestMessageNumber = message.dependancy;
         }
-        let userIndex = this.garbageRoster.indexOf(message.userID);
+        let userIndex = this.garbageRoster.indexOf(message.clientID);
         this.garbageRosterChecker.check(userIndex);
     }
 
@@ -221,14 +221,14 @@ class Server {
         // need to subtract this.firstSOMessageNumber, because that is how many SO entries from the beginning are missing
         let SOGarbageIndex = this.GCOldestMessageNumber - this.firstSOMessageNumber;
 
-        let GCUserID = this.serverOrdering[SOGarbageIndex][0];
+        let GCClientID = this.serverOrdering[SOGarbageIndex][0];
         let GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
 
         let HBGarbageIndex = 0;
         for (let i = 0; i < this.HB.length; i++) {
-            let HBUserID = this.HB[i][0][0];
+            let HBClientID = this.HB[i][0][0];
             let HBCommitSerialNumber = this.HB[i][0][1];
-            if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+            if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
               HBGarbageIndex = i;
               break;
             }
@@ -242,7 +242,7 @@ class Server {
             msgType: com.msgTypes.GC,
             GCOldestMessageNumber: this.GCOldestMessageNumber
         };
-        this.garbageRoster.forEach(userID => this.sendMessageToClient(userID, JSON.stringify(message)));
+        this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
 
         this.garbageRoster = [];
         this.GCInProgress = false;
@@ -250,15 +250,15 @@ class Server {
     }
 
     addConnection(connection) {
-        let userID = this.getNextUserID();
-        this.users.set(userID, connection);
-        return userID;
+        let clientID = this.getNextClientID();
+        this.users.set(clientID, connection);
+        return clientID;
     }
 
-    createUserInitData(userID) {
+    createUserInitData(clientID) {
         return {
             msgType: com.msgTypes.initialize,
-            userID: userID,
+            clientID: clientID,
             serverDocument: to.prim.deepCopy(this.document),
             serverHB: to.prim.deepCopy(this.HB),
             serverOrdering: to.prim.deepCopy(this.serverOrdering),
@@ -266,20 +266,20 @@ class Server {
         }
     }
 
-    removeConnection(userID) {
-        this.users.delete(userID);
+    removeConnection(clientID) {
+        this.users.delete(clientID);
         // write to file if all users left
         if (this.users.size == 0) {
             this.updateDocumentFile();
         }
     }
 
-    getNextUserID() {
-        return this.nextUserID++;
+    getNextClientID() {
+        return this.nextClientID++;
     }
 
-    sendMessageToClient(userID, messageString) {
-        this.users.get(userID).sendUTF(messageString);
+    sendMessageToClient(clientID, messageString) {
+        this.users.get(clientID).sendUTF(messageString);
     }
 
     sendMessageToClients(messageString) {
@@ -357,7 +357,7 @@ class Server {
             let userMessages = [];
             this.ordering.buffer.forEach(message => userCount = (message[0][0] > userCount) ? message[0][0] : userCount);
             userCount++;
-            // create a list of lists of messages so that the outer list can be indexed with userID
+            // create a list of lists of messages so that the outer list can be indexed with clientID
             for (let i = 0; i < userCount; i++) {
                 userMessages.push([]);
                 this.ordering.buffer.forEach(message => {
@@ -367,8 +367,8 @@ class Server {
                 });
             }
             let order = this.ordering.orders[this.ordering.currentPackage];
-            order.forEach(userID => {
-                let storedMessage = userMessages[userID].shift();
+            order.forEach(clientID => {
+                let storedMessage = userMessages[clientID].shift();
                 let messageString = JSON.stringify(storedMessage);
                 if(this.log) console.log('Received Message: ' + messageString);
                 this.sendMessageToClients(messageString);
