@@ -26,12 +26,12 @@ class Client extends React.Component {
             intervalBuf: [],
             measuring: false, // true for half a second after the user changed the state
             connection: null,
-            userID: null,
+            clientID: null,
             commitSerialNumber: 0,
 
-            //entry format: [[userID, commitSerialNumber, preceding userID, preceding commitSerialNumber], dif]
+            //entry format: [[clientID, commitSerialNumber, preceding clientID, preceding commitSerialNumber], dif]
             HB: [],
-            serverOrdering: [], // contains elements: [userID, commitSerialNumber, prevUserID, prevCommitSerialNumber], where the information is taken from incoming messages
+            serverOrdering: [], // contains elements: [clientID, commitSerialNumber, prevclientID, prevCommitSerialNumber], where the information is taken from incoming messages
             firstSOMessageNumber: 0, // the total serial number of the first SO entry
 
             aceTheme: "ace/theme/monokai",
@@ -99,14 +99,14 @@ class Client extends React.Component {
      * @brief Pushed the dif to HB and adds the neccessary metadata.
      */
     pushLocalDifToHB(dif) {
-        let prevUserID = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][0];
+        let prevClientID = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][0];
         let prevCommitSerialNumber = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][1];
 
         let wDif = to.prim.wrapDif(dif);
 
         this.setState((prevState) => ({
             HB: [...prevState.HB, [
-                [prevState.userID, prevState.commitSerialNumber, prevUserID, prevCommitSerialNumber], wDif
+                [prevState.clientID, prevState.commitSerialNumber, prevClientID, prevCommitSerialNumber], wDif
             ]],
             commitSerialNumber: prevState.commitSerialNumber + 1
         }));
@@ -133,7 +133,7 @@ class Client extends React.Component {
 
     initializeClient(message) {
         this.setState({
-            userID: message.userID,
+            clientID: message.clientID,
             HB: message.serverHB,
             serverOrdering: message.serverOrdering,
             firstSOMessageNumber: message.firstSOMessageNumber
@@ -153,7 +153,7 @@ class Client extends React.Component {
         //console.log(this.serverOrdering);
         let message = {
             msgType: com.msgTypes.GCMetadataResponse,
-            userID: this.state.userID,
+            clientID: this.state.clientID,
             dependancy: dependancy
         };
         let messageString = JSON.stringify(message);
@@ -168,15 +168,15 @@ class Client extends React.Component {
             return;
         }
 
-        let GCUserID = this.state.serverOrdering[SOGarbageIndex][0];
+        let GCClientID = this.state.serverOrdering[SOGarbageIndex][0];
         let GCCommitSerialNumber = this.state.serverOrdering[SOGarbageIndex][1];
 
         let HBGarbageIndex = 0;
 
         for (let i = 0; i < this.state.HB.length; i++) {
-            let HBUserID = this.state.HB[i][0][0];
+            let HBClientID = this.state.HB[i][0][0];
             let HBCommitSerialNumber = this.state.HB[i][0][1];
-            if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+            if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
                 HBGarbageIndex = i;
                 break;
             }
@@ -259,13 +259,13 @@ class Client extends React.Component {
     processIncomingMessage(message) {
         console.log('incoming message:');
         log(message);
-        //let prevUserID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
+        //let prevclientID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
         //let prevCommitSerialNumber = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][1];
 
         let authorID = message[0][0];
 
         // own message
-        if (authorID === this.state.userID) {
+        if (authorID === this.state.clientID) {
             this.setState((prevState) => ({
                 serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]] // append serverOrdering
             }));
