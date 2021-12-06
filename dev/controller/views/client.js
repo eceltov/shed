@@ -1,3 +1,6 @@
+var React = require('react');
+var ace = require('../../dev/editor/ace-builds/src-noconflict/ace');
+
 const LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 const SERVER_URL = 'ws://dev.lan:8080/';
 var CSLatency = 0;
@@ -430,7 +433,4 @@ class Testing extends React.Component {
 
 // ========================================
 
-ReactDOM.render(
-    <Client />,
-    document.getElementById('reactContainer')
-);
+module.exports = Client;

@@ -1,7 +1,11 @@
 const express = require("express");
 const LoadBalancer = require("./LoadBalancer");
-var fs = require('fs');
-var reactViews = require('express-react-views');
+const DatabaseGateway = require("./DatabaseGateway");
+const fs = require('fs');
+const reactViews = require('express-react-views');
+
+///TODO: get route
+//var ace = require('./../dev/editor/ace-builds/src-noconflict/ace');
 /*var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
@@ -11,6 +15,7 @@ class Controller {
     constructor() {
         this.app = null;
         this.loadBalancer = null;
+        this.database = null;
         this.port = null;
         this.configPath = "controller/config.json";
     }
@@ -21,6 +26,8 @@ class Controller {
         this.port = config.controllerPort;
         this.loadBalancer = new LoadBalancer();
         this.loadBalancer.initialize(config);
+        this.database = new DatabaseGateway();
+        this.database.initialize(config);
         this.initializeHttpServer();
     }
 
@@ -29,22 +36,31 @@ class Controller {
         /// https://github.com/reactjs/express-react-views
         this.app = express();
         let app = this.app;
+        let database = this.database;
         app.set('views', __dirname + "/views");
         app.set('view engine', 'js');
         app.engine('js', reactViews.createEngine());
 
         app.use(express.static(__dirname + '/public'));
 
-        app.get('/', function(req, res) {
-        var initialState = {
-            items: [
-            'document your code',
-            'drop the kids off at the pool',
-            '</script><script>alert(666)</script>',
-            ],
-            text: '',
-        };
-        res.render('Html.js', {data: initialState});
+        app.get('/user1', function(req, res) {
+            var initialState = {
+                workspaces: database.getUserWorkspaces("00000000")
+            };
+            res.render('Html.js', {data: initialState});
+        });
+
+        app.get('/user2', function(req, res) {
+            var initialState = {
+                workspaces: database.getUserWorkspaces("00000001")
+            };
+            res.render('Html.js', {data: initialState});
+        });
+
+        app.get('/workspaces/:workspaceHash', function(req, res) {
+            let workspaceHash = req.params.workspaceHash;
+            console.log(workspaceHash);
+            res.render('client.js');
         });
 
         app.listen(8060, function() {

@@ -1,54 +1,44 @@
 var React = require('react');
 
-class TodoList extends React.Component {
+class WorkspaceList extends React.Component {
+  constructor(props) {
+    super(props);
+    this.createItem = this.createItem.bind(this);
+  }
+
+  createItem(workspace, index) {
+    return ( 
+      <li key={index}>
+        <a href={"/" + workspace.id}>
+          {workspace.name + " (" + workspace.role + ")"}
+        </a>
+      </li>
+    );
+  }
+
   render() {
-    var i = 0;
-    var createItem = function(itemText) {
-      return <li key={i++}>{itemText}</li>;
-    };
-    return <ul>{this.props.items.map(createItem)}</ul>;
+    let i = 0;
+    return (
+    <ul>
+      {this.props.workspaces.map((workspace) => this.createItem(workspace, i++))}
+    </ul>
+    );
   }
 }
 
-class TodoApp extends React.Component {
+class WorkspacePage extends React.Component {
   constructor(props) {
     super(props);
-    this.onChange = this.onChange.bind(this);
-    this.handleSubmit = this.handleSubmit.bind(this);
     this.state = props;
-  }
-  onChange(e) {
-    this.setState({text: e.target.value});
-  }
-  handleSubmit(e) {
-    e.preventDefault();
-    var nextItems = this.state.items.concat([this.state.text]);
-    var nextText = '';
-    this.setState({items: nextItems, text: nextText});
   }
   render() {
     return (
       <div className="container">
-        <h3>TODO List</h3>
-        <TodoList items={this.state.items} />
-        <form className="form-inline" onSubmit={this.handleSubmit}>
-          <div className="form-group">
-            <input
-              type="text"
-              className="form-control"
-              placeholder="Write task"
-              onChange={this.onChange}
-              value={this.state.text}
-            />
-            &nbsp;
-          </div>
-          <button className="btn btn-primary">
-            {'Add #' + (this.state.items.length + 1)}
-          </button>
-        </form>
+        <h3>Workspaces</h3>
+        <WorkspaceList workspaces={this.state.workspaces} />
       </div>
     );
   }
 }
 
-module.exports = TodoApp;
+module.exports = WorkspacePage;
