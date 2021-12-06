@@ -201,6 +201,15 @@ class Client extends React.Component {
             else if (message.msgType === com.msgTypes.GC) {
                 this.GC(message.GCOldestMessageNumber);
             }
+            else if (message.msgType === com.serverMsg.sentFileStructure) {
+                ///TODO: process file structure
+                ///note: after this, the client can interact with the workspace,
+                ///      that means creating new files/folders and viewing files
+                this.viewFile('document.txt'); ///TODO: this should not be here, it server only as a mock
+            }
+            else {
+                console.log("Received unknown message.", JSON.stringify(message));
+            }
         }
         // message is an operation
         else {
@@ -211,9 +220,27 @@ class Client extends React.Component {
     }
 
     /**
+     * @brief Sends a request to the server to fetch a file.
+     * 
+     * @note Invoked after the user requests to view a file.
+     * 
+     * @param path The absolute path to the file
+     */
+    viewFile(path) {
+        const message = {
+            msgType: com.clientMsg.getDocument,
+            path: path
+        };
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    /**
      * @brief Initializes a WobSocket connection with the server.
      */
     connect = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const workspaceHash = urlParams.get('hash');
+
         var connection = new WebSocket(SERVER_URL); ///TODO: protocol
 
         ///TODO: use hooks instead of 'that'?
@@ -221,6 +248,16 @@ class Client extends React.Component {
 
         connection.onopen = function (e) {
             console.log("[open] Connection established");
+
+            // send information about what workspace to access alongside credentials
+            const initMsg = {
+                msgType: com.clientMsg.connect,
+                credentials: "",
+                token: "",
+                workspaceHash: workspaceHash
+            };
+            connection.send(JSON.stringify(initMsg));
+
             that.setState({
                 connection: connection
             });

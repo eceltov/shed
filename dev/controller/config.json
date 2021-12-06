@@ -3,7 +3,5 @@
     
     "serverURLs": [
         "ws://dev.lan:8080/"
-    ],
-
-    "databasePath": "./database"
+    ]
 }

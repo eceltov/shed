@@ -4,29 +4,31 @@ const StatusChecker = require('../lib/status_checker');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const to = require('../lib/dif');
 const com = require('../lib/communication');
+const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
 
 
 class Server {
     constructor() {
         this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
-        this.debugHandleMessage = this.debugHandleMessage.bind(this);
-        this.processMessage = this.processMessage.bind(this);
-        this.GC = this.GC.bind(this);
         this.initializeClient = this.initializeClient.bind(this);
-
         // workspace management
-        this.workspaces = new Map();
+        this.workspaces = new Map(); // maps workspace hashes to workspaces
+
+        this.database = null;
 
         // attributes for user management
         this.nextclientID = 0;
-        this.users = new Map(); // maps clientIDs to connections
+        this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
     }
 
     /**
      * @brief Initializes the websocket server.
      */
     initialize() {
+        this.database = new DatabaseGateway();
+        this.database.initialize();
+
         this.server = http.createServer(function(request, response) {
             console.log((new Date()) + ' Received request for ' + request.url);
             console.log(request);
@@ -41,6 +43,8 @@ class Server {
 
         let that = this;
         this.wsServer.on('request', that.initializeClient);
+
+        console.log("WorkspaceServer initialized.");
     }
 
     initializeClient(request) {
@@ -57,7 +61,14 @@ class Server {
           if (this.log) console.log((new Date()) + ' Connection accepted.');
       
           let that = this;
-          connection.on('message', that.clientMessageProcessor);
+
+          // the callback function adds the clientID to the clientMessageProcessor
+          connection.on('message', (messageWrapper) => {
+            const messageString = messageWrapper.utf8Data;
+            const message = JSON.parse(messageString);
+            that.clientMessageProcessor(message, clientID);
+          });
+
           connection.on('close', function(reasonCode, description) {
               //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
               that.removeConnection(clientID); // can clientID be used, or is it not in the scope?
@@ -66,20 +77,27 @@ class Server {
 
     addConnection(connection) {
         let clientID = this.getNextclientID();
-        this.users.set(clientID, connection);
+        const userMetadata = {
+            connection: connection,
+            workspace: null
+        };
+        this.clients.set(clientID, userMetadata);
         return clientID;
     }
 
+    ///TODO: not implemented
+    /**
+     * Removes the connection from the server and all workspace and document instances.
+     * @param {*} clientID The ID of the client to be removed
+     */
     removeConnection(clientID) {
-        this.users.delete(clientID);
-        // write to file if all users left
-        if (this.users.size == 0) {
-            this.updateDocumentFile();
-        }
+        this.clients.delete(clientID);
+        ///TODO: propagate to workspace and documents
+        ///TODO: save the document if there are no users viewing it
     }
 
     closeConnection(clientID) {
-        this.users.get(clientID).close();
+        this.clients.get(clientID).connection.close();
     }
 
     getNextclientID() {
@@ -87,18 +105,22 @@ class Server {
     }
 
     sendMessageToClient(clientID, messageString) {
-        this.users.get(clientID).sendUTF(messageString);
+        this.clients.get(clientID).connection.sendUTF(messageString);
     }
 
     sendMessageToClients(messageString) {
-        let userIterator = this.users.values();
-        for (let i = 0; i < this.users.size; i++) {
-            userIterator.next().value.sendUTF(messageString);
+        let userIterator = this.clients.values();
+        for (let i = 0; i < this.clients.size; i++) {
+            userIterator.next().value.connection.sendUTF(messageString);
         }
     }
 
+    ///TODO: not implemented
+    /**
+     * @param {*} origin The origin of a WebSocket connection.
+     * @returns Returns true if the origin is from a suitable source, else returns false.
+     */
     originIsAllowed(origin) {
-        // put logic here to detect whether the specified origin is allowed.
         return true;
     }
 
@@ -109,38 +131,44 @@ class Server {
         });
     }
 
+    ///TODO: not implemented
+    /**
+     * @brief Closes the WebSocket server and forces all the instantiated workspaces to be saved
+     *        to the database.
+     */
     close() {
         this.wsServer.shutDown();
         this.server.close();
-        this.updateDocumentFile();
+        ///TODO: save workspaces
     }
 
     enableLogging() {
         this.log = true;
     }
 
-    clientMessageProcessor(messageWrapper) {
-        let messageString = messageWrapper.utf8Data;
-        let message = JSON.parse(messageString);
+    clientMessageProcessor(message, clientID) {
+        if (this.log) console.log('Received Message: ' + JSON.stringify(message));
 
-        if (message.hasOwnProperty('msgType')) {
-            if (this.log) console.log('Received Message: ' + messageString);
-
-            if (message.msgType === com.clientMsg.connect) {
-                const userHash = this.getUserHash(message.credentials, message.token);
-                if (userHash === null) {
-                    ///TODO: close the connection somehow
+        // the client wants to connect to a workspace
+        if (message.msgType === com.clientMsg.connect) {
+            console.log("Received connect metadata");
+            const userHash = this.getUserHash(message.credentials, message.token);
+            if (userHash === null) {
+                ///TODO: close the connection somehow
+            }
+            else {
+                if (this.checkUserWorkspacePermission(userHash, message.workspaceHash)) {
+                    this.connectClientToWorkspace(clientID, message.workspaceHash);
                 }
                 else {
-                    if (this.checkUserWorkspacePermission(userHash, message.workspaceHash)) {
-                        let clientID = 0; ///TODO: get clientID
-                        this.connectClientToWorkspace(clientID, message.workspaceHash);
-                    }
-                    else {
-                        ///TODO: send error message
-                    }
+                    ///TODO: send error message
                 }
             }
+        }
+        // the client want to use the functionality of a workspace instance
+        else {
+            const workspace = this.clients.get(clientID).workspace;
+            workspace.clientMessageProcessor(message, clientID);
         }
     }
 
@@ -174,30 +202,38 @@ class Server {
      * @param {*} workspaceHash The hash of the workspace.
      */
     connectClientToWorkspace(clientID, workspaceHash) {
+        let workspace;
+
         // check if the workspace is instantiated
-        if (this.workspaces.get(workspaceHash) === undefined) {
-            if(!this.startWorkspace()) {
+        if (!this.workspaces.has(workspaceHash)) {
+            workspace = this.startWorkspace(workspaceHash);
+            if(workspace === null) {
                 // the workspace could not be instantiated
                 ///TODO: send an error message
+                return;
             }
         }
         else {
-            this.workspaces.get(workspaceHash).initializeClient(this.users.get(clientID));
+            workspace = this.workspaces.get(workspaceHash);
         }
+
+        const client = this.clients.get(clientID);
+        client.workspace = workspace;
+        workspace.initializeClient(clientID, client.connection);
     }
 
     ///TODO: not fully implemented
     /**
      * @brief Instantiates a workspace.
      * @param {*} workspaceHash The hash of the workspace.
-     * @returns Returns true if the workspace was initialized successfully. Else returns false.
+     * @returns Returns a reference to the workspace, or null if the workspace could not be instantiated.
      */
     startWorkspace(workspaceHash) {
         let workspace = new WorkspaceInstance();
-        workspace.initialize(workspaceHash);
-        this.workspaces.set(workspaceHash, workspace);
         ///TODO: check if succeeded
-        return true;
+        workspace.initialize(workspaceHash, this.database);
+        this.workspaces.set(workspaceHash, workspace);
+        return workspace;
     }
 }
 

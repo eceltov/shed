@@ -1,5 +1,5 @@
 var React = require('react');
-var Content = require('./Content');
+var WorkspaceList = require('./WorkspaceList');
 
 class Html extends React.Component {
   render() {
@@ -18,7 +18,7 @@ class Html extends React.Component {
           />
         </head>
         <body>
-          <Content {...data} />
+          <WorkspaceList {...data} />
         </body>
       </html>
     );

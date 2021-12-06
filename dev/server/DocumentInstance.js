@@ -1,9 +1,10 @@
-var WebSocketServer = require('websocket').server;
-var http = require('http');
-var StatusChecker = require('../lib/status_checker');
-var to = require('../lib/dif');
-var com = require('../lib/communication');
-var fs = require('fs');
+const WebSocketServer = require('websocket').server;
+const http = require('http');
+const StatusChecker = require('../lib/status_checker');
+const to = require('../lib/dif');
+const com = require('../lib/communication');
+const DatabaseGateway = require('../database/DatabaseGateway');
+const fs = require('fs');
 
 
 class DocumentInstance {
@@ -20,6 +21,8 @@ class DocumentInstance {
         this.firstSOMessageNumber = 0; // the total serial number of the first SO entry
         this.document = null;
         this.documentPath = null; // the document path will always be provided by the Controller
+        this.database = null;
+        this.workspaceHash = null;
 
         // attributes for user management
         this.users = new Map(); // maps clientIDs to connections
@@ -39,13 +42,17 @@ class DocumentInstance {
         this.GCStartDelay = 0;
     }
 
-    ///TODO: not implemented
     /**
      * @brief Initializes the document instance by loading the document from the database.
      * @param {*} path The absolute path to the document (inside the workspace folder).
      */
-    initialize(path) {
+    initialize(documentPath, workspaceHash, databaseGateway) {
+        this.workspaceHash = workspaceHash;
+        this.database = databaseGateway;
+        this.document = this.getInitialDocument(workspaceHash, documentPath);
+        this.documentPath = documentPath;
 
+        console.log("Document initialized.");
     }
 
     initializeClient(clientID, connection) {
@@ -56,50 +63,32 @@ class DocumentInstance {
             this.users.set(clientID, connection);
 
             let userInitData = this.createUserInitData(clientID);
-    
             connection.sendUTF(JSON.stringify(userInitData));
-            let that = this;
-            connection.on('message', that.clientMessageProcessor);
-            connection.on('close', function(reasonCode, description) {
-                //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
-                that.removeConnection(clientID); // can clientID be used, or is it not in the scope?
-            });
         }
     }
 
     /**
      * @brief Retrieves the initial document state from a file.
-     * @note The file should always be present. The case when documentPath is null
-             is for testing purposes only.
+     * @note The file should always be present.
      * @param documentPath The path to the file.
      * @returns The initial document state.
      */
-    getInitialDocument(documentPath) {
+    getInitialDocument(workspaceHash, documentPath) {
         let document;
-        if (documentPath === null) {
-            document = [ "" ];
+
+        try {
+            const data = this.database.getDocumentData(workspaceHash, documentPath);
+            document = data.split(/\r?\n/);
         }
-        else if (this.validateDocumentPath(documentPath)) {
-            try {
-                const data = fs.readFileSync(documentPath, 'utf8')
-                document = data.split(/\r?\n/);
-            }
-            catch (err) {
-                console.error(err)
-                document = [ "" ];
-            }
+        catch (err) {
+            console.error(err)
+            document = null;
         }
-        else {
-            console.log("Invalid document path.");
-            document = [ "" ];
-        }
+        
         return document;
     }
 
-    validateDocumentPath(documentPath) {
-        return true;
-    }
-
+    ///TODO: refactor this
     /**
      * @brief Writes the content of the local document to the output document path.
      */
@@ -289,9 +278,8 @@ class DocumentInstance {
         this.log = true;
     }
 
-    clientMessageProcessor(messageWrapper) {
-        let messageString = messageWrapper.utf8Data;
-        let message = JSON.parse(messageString);
+    clientMessageProcessor(message, clientID) {
+        let messageString = JSON.stringify(message);
 
         if (message.hasOwnProperty('msgType')) {
             if (this.log) console.log('Received Message: ' + messageString);

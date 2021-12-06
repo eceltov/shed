@@ -20,7 +20,7 @@ com.clientMsg.GCMetadataResponse = 2; // sent with metadata used in the GC proce
 
 com.serverMsg.initialize = 51; // sent alongside necessary data to initialize the client workspace
 com.serverMsg.sentDocument = 52; // send the initial document state
-com.serverMsg.sendFileStructure = 53; // sent alongside the folder structure of the workspace
+com.serverMsg.sentFileStructure = 53; // sent alongside the folder structure of the workspace
 com.serverMsg.GCMetadataRequest = 54; // sent to start the GC process
 com.serverMsg.GC = 55; // a command to collect garbage
 

@@ -11,6 +11,12 @@ var fs = require('fs');
  *       so that clients can view folders and files without interruption.
  */
 
+/**
+ * @note Each client message also has to contain an index to the final document in order to 
+ *       differentiate them and to save bandwidth as opposed to sending the absolute paths
+ *       in each operation
+ */
+
 class WorkspaceInstance {
     constructor() {
         this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
@@ -18,48 +24,51 @@ class WorkspaceInstance {
         // workspace management
         this.workspaceHash = null;
 
+        this.database = null;
+
         // document management
         this.documents = new Map(); // maps absolute paths to document instances
 
         // attributes for user management
-        this.nextclientID = 0;
-        this.users = new Map(); // maps clientIDs to connections
+        this.clients = new Map(); // maps clientIDs to an object:  { connection, [ ...documents ] }
     }
 
     ///TODO: not implemented
     /**
      * @brief Initializes the workspace.
      */
-    initialize(workspaceHash) {
+    initialize(workspaceHash, databaseGateway) {
+        this.database = databaseGateway;
         this.workspaceHash = workspaceHash;
         ///TODO: load file structure
+
+        console.log("Workspace initialized.");
     }
 
     /**
      * Sends the folder structure to the client and saves the connection.
      * @param {*} connection The WebSocket connection to the client.
      */
-    initializeClient(connection) {
-        const clientID = this.addConnection(connection);
+    initializeClient(clientID, connection) {
+        const userMetadata = {
+            connection: connection,
+            documents: []
+        };
+        this.clients.set(clientID, userMetadata);
         this.sendFileStructure(clientID);
-    }
-
-    addConnection(connection) {
-        let clientID = this.getNextclientID();
-        this.users.set(clientID, connection);
-        return clientID;
+        console.log("WorkspaceInstance: initialized client and sent file structure");
     }
 
     removeConnection(clientID) {
-        this.users.delete(clientID);
+        this.clients.delete(clientID);
         // write to file if all users left
-        if (this.users.size == 0) {
+        if (this.clients.size == 0) {
             this.updateDocumentFile();
         }
     }
 
     closeConnection(clientID) {
-        this.users.get(clientID).close();
+        this.clients.get(clientID).connection.close();
     }
 
     ///TODO: not implemented
@@ -69,19 +78,19 @@ class WorkspaceInstance {
      */
     sendFileStructure(clientID) {
         const message = {
-            msgType: com.serverMsg.sendFileStructure,
+            msgType: com.serverMsg.sentFileStructure,
             fileStructure: null
         };
         this.sendMessageToClient(clientID, JSON.stringify(message));
     }
 
     sendMessageToClient(clientID, messageString) {
-        this.users.get(clientID).sendUTF(messageString);
+        this.clients.get(clientID).connection.sendUTF(messageString);
     }
 
     sendMessageToClients(messageString) {
-        let userIterator = this.users.values();
-        for (let i = 0; i < this.users.size; i++) {
+        let userIterator = this.clients.values();
+        for (let i = 0; i < this.clients.size; i++) {
             userIterator.next().value.sendUTF(messageString);
         }
     }
@@ -108,23 +117,25 @@ class WorkspaceInstance {
         this.log = true;
     }
 
-    clientMessageProcessor(messageWrapper) {
-        let messageString = messageWrapper.utf8Data;
-        let message = JSON.parse(messageString);
+    ///TODO: not implemented
+    clientMessageProcessor(message, clientID) {
+        if (this.log) console.log('Received Message: ' + messageString);
 
-        if (message.hasOwnProperty('msgType')) {
-            if (this.log) console.log('Received Message: ' + messageString);
-
-            if (message.msgType === com.clientMsg.getDocument) {
-                ///TODO: it is assumed that all clients have the right to view all documents
-                if (this.documentExists(message.path)) {
-                    let clientID = 0; ///TODO: get clientID
-                    this.connectClientToDocument(clientID, message.path);
-                }
-                else {
-                    // send error message
-                }
+        if (message.msgType === com.clientMsg.getDocument) {
+            console.log("WorkspaceInstance: received file request");
+            ///TODO: it is assumed that all clients have the right to view all documents
+            if (this.documentExists(message.path)) {
+                this.connectClientToDocument(clientID, message.path);
             }
+            else {
+                // send error message
+            }
+        }
+        // the client want to use the functionality of a document instance
+        else {
+            ///TODO: this is only a mock implementation
+            const document = this.clients.get(clientID).documents[0];
+            document.clientMessageProcessor(message, clientID);
         }
     }
 
@@ -147,15 +158,23 @@ class WorkspaceInstance {
      * @param {*} path The absolute path to the document.
      */
     connectClientToDocument(clientID, path) {
-        if (this.documents.get(path) === undefined) {
-            if (!this.startDocument(path)) {
+        let document;
+
+        if (!this.documents.has(path)) {
+            document = this.startDocument(path);
+            if (document === null) {
                 // the document could not be instantiated
                 ///TODO: send an error message
+                return;
             }
         }
         else {
-            this.documents.get(path).initializeClient(clientID, this.users.get(clientID));
+            document = this.documents.get(path);
         }
+
+        const client = this.clients.get(clientID);
+        client.documents.push(document);
+        document.initializeClient(clientID, client.connection);
     }
 
     ///TODO: not implemented
@@ -163,16 +182,16 @@ class WorkspaceInstance {
      * Starts a document instance.
      * 
      * @param {*} path The absolute path to the document.
-     * @returns Returns true if the document initialization succeeded. Else returns false.
+     * @returns Returns the document if the instantiation succeeded, else returns false.
      */
     startDocument(path) {
         if (this.documents.get(path) !== undefined) return;
 
         let document = new DocumentInstance();
-        ///TODO: init document
+        document.initialize(path, this.workspaceHash, this.database);
         this.documents.set(path, document);
         ///TODO: check if succeeded.
-        return true;
+        return document
     }
 }
 

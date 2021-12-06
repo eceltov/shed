@@ -1,0 +1,4 @@
+{
+    "usersPath": "./database/users/",
+    "workspacesPath": "./database/workspaces/"
+}

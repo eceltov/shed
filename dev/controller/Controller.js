@@ -1,11 +1,10 @@
 const express = require("express");
+const path = require('path');
 const LoadBalancer = require("./LoadBalancer");
-const DatabaseGateway = require("./DatabaseGateway");
+const DatabaseGateway = require("../database/DatabaseGateway");
 const fs = require('fs');
 const reactViews = require('express-react-views');
 
-///TODO: get route
-//var ace = require('./../dev/editor/ace-builds/src-noconflict/ace');
 /*var routes = require('./routes');
 var user = require('./routes/user');
 var http = require('http');
@@ -27,7 +26,7 @@ class Controller {
         this.loadBalancer = new LoadBalancer();
         this.loadBalancer.initialize(config);
         this.database = new DatabaseGateway();
-        this.database.initialize(config);
+        this.database.initialize();
         this.initializeHttpServer();
     }
 
@@ -57,10 +56,50 @@ class Controller {
             res.render('Html.js', {data: initialState});
         });
 
-        app.get('/workspaces/:workspaceHash', function(req, res) {
+        /* start ugly section */
+        app.get('/client/client.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../client/client.js'));
+        });
+
+        app.get('/client/default.css', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../client/default.css'));
+        });
+
+        app.get('/lib/communication.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../lib/communication.js'));
+        });
+
+        app.get('/lib/dif.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../lib/dif.js'));
+        });
+
+        app.get('/editor/ace-builds/src-noconflict/ace.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/ace.js'));
+        });
+
+        app.get('/editor/ace-builds/src-noconflict/theme-monokai.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/theme-monokai.js'));
+        });
+
+        app.get('/editor/ace-builds/src-noconflict/mode-javascript.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/mode-javascript.js'));
+        });
+
+        app.get('/editor/ace-builds/src-noconflict/worker-javascript.js', function(req, res) {
+            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/worker-javascript.js'));
+        });
+        /* end ugly section */
+
+        /*app.get('/workspaces/:workspaceHash', function(req, res) {
             let workspaceHash = req.params.workspaceHash;
             console.log(workspaceHash);
-            res.render('client.js');
+            res.render('Workspace.js');
+        });*/
+
+        app.get('/workspaces', function(req, res) {
+            let workspaceHash = req.query.hash;
+            console.log(workspaceHash);
+            res.render('Workspace.js');
         });
 
         app.listen(8060, function() {
