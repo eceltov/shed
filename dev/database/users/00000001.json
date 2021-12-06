@@ -1,0 +1,16 @@
+{
+    "id": "00000001",
+    "role": "user",
+    "workspaces": [
+        {
+            "id": "0xh24randomhash32rh",
+            "name": "My Workspace 1",
+            "role": "owner"
+        },
+        {
+            "id": "feh25randomhash68rh",
+            "name": "My Workspace 2",
+            "role": "owner"
+        }
+    ]
+}
