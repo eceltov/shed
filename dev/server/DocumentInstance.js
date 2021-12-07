@@ -88,15 +88,10 @@ class DocumentInstance {
         return document;
     }
 
-    ///TODO: refactor this
     /**
      * @brief Writes the content of the local document to the output document path.
      */
     updateDocumentFile() {
-        if (this.documentPath === null) {
-            return;
-        }
-
         let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
         // erase file content and write first line
         this.database.writeDocumentData(this.workspaceHash, this.documentPath, documentCopy);

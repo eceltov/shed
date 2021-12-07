@@ -30,7 +30,7 @@ class WorkspaceInstance {
         this.documents = new Map(); // maps absolute paths to document instances
 
         // attributes for user management
-        this.clients = new Map(); // maps clientIDs to an object:  { connection, [ ...documents ] }
+        this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
     }
 
     ///TODO: not implemented
@@ -60,11 +60,9 @@ class WorkspaceInstance {
     }
 
     removeConnection(clientID) {
+        const documents = this.clients.get(clientID).documents;
+        documents.forEach(document => document.removeConnection(clientID));
         this.clients.delete(clientID);
-        // write to file if all users left
-        if (this.clients.size == 0) {
-            this.updateDocumentFile();
-        }
     }
 
     closeConnection(clientID) {

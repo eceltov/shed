@@ -70,7 +70,7 @@ class Server {
           });
 
           connection.on('close', function(reasonCode, description) {
-              //console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
+              console.log((new Date()) + ' Peer ' + connection.remoteAddress + ' disconnected.');
               that.removeConnection(clientID); // can clientID be used, or is it not in the scope?
           });
     }
@@ -91,6 +91,8 @@ class Server {
      * @param {*} clientID The ID of the client to be removed
      */
     removeConnection(clientID) {
+        const client = this.clients.get(clientID);
+        client.workspace.removeConnection(clientID);
         this.clients.delete(clientID);
         ///TODO: propagate to workspace and documents
         ///TODO: save the document if there are no users viewing it
