@@ -97,8 +97,8 @@ class Controller {
         });*/
 
         app.get('/workspaces', function(req, res) {
-            let workspaceHash = req.query.hash;
-            console.log(workspaceHash);
+            /*let workspaceHash = req.query.hash;
+            console.log(workspaceHash);*/
             res.render('Workspace.js');
         });
 

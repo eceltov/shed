@@ -9,7 +9,7 @@ class WorkspaceList extends React.Component {
   createItem(workspace, index) {
     return ( 
       <li key={index}>
-        <a href={"/" + workspace.id}>
+        <a href={"/workspaces?hash=" + workspace.id}>
           {workspace.name + " (" + workspace.role + ")"}
         </a>
       </li>
