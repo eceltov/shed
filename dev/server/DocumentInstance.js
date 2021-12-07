@@ -99,19 +99,7 @@ class DocumentInstance {
 
         let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
         // erase file content and write first line
-        fs.writeFile(this.documentPath, documentCopy[0], function(err) {
-            if (err) {
-                console.error(err);
-            }
-        });
-        // append the rest of lines
-        for (let i = 1; i < documentCopy.length; i++) {
-            fs.appendFile(this.documentPath, '\n' + documentCopy[i], function(err) {
-                if (err) {
-                    console.error(err);
-                }
-            });
-        }
+        this.database.writeDocumentData(this.workspaceHash, this.documentPath, documentCopy);
     }
 
     /**
@@ -212,12 +200,6 @@ class DocumentInstance {
         this.GCOldestMessageNumber = null;
     }
 
-    addConnection(connection) {
-        let clientID = this.getNextClientID();
-        this.users.set(clientID, connection);
-        return clientID;
-    }
-
     createUserInitData(clientID) {
         return {
             msgType: com.msgTypes.initialize,
@@ -246,24 +228,6 @@ class DocumentInstance {
         for (let i = 0; i < this.users.size; i++) {
             userIterator.next().value.sendUTF(messageString);
         }
-    }
-
-    originIsAllowed(origin) {
-        // put logic here to detect whether the specified origin is allowed.
-        return true;
-    }
-
-    listen(port) {
-        let that = this;
-        this.server.listen(port, function() {
-            if (that.log) console.log((new Date()) + ' Server is listening on port ' + port);
-        });
-    }
-
-    close() {
-        this.wsServer.shutDown();
-        this.server.close();
-        this.updateDocumentFile();
     }
 
     // example: [[1, 0], [0, 1, 1, 0]] (two packages, first contains 2 messages, the second contains 4 messages)

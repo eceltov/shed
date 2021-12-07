@@ -15,6 +15,10 @@ class DatabaseGateway {
         this.workspacesPath = config.workspacesPath;
     }
 
+    createDocumentPath(workspaceHash, path) {
+        return this.workspacesPath + workspaceHash + "/" + path;
+    }
+
     getUserWorkspaces(UID) {
         const path = this.usersPath + UID + ".json";
         let JSONString = fs.readFileSync(path);
@@ -23,8 +27,26 @@ class DatabaseGateway {
     }
 
     getDocumentData(workspaceHash, path) {
-        const data = fs.readFileSync(this.workspacesPath + workspaceHash + "/" + path, 'utf8');
+        const data = fs.readFileSync(this.createDocumentPath(workspaceHash, path), 'utf8');
         return data;
+    }
+
+    writeDocumentData(workspaceHash, path, documentArray) {
+        const absolutePath = this.createDocumentPath(workspaceHash, path);
+        // erase file content and write first line
+        fs.writeFile(absolutePath, documentArray[0], function(err) {
+            if (err) {
+                console.error(err);
+            }
+        });
+        // append the rest of lines
+        for (let i = 1; i < documentArray.length; i++) {
+            fs.appendFile(absolutePath, '\n' + documentArray[i], function(err) {
+                if (err) {
+                    console.error(err);
+                }
+            });
+        }
     }
 }
 
