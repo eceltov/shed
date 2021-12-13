@@ -5,11 +5,6 @@ const DatabaseGateway = require("../database/DatabaseGateway");
 const fs = require('fs');
 const reactViews = require('express-react-views');
 
-/*var routes = require('./routes');
-var user = require('./routes/user');
-var http = require('http');
-var path = require('path');*/
-
 class Controller {
     constructor() {
         this.app = null;
@@ -90,12 +85,6 @@ class Controller {
         });
         /* end ugly section */
 
-        /*app.get('/workspaces/:workspaceHash', function(req, res) {
-            let workspaceHash = req.params.workspaceHash;
-            console.log(workspaceHash);
-            res.render('Workspace.js');
-        });*/
-
         app.get('/workspaces', function(req, res) {
             /*let workspaceHash = req.query.hash;
             console.log(workspaceHash);*/
@@ -105,37 +94,6 @@ class Controller {
         app.listen(8060, function() {
         console.log('Dynamic react example listening on port ' + 8060);
         });
-
-        /* Simple react rendering
-        app.set('views', __dirname + '/views');
-        app.set('view engine', 'jsx');
-        app.engine('jsx', reactViews.createEngine());
-        app.use(express.static(path.join(__dirname, 'public')));
-
-
-        app.locals.something = 'value';
-        app.locals.qaz = 'qut';
-
-        app.get('/', routes.index);
-        app.get('/users', user.list);
-
-        http.createServer(app).listen(8060, function() {
-        console.log('Express server listening on port ' + 8060);
-        });*/
-
-
-        /* Initial file display
-        this.app.listen(this.port, () => {
-            console.log("Application started and Listening on port " + this.port);
-        });
-        
-        this.app.get("/", (req, res) => {
-            res.redirect("/something");
-        });
-
-        this.app.get("/something", (req, res) => {
-            res.render("controller.html", { data: 5 });
-        });*/
     }
 }
 
