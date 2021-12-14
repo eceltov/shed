@@ -1,6 +1,6 @@
 var to = require('../lib/dif');
 var lib = require('./test_lib');
-var Server = require('../server/server_class');
+var Server = require('./server_class');
 var Client = require('./client_class');
 var StatusChecker = require('../lib/status_checker');
 

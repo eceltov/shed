@@ -9,7 +9,7 @@ class Client {
 
       this.connection = null;
       this.WSClient = null;
-      this.userID = null;
+      this.clientID = null;
       this.commitSerialNumber = 0;
       this.HB = [];
       this.document = [""];
@@ -45,13 +45,13 @@ class Client {
      * @brief Pushed the dif to HB and adds the neccessary metadata.
      */
     pushLocalDifToHB(dif) {
-      let prevUserID = (this.serverOrdering.length == 0) ? -1 : this.serverOrdering[this.serverOrdering.length - 1][0];
+      let prevClientID = (this.serverOrdering.length == 0) ? -1 : this.serverOrdering[this.serverOrdering.length - 1][0];
       let prevCommitSerialNumber = (this.serverOrdering.length == 0) ? -1 : this.serverOrdering[this.serverOrdering.length - 1][1];
 
       let wDif = to.prim.wrapDif(dif);
 
       this.HB.push([
-        [this.userID, this.commitSerialNumber, prevUserID, prevCommitSerialNumber], wDif
+        [this.clientID, this.commitSerialNumber, prevClientID, prevCommitSerialNumber], wDif
       ]);
       this.commitSerialNumber++;
 
@@ -65,7 +65,7 @@ class Client {
     }
 
     serverMessageProcessor(message) {
-      //console.log(this.userID, "received message: ", JSON.stringify(message));
+      //console.log(this.clientID, "received message: ", JSON.stringify(message));
       let that = this;
       if (message.hasOwnProperty('msgType')) {
         if (message.msgType === com.msgTypes.initialize) { ///TODO: what if this is lost somehow?
@@ -91,10 +91,11 @@ class Client {
     }
 
     initializeClient(message) {
-      this.userID = message.userID;
+      this.clientID = message.clientID;
       this.document = message.serverDocument;
       this.HB = message.serverHB;
       this.serverOrdering = message.serverOrdering;
+      this.firstSOMessageNumber = message.firstSOMessageNumber;
     }
 
     sendGCMetadata() {
@@ -110,7 +111,7 @@ class Client {
       //console.log(this.serverOrdering);
       let message = {
         msgType: com.msgTypes.GCMetadataResponse,
-        userID: this.userID,
+        clientID: this.clientID,
         dependancy: dependancy
       };
       let messageString = JSON.stringify(message);
@@ -130,15 +131,15 @@ class Client {
         return;
       }
 
-      let GCUserID = this.serverOrdering[SOGarbageIndex][0];
+      let GCClientID = this.serverOrdering[SOGarbageIndex][0];
       let GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
 
       let HBGarbageIndex = 0;
 
       for (let i = 0; i < this.HB.length; i++) {
-        let HBUserID = this.HB[i][0][0];
+        let HBClientID = this.HB[i][0][0];
         let HBCommitSerialNumber = this.HB[i][0][1];
-        if (HBUserID === GCUserID && HBCommitSerialNumber === GCCommitSerialNumber) {
+        if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
           HBGarbageIndex = i;
           break;
         }
@@ -190,7 +191,7 @@ class Client {
       let authorID = message[0][0];
   
       // own message
-      if (authorID === this.userID) {
+      if (authorID === this.clientID) {
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
       }
       // GOT control algorithm

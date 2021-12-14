@@ -68,7 +68,7 @@ test.createClients = function(count, serverURL, connectionChecker, msgReceivedCh
 test.reorderClients = function(clients) {
     reorderedClients = Array(clients.length);
     for (let i = 0; i < clients.length; i++) {
-        reorderedClients[clients[i].userID] = clients[i];
+        reorderedClients[clients[i].clientID] = clients[i];
     }
     return reorderedClients;
 }
@@ -219,13 +219,13 @@ test.sendAdds = function(clientMsgCount, subdifCount, clients) {
     }
 }
 
-test.sendAddsUserID = function(clientMsgCount, subdifCount, clients) {
+test.sendAddsClientID = function(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length; i++) {
-        let userID = clients[i].userID;
+        let clientID = clients[i].clientID;
         for (let j = 0; j < clientMsgCount; j++) {
             let dif = [];
             for (let k = 0; k < subdifCount; k++) {
-                dif.push(to.add(0, 0, userID.toString()));
+                dif.push(to.add(0, 0, clientID.toString()));
             }
             clients[i].propagateLocalDif(dif);
         }

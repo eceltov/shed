@@ -1,6 +1,6 @@
 var to = require('../lib/dif');
 var lib = require('./test_lib');
-var Server = require('../server/server_class');
+var Server = require('./server_class');
 var Client = require('./client_class');
 var StatusChecker = require('../lib/status_checker');
 
@@ -251,24 +251,24 @@ test('GC collects all entries but the last ones with the same dependancy and the
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
         clients = lib.reorderClients(clients);
-        lib.sendAddsUserID(clientMsgCount, 1, clients);
+        lib.sendAddsClientID(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, messageOrdering[0].length);
     })
     .then(() => {
-        lib.sendAddsUserID(clientMsgCount, 1, clients);
+        lib.sendAddsClientID(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, messageOrdering[1].length);
     })
     .then(() => {
-        lib.sendAddsUserID(clientMsgCount, 1, clients);
+        lib.sendAddsClientID(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, messageOrdering[2].length);
     })
     .then(() => {
-        lib.sendAddsUserID(clientMsgCount, 1, clients);
+        lib.sendAddsClientID(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, messageOrdering[3].length);
     })
     .then(() => {
         server.GCStartDelay = 200; // delay the start of GC so that all client messages are processed
-        lib.sendAddsUserID(clientMsgCount, 1, clients);
+        lib.sendAddsClientID(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, messageOrdering[4].length);
     })
     .then(() => {
