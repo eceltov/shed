@@ -10,8 +10,7 @@ const fs = require('fs');
 class DocumentInstance {
     constructor() {
         this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
-        this.debugHandleMessage = this.debugHandleMessage.bind(this);
-        this.processMessage = this.processMessage.bind(this);
+        this.processOperation = this.processOperation.bind(this);
         this.GC = this.GC.bind(this);
         this.initializeClient = this.initializeClient.bind(this);
 
@@ -36,10 +35,7 @@ class DocumentInstance {
         this.GCOldestMessageNumber = null;
 
         // attributes for testing
-        this.messageLog = [];
-        this.ordering = { on: false };
         this.log = false;
-        this.GCStartDelay = 0;
     }
 
     /**
@@ -225,14 +221,6 @@ class DocumentInstance {
         }
     }
 
-    // example: [[1, 0], [0, 1, 1, 0]] (two packages, first contains 2 messages, the second contains 4 messages)
-    setOrdering(orders) {
-        this.ordering.orders = orders;
-        this.ordering.currentPackage = 0;
-        this.ordering.on = true;
-        this.ordering.buffer = [];
-    }
-
     enableLogging() {
         this.log = true;
     }
@@ -254,47 +242,17 @@ class DocumentInstance {
             else {
                 if (this.log) console.log('Received Message: ' + messageString);
                 this.sendMessageToClients(messageString);
-                this.processMessage(message);
+                this.processOperation(message);
                 this.startGC();
             }
         }
     }
 
-    processMessage(message) {
+    processOperation(message) {
         let resultingState = to.UDR(message, this.document, this.HB, this.serverOrdering);
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
         this.HB = resultingState.HB;
         this.document = resultingState.document;
-    }
-
-    debugHandleMessage(message) {
-        this.ordering.buffer.push(message);
-        if (this.ordering.buffer.length === this.ordering.orders[this.ordering.currentPackage].length) {
-            let userCount = -1;
-            let userMessages = [];
-            this.ordering.buffer.forEach(message => userCount = (message[0][0] > userCount) ? message[0][0] : userCount);
-            userCount++;
-            // create a list of lists of messages so that the outer list can be indexed with clientID
-            for (let i = 0; i < userCount; i++) {
-                userMessages.push([]);
-                this.ordering.buffer.forEach(message => {
-                    if (message[0][0] === i) {
-                        userMessages[i].push(message);
-                    }
-                });
-            }
-            let order = this.ordering.orders[this.ordering.currentPackage];
-            order.forEach(clientID => {
-                let storedMessage = userMessages[clientID].shift();
-                let messageString = JSON.stringify(storedMessage);
-                if(this.log) console.log('Received Message: ' + messageString);
-                this.sendMessageToClients(messageString);
-                this.processMessage(storedMessage);
-                this.startGC();
-            });
-            this.ordering.buffer = [];
-            this.ordering.currentPackage++;
-        }                        
     }
 }
 

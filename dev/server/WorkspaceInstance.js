@@ -93,24 +93,6 @@ class WorkspaceInstance {
         }
     }
 
-    originIsAllowed(origin) {
-        // put logic here to detect whether the specified origin is allowed.
-        return true;
-    }
-
-    listen(port) {
-        let that = this;
-        this.server.listen(port, function() {
-            if (that.log) console.log((new Date()) + ' Server is listening on port ' + port);
-        });
-    }
-
-    close() {
-        this.wsServer.shutDown();
-        this.server.close();
-        this.updateDocumentFile();
-    }
-
     enableLogging() {
         this.log = true;
     }
