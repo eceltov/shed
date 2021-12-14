@@ -29,61 +29,31 @@ class Controller {
         /// This example comes from the following source:
         /// https://github.com/reactjs/express-react-views
         this.app = express();
-        let app = this.app;
-        let database = this.database;
+        const app = this.app;
+        const database = this.database;
+        const port = this.port;
+
         app.set('views', __dirname + "/views");
         app.set('view engine', 'js');
         app.engine('js', reactViews.createEngine());
 
-        app.use(express.static(__dirname + '/public'));
+        app.use('/client', express.static(path.join(__dirname, '/../client')));
+        app.use('/lib', express.static(path.join(__dirname, '/../lib')));
+        app.use('/editor', express.static(path.join(__dirname, '/../editor')));
 
         app.get('/user1', function(req, res) {
-            var initialState = {
+            const initialState = {
                 workspaces: database.getUserWorkspaces("00000000")
             };
             res.render('Html.js', {data: initialState});
         });
 
         app.get('/user2', function(req, res) {
-            var initialState = {
+            const initialState = {
                 workspaces: database.getUserWorkspaces("00000001")
             };
             res.render('Html.js', {data: initialState});
         });
-
-        /* start ugly section */
-        app.get('/client/client.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../client/client.js'));
-        });
-
-        app.get('/client/default.css', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../client/default.css'));
-        });
-
-        app.get('/lib/communication.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../lib/communication.js'));
-        });
-
-        app.get('/lib/dif.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../lib/dif.js'));
-        });
-
-        app.get('/editor/ace-builds/src-noconflict/ace.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/ace.js'));
-        });
-
-        app.get('/editor/ace-builds/src-noconflict/theme-monokai.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/theme-monokai.js'));
-        });
-
-        app.get('/editor/ace-builds/src-noconflict/mode-javascript.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/mode-javascript.js'));
-        });
-
-        app.get('/editor/ace-builds/src-noconflict/worker-javascript.js', function(req, res) {
-            res.sendFile(path.join(__dirname + '/../editor/ace-builds/src-noconflict/worker-javascript.js'));
-        });
-        /* end ugly section */
 
         app.get('/workspaces', function(req, res) {
             /*let workspaceHash = req.query.hash;
@@ -91,8 +61,8 @@ class Controller {
             res.render('Workspace.js');
         });
 
-        app.listen(8060, function() {
-        console.log('Dynamic react example listening on port ' + 8060);
+        app.listen(port, function() {
+            console.log('Rendering server listening on port ' + port);
         });
     }
 }
