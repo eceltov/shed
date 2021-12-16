@@ -49,10 +49,11 @@ class WorkspaceInstance {
      * Sends the folder structure to the client and saves the connection.
      * @param {*} connection The WebSocket connection to the client.
      */
-    initializeClient(clientID, connection) {
+    initializeClient(clientID, connection, role) {
         const userMetadata = {
-            connection: connection,
-            documents: []
+            connection: connection, // the WebSocket connection
+            documents: [],          // references to DocumentInstance objects with which the client interacts
+            role: role              // the role of the client in the workspace
         };
         this.clients.set(clientID, userMetadata);
         this.sendFileStructure(clientID);

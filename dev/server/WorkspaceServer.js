@@ -4,6 +4,7 @@ const StatusChecker = require('../lib/status_checker');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const to = require('../lib/dif');
 const com = require('../lib/communication');
+const roles = require('../lib/roles');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
 
@@ -159,8 +160,9 @@ class Server {
                 ///TODO: close the connection somehow
             }
             else {
-                if (this.checkUserWorkspacePermission(userHash, message.workspaceHash)) {
-                    this.connectClientToWorkspace(clientID, message.workspaceHash);
+                const role = this.database.getUserWorkspaceRole(userHash, message.workspaceHash);
+                if (role !== roles.none) {
+                    this.connectClientToWorkspace(clientID, message.workspaceHash, role);
                 }
                 else {
                     ///TODO: send error message
@@ -185,16 +187,6 @@ class Server {
         return "00000000";
     }
 
-    ///TODO: not implemented
-    /**
-     * @returns True if the user can access the workspace, else false.
-     * @param {*} userHash The hash of the user.
-     * @param {*} workspaceHash The hash of the workspace.
-     */
-    checkUserWorkspacePermission(userHash, workspaceHash) {
-        return true;
-    }
-
     /**
      * @brief Connects a user to a workspace. Initializes the workspace if necessary.
      * 
@@ -202,8 +194,9 @@ class Server {
      * 
      * @param {*} clientID The ID of the user.
      * @param {*} workspaceHash The hash of the workspace.
+     * @param {*} role The role of the client in the workspace.
      */
-    connectClientToWorkspace(clientID, workspaceHash) {
+    connectClientToWorkspace(clientID, workspaceHash, role) {
         let workspace;
 
         // check if the workspace is instantiated
@@ -221,7 +214,7 @@ class Server {
 
         const client = this.clients.get(clientID);
         client.workspace = workspace;
-        workspace.initializeClient(clientID, client.connection);
+        workspace.initializeClient(clientID, client.connection, role);
     }
 
     ///TODO: not fully implemented

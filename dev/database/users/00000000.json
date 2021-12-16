@@ -5,7 +5,7 @@
         {
             "id": "0xh24randomhash32rh",
             "name": "My Workspace 1",
-            "role": "owner"
+            "role": 4
         }
     ]
 }

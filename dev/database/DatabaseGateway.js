@@ -1,4 +1,5 @@
 const fs = require('fs');
+const roles = require('../lib/roles');
 
 class DatabaseGateway {
     constructor() {
@@ -19,11 +20,32 @@ class DatabaseGateway {
         return this.workspacesPath + workspaceHash + "/" + path;
     }
 
-    getUserWorkspaces(UID) {
-        const path = this.usersPath + UID + ".json";
+    getUserWorkspaces(userHash) {
+        const path = this.usersPath + userHash + ".json";
         let JSONString = fs.readFileSync(path);
         let userMeta = JSON.parse(JSONString);
         return userMeta.workspaces;
+    }
+
+    /**
+     * @brief Returns the role of a user in a given workspace.
+     * @note The role is a number specified in 'roles.js'.
+     * @param {*} userHash The hash of the user.
+     * @param {*} workspaceHash The hash of the workspace.
+     * @returns Returns the role number.
+     */
+    getUserWorkspaceRole(userHash, workspaceHash) {
+        const workspaces = this.getUserWorkspaces(userHash);
+        let role = roles.none;
+
+        for (let i = 0; i < workspaces.length; i++) {
+            if (workspaces[i].id === workspaceHash) {
+                role = workspaces[i].role;
+                break;
+            }
+        }
+
+        return role;
     }
 
     getDocumentData(workspaceHash, path) {

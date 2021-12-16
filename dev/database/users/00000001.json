@@ -5,12 +5,12 @@
         {
             "id": "0xh24randomhash32rh",
             "name": "My Workspace 1",
-            "role": "editor"
+            "role": 2
         },
         {
             "id": "feh25randomhash68rh",
             "name": "My Workspace 2",
-            "role": "owner"
+            "role": 4
         }
     ]
 }

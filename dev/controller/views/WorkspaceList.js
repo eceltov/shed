@@ -1,4 +1,5 @@
-var React = require('react');
+const React = require('react');
+const roles = require('../../lib/roles');
 
 class WorkspaceList extends React.Component {
   constructor(props) {
@@ -10,7 +11,7 @@ class WorkspaceList extends React.Component {
     return ( 
       <li key={index}>
         <a href={"/workspaces?hash=" + workspace.id}>
-          {workspace.name + " (" + workspace.role + ")"}
+          {workspace.name + " (" + roles.getRoleName(workspace.role) + ")"}
         </a>
       </li>
     );
