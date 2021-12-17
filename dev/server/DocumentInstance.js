@@ -199,7 +199,7 @@ class DocumentInstance {
 
     createClientInitData(clientID) {
         return {
-            msgType: com.msgTypes.initialize,
+            msgType: com.serverMsg.initDocument,
             clientID: clientID,
             serverDocument: to.prim.deepCopy(this.document),
             serverHB: to.prim.deepCopy(this.HB),

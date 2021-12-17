@@ -15,14 +15,13 @@ function log(content) {
 class Client extends React.Component {
     constructor(props) {
         super(props);
-        this.processIncomingMessage = this.processIncomingMessage.bind(this);
+        this.processOperation = this.processOperation.bind(this);
         this.propagateLocalDif = this.propagateLocalDif.bind(this);
         this.intervalTimerStart = this.intervalTimerStart.bind(this);
         this.intervalBufClear = this.intervalBufClear.bind(this);
         this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
         this.handleChange = this.handleChange.bind(this);
         this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
-        this.createInitialDocument = this.createInitialDocument.bind(this);
         this.state = {
             editor: null,
             intervalBuf: [],
@@ -122,27 +121,24 @@ class Client extends React.Component {
         return (this.state.HB[this.state.HB.length - 1]);
     }
 
-    createInitialDocument(serverDocument) {
-        let document = new Document(this.state.editor.getSession().getDocument().getAllLines()); ///TODO: this should be a clean doc
-
-        for (let i = 0; i < serverDocument.length; i++) {
-            let line = (i == serverDocument.length - 1) ? serverDocument[i] : serverDocument[i] + "\n";
-            document.insert({ row: i, column: 0 }, line);
-        }
-
-        this.state.editor.setSession(new EditSession(document));
-        this.state.editor.session.on('change', this.handleChange);
-        this.setEditorStyle();
-    }
-
-    initializeClient(message) {
+    initializeDocument(message) {
         this.setState({
             clientID: message.clientID,
             HB: message.serverHB,
             serverOrdering: message.serverOrdering,
             firstSOMessageNumber: message.firstSOMessageNumber,
         });
-        this.createInitialDocument(message.serverDocument);
+
+        let document = new Document(this.state.editor.getSession().getDocument().getAllLines()); ///TODO: this should be a clean doc
+
+        for (let i = 0; i < message.serverDocument.length; i++) {
+            let line = (i == message.serverDocument.length - 1) ? message.serverDocument[i] : message.serverDocument[i] + "\n";
+            document.insert({ row: i, column: 0 }, line);
+        }
+
+        this.state.editor.setSession(new EditSession(document));
+        this.state.editor.session.on('change', this.handleChange);
+        this.setEditorStyle();
     }
 
     sendGCMetadata() {
@@ -196,8 +192,8 @@ class Client extends React.Component {
     serverMessageProcessor(message) {
         let that = this;
         if (message.hasOwnProperty('msgType')) {
-            if (message.msgType === com.msgTypes.initialize) { ///TODO: what if this is lost somehow?
-                this.initializeClient(message);
+            if (message.msgType === com.serverMsg.initDocument) { ///TODO: what if this is lost somehow?
+                this.initializeDocument(message);
             }
             else if (message.msgType === com.msgTypes.GCMetadataRequest) {
                 this.sendGCMetadata();
@@ -221,7 +217,7 @@ class Client extends React.Component {
         // message is an operation
         else {
             setTimeout(function () {
-                that.processIncomingMessage(message);
+                that.processOperation(message);
             }, that.SCLatency); // latency testing
         }
     }
@@ -314,7 +310,7 @@ class Client extends React.Component {
      * 
      * @param message Operation send by the server
      */
-    processIncomingMessage(message) {
+    processOperation(message) {
         console.log('incoming message:');
         log(message);
         //let prevclientID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
