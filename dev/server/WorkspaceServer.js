@@ -18,7 +18,7 @@ class Server {
 
         this.database = null;
 
-        // attributes for user management
+        // attributes for client management
         this.nextclientID = 0;
         this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
     }
@@ -78,11 +78,11 @@ class Server {
 
     addConnection(connection) {
         let clientID = this.getNextclientID();
-        const userMetadata = {
+        const clientMetadata = {
             connection: connection,
             workspace: null
         };
-        this.clients.set(clientID, userMetadata);
+        this.clients.set(clientID, clientMetadata);
         return clientID;
     }
 
@@ -96,7 +96,7 @@ class Server {
         client.workspace.removeConnection(clientID);
         this.clients.delete(clientID);
         ///TODO: propagate to workspace and documents
-        ///TODO: save the document if there are no users viewing it
+        ///TODO: save the document if there are no clients viewing it
     }
 
     closeConnection(clientID) {
@@ -112,9 +112,9 @@ class Server {
     }
 
     sendMessageToClients(messageString) {
-        let userIterator = this.clients.values();
+        let clientIterator = this.clients.values();
         for (let i = 0; i < this.clients.size; i++) {
-            userIterator.next().value.connection.sendUTF(messageString);
+            clientIterator.next().value.connection.sendUTF(messageString);
         }
     }
 
@@ -188,11 +188,11 @@ class Server {
     }
 
     /**
-     * @brief Connects a user to a workspace. Initializes the workspace if necessary.
+     * @brief Connects a client to a workspace. Initializes the workspace if necessary.
      * 
-     * @note Sends an error message to the user if the workspace could not be instantiated.
+     * @note Sends an error message to the client if the workspace could not be instantiated.
      * 
-     * @param {*} clientID The ID of the user.
+     * @param {*} clientID The ID of the client.
      * @param {*} workspaceHash The hash of the workspace.
      * @param {*} role The role of the client in the workspace.
      */
@@ -227,6 +227,7 @@ class Server {
         let workspace = new WorkspaceInstance();
         ///TODO: check if succeeded
         workspace.initialize(workspaceHash, this.database);
+        workspace.log = this.log;
         this.workspaces.set(workspaceHash, workspace);
         return workspace;
     }

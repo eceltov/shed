@@ -23,8 +23,8 @@ class DocumentInstance {
         this.database = null;
         this.workspaceHash = null;
 
-        // attributes for user management
-        this.users = new Map(); // maps clientIDs to connections
+        // attributes for client management
+        this.clients = new Map(); // maps clientIDs to connections and their roles
 
         // attribute for garbage collection
         this.garbageCount = 0; // current amount of messages since last GC
@@ -51,15 +51,19 @@ class DocumentInstance {
         console.log("Document initialized.");
     }
 
-    initializeClient(clientID, connection) {
-        if (this.users.has(clientID)) {
+    initializeClient(clientID, connection, role) {
+        if (this.clients.has(clientID)) {
             ///TODO: handle client present
         }
         else {
-            this.users.set(clientID, connection);
+            const clientMetadata = {
+                connection: connection, // the WebSocket connection
+                role: role              // the role of the client in the workspace
+            };
+            this.clients.set(clientID, clientMetadata);
 
-            let userInitData = this.createUserInitData(clientID);
-            connection.sendUTF(JSON.stringify(userInitData));
+            let clientInitData = this.createClientInitData(clientID);
+            connection.sendUTF(JSON.stringify(clientInitData));
         }
     }
 
@@ -91,6 +95,7 @@ class DocumentInstance {
         let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
         // erase file content and write first line
         this.database.writeDocumentData(this.workspaceHash, this.documentPath, documentCopy);
+        if (this.log) console.log("Updated file in databse.");
     }
 
     /**
@@ -111,9 +116,9 @@ class DocumentInstance {
 
             // clean up the garbage roster and fill it with current clients
             this.garbageRoster = [];
-            let userIterator = this.users.keys();
-            for (let i = 0; i < this.users.size; i++) {
-                this.garbageRoster.push(userIterator.next().value);
+            let clientIterator = this.clients.keys();
+            for (let i = 0; i < this.clients.size; i++) {
+                this.garbageRoster.push(clientIterator.next().value);
             }
             this.garbageRosterChecker = new StatusChecker(this.garbageRoster.length);
             this.garbageRosterChecker.setReadyCallback(this.GC);
@@ -143,13 +148,13 @@ class DocumentInstance {
         if (this.GCOldestMessageNumber === null || message.dependancy < this.GCOldestMessageNumber) {
             this.GCOldestMessageNumber = message.dependancy;
         }
-        let userIndex = this.garbageRoster.indexOf(message.clientID);
-        this.garbageRosterChecker.check(userIndex);
+        let clientIndex = this.garbageRoster.indexOf(message.clientID);
+        this.garbageRosterChecker.check(clientIndex);
     }
 
     GC() {
         //if (this.log) console.log("-------------------------------");
-        //if (this.log) console.log("GC");
+        if (this.log) console.log("GC");
         //if (this.log) console.log("-------------------------------");
 
         // some client has no garbage
@@ -191,7 +196,7 @@ class DocumentInstance {
         this.GCOldestMessageNumber = null;
     }
 
-    createUserInitData(clientID) {
+    createClientInitData(clientID) {
         return {
             msgType: com.msgTypes.initialize,
             clientID: clientID,
@@ -203,21 +208,21 @@ class DocumentInstance {
     }
 
     removeConnection(clientID) {
-        this.users.delete(clientID);
-        // write to file if all users left
-        if (this.users.size == 0) {
+        this.clients.delete(clientID);
+        // write to file if all clients left
+        if (this.clients.size == 0) {
             this.updateDocumentFile();
         }
     }
 
     sendMessageToClient(clientID, messageString) {
-        this.users.get(clientID).sendUTF(messageString);
+        this.clients.get(clientID).connection.sendUTF(messageString);
     }
 
     sendMessageToClients(messageString) {
-        let userIterator = this.users.values();
-        for (let i = 0; i < this.users.size; i++) {
-            userIterator.next().value.sendUTF(messageString);
+        let clientIterator = this.clients.values();
+        for (let i = 0; i < this.clients.size; i++) {
+            clientIterator.next().value.connection.sendUTF(messageString);
         }
     }
 
@@ -236,15 +241,10 @@ class DocumentInstance {
         }
         // message is an operation
         else {
-            if (this.ordering.on) {
-                this.debugHandleMessage(message);
-            }
-            else {
-                if (this.log) console.log('Received Message: ' + messageString);
-                this.sendMessageToClients(messageString);
-                this.processOperation(message);
-                this.startGC();
-            }
+            if (this.log) console.log('Received Message: ' + messageString);
+            this.sendMessageToClients(messageString);
+            this.processOperation(message);
+            this.startGC();
         }
     }
 

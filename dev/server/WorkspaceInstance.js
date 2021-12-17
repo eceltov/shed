@@ -29,7 +29,7 @@ class WorkspaceInstance {
         // document management
         this.documents = new Map(); // maps absolute paths to document instances
 
-        // attributes for user management
+        // attributes for client management
         this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
     }
 
@@ -50,12 +50,12 @@ class WorkspaceInstance {
      * @param {*} connection The WebSocket connection to the client.
      */
     initializeClient(clientID, connection, role) {
-        const userMetadata = {
+        const clientMetadata = {
             connection: connection, // the WebSocket connection
             documents: [],          // references to DocumentInstance objects with which the client interacts
             role: role              // the role of the client in the workspace
         };
-        this.clients.set(clientID, userMetadata);
+        this.clients.set(clientID, clientMetadata);
         this.sendFileStructure(clientID);
         console.log("WorkspaceInstance: initialized client and sent file structure");
     }
@@ -88,9 +88,9 @@ class WorkspaceInstance {
     }
 
     sendMessageToClients(messageString) {
-        let userIterator = this.clients.values();
+        let clientIterator = this.clients.values();
         for (let i = 0; i < this.clients.size; i++) {
-            userIterator.next().value.sendUTF(messageString);
+            clientIterator.next().value.sendUTF(messageString);
         }
     }
 
@@ -100,7 +100,7 @@ class WorkspaceInstance {
 
     ///TODO: not implemented
     clientMessageProcessor(message, clientID) {
-        if (this.log) console.log('Received Message: ' + messageString);
+        if (this.log) console.log('Received Message: ' + JSON.stringify(message));
 
         if (message.msgType === com.clientMsg.getDocument) {
             console.log("WorkspaceInstance: received file request");
@@ -155,7 +155,7 @@ class WorkspaceInstance {
 
         const client = this.clients.get(clientID);
         client.documents.push(document);
-        document.initializeClient(clientID, client.connection);
+        document.initializeClient(clientID, client.connection, client.role);
     }
 
     ///TODO: not implemented
@@ -170,6 +170,7 @@ class WorkspaceInstance {
 
         let document = new DocumentInstance();
         document.initialize(path, this.workspaceHash, this.database);
+        document.log = this.log;
         this.documents.set(path, document);
         ///TODO: check if succeeded.
         return document
