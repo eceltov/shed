@@ -10,7 +10,7 @@ class WorkspaceList extends React.Component {
   createItem(workspace, index) {
     return ( 
       <li key={index}>
-        <a href={"/workspaces?hash=" + workspace.id}>
+        <a href={"/workspaces?hash=" + workspace.id + "?token=" + this.props.token}>
           {workspace.name + " (" + roles.getRoleName(workspace.role) + ")"}
         </a>
       </li>
@@ -27,19 +27,19 @@ class WorkspaceList extends React.Component {
   }
 }
 
-class WorkspacePage extends React.Component {
+class WorkspacesPage extends React.Component {
   constructor(props) {
     super(props);
-    this.state = props;
   }
+
   render() {
     return (
       <div className="container">
         <h3>Workspaces</h3>
-        <WorkspaceList workspaces={this.state.workspaces} />
+        <WorkspaceList {...this.props} />
       </div>
     );
   }
 }
 
-module.exports = WorkspacePage;
+module.exports = WorkspacesPage;

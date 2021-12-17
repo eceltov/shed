@@ -42,17 +42,19 @@ class Controller {
         app.use('/editor', express.static(path.join(__dirname, '/../editor')));
 
         app.get('/user1', function(req, res) {
-            const initialState = {
-                workspaces: database.getUserWorkspaces("00000000")
+            const data = {
+                workspaces: database.getUserWorkspaces("00000000"),
+                token: "0000"
             };
-            res.render('Html.js', {data: initialState});
+            res.render('Html.js', {data: data});
         });
 
         app.get('/user2', function(req, res) {
-            const initialState = {
-                workspaces: database.getUserWorkspaces("00000001")
+            const data = {
+                workspaces: database.getUserWorkspaces("00000001"),
+                token: "0001"
             };
-            res.render('Html.js', {data: initialState});
+            res.render('Html.js', {data: data});
         });
 
         app.get('/workspaces', function(req, res) {

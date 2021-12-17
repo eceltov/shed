@@ -206,7 +206,7 @@ class Client extends React.Component {
                 ///TODO: process file structure
                 ///note: after this, the client can interact with the workspace,
                 ///      that means creating new files/folders and viewing files
-                this.viewFile('document.txt'); ///TODO: this should not be here, it server only as a mock
+                this.viewFile('document.txt'); ///TODO: this should not be here, it serves only as a mock
             }
             else {
                 console.log("Received unknown message.", JSON.stringify(message));
@@ -241,6 +241,7 @@ class Client extends React.Component {
     connect = () => {
         const urlParams = new URLSearchParams(window.location.search);
         const workspaceHash = urlParams.get('hash');
+        const token = urlParams.get('token');
 
         var connection = new WebSocket(SERVER_URL); ///TODO: protocol
 
@@ -254,7 +255,7 @@ class Client extends React.Component {
             const initMsg = {
                 msgType: com.clientMsg.connect,
                 credentials: "",
-                token: "",
+                token: token,
                 workspaceHash: workspaceHash
             };
             connection.send(JSON.stringify(initMsg));

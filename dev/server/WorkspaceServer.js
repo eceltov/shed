@@ -177,14 +177,21 @@ class Server {
     }
 
     ///TODO: not implemented
+    ///TODO: are the credentials necessary, is not the token enough?
     /**
-     * @returns Returns the hash of the user, if the user is has valid credentials and token.
+     * @returns Returns the hash of the user, if the user has valid credentials and token.
      *          Else returns null.
      * @param {*} credentials The credentials of the user.
      * @param {*} token The security token provided by the authentization service.
      */
     getUserHash(credentials, token) {
-        return "00000000";
+        if (token === "0000") {
+            return "00000000";
+        }
+        else if (token === "0001") {
+            return "00000001";
+        }
+        return null;
     }
 
     /**

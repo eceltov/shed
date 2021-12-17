@@ -1,5 +1,5 @@
 var React = require('react');
-var WorkspaceList = require('./WorkspaceList');
+var WorkspacesPage = require('./WorkspacesPage');
 
 class Html extends React.Component {
   render() {
@@ -10,7 +10,7 @@ class Html extends React.Component {
         <head>
         </head>
         <body>
-          <WorkspaceList {...data} />
+          <WorkspacesPage {...data} />
         </body>
       </html>
     );
