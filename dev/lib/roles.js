@@ -9,6 +9,10 @@ roles.editor = 2;
 roles.admin = 3;
 roles.owner = 4;
 
+/**
+ * @param {*} role The role to be stringified.
+ * @returns Returns the string representation of a role.
+ */
 roles.getRoleName = function(role) {
     let roleName;
     switch(role) {
@@ -31,6 +35,14 @@ roles.getRoleName = function(role) {
             roleName = "Undefined";
     }
     return roleName;
+}
+
+/**
+ * @param {*} role The role of some entity.
+ * @returns Returns true if the role can edit documents, else returns false. 
+ */
+roles.canEdit = function(role) {
+    return (role !== roles.none) && (role !== roles.viewer);
 }
 
 

@@ -2,6 +2,7 @@ const WebSocketServer = require('websocket').server;
 const http = require('http');
 const StatusChecker = require('../lib/status_checker');
 const to = require('../lib/dif');
+const roles = require('../lib/roles');
 const com = require('../lib/communication');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
@@ -241,10 +242,17 @@ class DocumentInstance {
         }
         // message is an operation
         else {
-            if (this.log) console.log('Received Message: ' + messageString);
-            this.sendMessageToClients(messageString);
-            this.processOperation(message);
-            this.startGC();
+            const role = this.clients.get(clientID).role;
+            if (roles.canEdit(role)) {
+                if (this.log) console.log('Received Message: ' + messageString);
+                this.sendMessageToClients(messageString);
+                this.processOperation(message);
+                this.startGC();
+            }
+            else {
+                if (this.log) console.log("Unauthorized edit request");
+                ///TODO: handle unauthorized edit request
+            }
         }
     }
 
