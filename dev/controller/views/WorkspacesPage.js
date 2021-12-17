@@ -10,7 +10,7 @@ class WorkspaceList extends React.Component {
   createItem(workspace, index) {
     return ( 
       <li key={index}>
-        <a href={"/workspaces?hash=" + workspace.id + "?token=" + this.props.token}>
+        <a href={"/workspaces?hash=" + workspace.id + "&token=" + this.props.token}>
           {workspace.name + " (" + roles.getRoleName(workspace.role) + ")"}
         </a>
       </li>

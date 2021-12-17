@@ -1,6 +1,7 @@
 const LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 /// How to propagate the target server to the client?
-const SERVER_URL = 'ws://dev.lan:8080/';
+//const SERVER_URL = 'ws://dev.lan:8080/';
+const SERVER_URL = 'ws://localhost:8080/';
 var CSLatency = 0;
 var SCLatency = 0;
 var Range = ace.require('ace/range').Range;

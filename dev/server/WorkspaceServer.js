@@ -93,7 +93,9 @@ class Server {
      */
     removeConnection(clientID) {
         const client = this.clients.get(clientID);
-        client.workspace.removeConnection(clientID);
+        if (client.workspace !== null) {
+            client.workspace.removeConnection(clientID);
+        }
         this.clients.delete(clientID);
         ///TODO: propagate to workspace and documents
         ///TODO: save the document if there are no clients viewing it
