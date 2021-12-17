@@ -56,7 +56,7 @@ class WorkspaceInstance {
             role: role              // the role of the client in the workspace
         };
         this.clients.set(clientID, clientMetadata);
-        this.sendFileStructure(clientID);
+        this.sendWorkspaceData(clientID, role);
         console.log("WorkspaceInstance: initialized client and sent file structure");
     }
 
@@ -74,11 +74,13 @@ class WorkspaceInstance {
     /**
      * @brief Sends the file structure of the workspace to the client.
      * @param {*} clientID The ID of the client.
+     * @param {*} role The workspace role of the client.
      */
-    sendFileStructure(clientID) {
+    sendWorkspaceData(clientID, role) {
         const message = {
-            msgType: com.serverMsg.sentFileStructure,
-            fileStructure: null
+            msgType: com.serverMsg.initWorkspace,
+            fileStructure: null,
+            role: role
         };
         this.sendMessageToClient(clientID, JSON.stringify(message));
     }

@@ -37,8 +37,9 @@ class Client extends React.Component {
             firstSOMessageNumber: 0, // the total serial number of the first SO entry
 
             aceTheme: "ace/theme/monokai",
-            aceMode: "ace/mode/javascript"
+            aceMode: "ace/mode/javascript",
 
+            role: roles.none
         };
     }
 
@@ -131,6 +132,7 @@ class Client extends React.Component {
 
         this.state.editor.setSession(new EditSession(document));
         this.state.editor.session.on('change', this.handleChange);
+        this.setEditorStyle();
     }
 
     initializeClient(message) {
@@ -138,7 +140,7 @@ class Client extends React.Component {
             clientID: message.clientID,
             HB: message.serverHB,
             serverOrdering: message.serverOrdering,
-            firstSOMessageNumber: message.firstSOMessageNumber
+            firstSOMessageNumber: message.firstSOMessageNumber,
         });
         this.createInitialDocument(message.serverDocument);
     }
@@ -203,10 +205,13 @@ class Client extends React.Component {
             else if (message.msgType === com.msgTypes.GC) {
                 this.GC(message.GCOldestMessageNumber);
             }
-            else if (message.msgType === com.serverMsg.sentFileStructure) {
+            else if (message.msgType === com.serverMsg.initWorkspace) {
                 ///TODO: process file structure
                 ///note: after this, the client can interact with the workspace,
                 ///      that means creating new files/folders and viewing files
+                this.setState((prevState) => ({
+                    role: message.role
+                }));
                 this.viewFile('document.txt'); ///TODO: this should not be here, it serves only as a mock
             }
             else {
@@ -275,16 +280,29 @@ class Client extends React.Component {
         }
     }
 
+    ///TODO: copy pasta
     setEditorStyle(editor = null) {
         if (editor !== null) {
             editor.setTheme(this.state.aceTheme);
             editor.session.setMode(this.state.aceMode);
             editor.session.on('change', this.handleChange);
+            if (!roles.canEdit(this.state.role)) {
+                editor.setReadOnly(true);
+            }
+            else {
+                editor.setReadOnly(false);
+            }
         }
         else {
             this.state.editor.setTheme(this.state.aceTheme);
             this.state.editor.session.setMode(this.state.aceMode);
             this.state.editor.session.on('change', this.handleChange);
+            if (!roles.canEdit(this.state.role)) {
+                this.state.editor.setReadOnly(true);
+            }
+            else {
+                this.state.editor.setReadOnly(false);
+            }
         }
     }
 
