@@ -42,7 +42,7 @@ roles.getRoleName = function(role) {
  * @returns Returns true if the role can edit documents, else returns false. 
  */
 roles.canEdit = function(role) {
-    return (role !== roles.none) && (role !== roles.viewer);
+    return (role === roles.editor) || (role === roles.admin) || (role === roles.owner);
 }
 
 
