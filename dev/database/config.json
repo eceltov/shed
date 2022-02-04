@@ -1,4 +1,6 @@
 {
     "usersPath": "./database/users/",
-    "workspacesPath": "./database/workspaces/"
+    "workspacesPath": "./database/workspaces/",
+    "workspaceRootFolderPath": "root/",
+    "fileStructurePath": "structure.json"
 }

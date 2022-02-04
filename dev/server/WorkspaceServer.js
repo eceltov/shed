@@ -1,6 +1,5 @@
 const WebSocketServer = require('websocket').server;
 const http = require('http');
-const StatusChecker = require('../lib/status_checker');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const to = require('../lib/dif');
 const com = require('../lib/communication');
@@ -157,7 +156,7 @@ class Server {
         // the client wants to connect to a workspace
         if (message.msgType === com.clientMsg.connect) {
             console.log("Received connect metadata");
-            const userHash = this.getUserHash(message.credentials, message.token);
+            const userHash = this.getUserHash(message.token);
             if (userHash === null) {
                 ///TODO: close the connection somehow
             }
@@ -179,14 +178,12 @@ class Server {
     }
 
     ///TODO: not implemented
-    ///TODO: are the credentials necessary, is not the token enough?
     /**
-     * @returns Returns the hash of the user, if the user has valid credentials and token.
-     *          Else returns null.
-     * @param {*} credentials The credentials of the user.
+     * @returns Returns the hash of a user the token belongs to.
+     *          Returns null if the token is invalid.
      * @param {*} token The security token provided by the authentization service.
      */
-    getUserHash(credentials, token) {
+    getUserHash(token) {
         if (token === "0000") {
             return "00000000";
         }

@@ -253,10 +253,9 @@ class Client extends React.Component {
         connection.onopen = function (e) {
             console.log("[open] Connection established");
 
-            // send information about what workspace to access alongside credentials
+            // send information about what workspace to access alongside an authentication token
             const initMsg = {
                 msgType: com.clientMsg.connect,
-                credentials: "",
                 token: token,
                 workspaceHash: workspaceHash
             };
@@ -480,6 +479,22 @@ class Testing extends React.Component {
             </div>
         );
     }
+}
+
+class FileStructure extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+
+}
+
+class Workspace extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+
 }
 
 // ========================================

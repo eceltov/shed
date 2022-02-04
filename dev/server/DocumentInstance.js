@@ -96,7 +96,7 @@ class DocumentInstance {
         let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
         // erase file content and write first line
         this.database.writeDocumentData(this.workspaceHash, this.documentPath, documentCopy);
-        if (this.log) console.log("Updated file in databse.");
+        if (this.log) console.log("Updated file in database.");
     }
 
     /**
@@ -261,6 +261,13 @@ class DocumentInstance {
         this.serverOrdering.push([message[0][0], message[0][1], message[0][2], message[0][3]]); // append serverOrdering
         this.HB = resultingState.HB;
         this.document = resultingState.document;
+    }
+
+    /**
+     * 
+     */
+    closeInstance() {
+
     }
 }
 

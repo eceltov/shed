@@ -1,6 +1,5 @@
 var WebSocketServer = require('websocket').server;
 var http = require('http');
-var StatusChecker = require('../lib/status_checker');
 var DocumentInstance = require('./DocumentInstance');
 var to = require('../lib/dif');
 var com = require('../lib/communication');
@@ -27,10 +26,12 @@ class WorkspaceInstance {
         this.database = null;
 
         // document management
-        this.documents = new Map(); // maps absolute paths to document instances
+        this.documents = new Map(); // maps absolute paths to document instances ///TODO: make this from IDs to instances
 
         // attributes for client management
         this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
+
+        this.fileStructure = null;
     }
 
     ///TODO: not implemented
@@ -40,7 +41,8 @@ class WorkspaceInstance {
     initialize(workspaceHash, databaseGateway) {
         this.database = databaseGateway;
         this.workspaceHash = workspaceHash;
-        ///TODO: load file structure
+        this.fileStructure = this.database.getFileStructureJSON(this.workspaceHash);
+        this.createDocument("folder1/file2.txt");
 
         console.log("Workspace initialized.");
     }
@@ -70,7 +72,6 @@ class WorkspaceInstance {
         this.clients.get(clientID).connection.close();
     }
 
-    ///TODO: not implemented
     /**
      * @brief Sends the file structure of the workspace to the client.
      * @param {*} clientID The ID of the client.
@@ -79,7 +80,7 @@ class WorkspaceInstance {
     sendWorkspaceData(clientID, role) {
         const message = {
             msgType: com.serverMsg.initWorkspace,
-            fileStructure: null,
+            fileStructure: this.fileStructure.items,
             role: role
         };
         this.sendMessageToClient(clientID, JSON.stringify(message));
@@ -133,6 +134,54 @@ class WorkspaceInstance {
     }
 
     /**
+     * @brief Creates a document in the database and updates the fileStructure object.
+     * @param {*} path The path of the document.
+     * @returns Returns whether the operation was successfull.
+     */
+    createDocument(path) {
+        ///TODO: validate path
+        const success = this.database.createDocument(this.workspaceHash, path);
+
+        if (success) {
+            const folder = this.getContainingFolderObject(path);
+            const documentName = this.getNameFromPath(path);
+            folder[documentName] = {
+                type: "file",
+                ID: this.fileStructure.nextID++
+            };
+        }
+
+        return success;
+    }
+
+    /**
+     * @param {*} path The path to a document.
+     * @returns Returns the file structure object representing the folder containing the specified document.
+     */
+    getContainingFolderObject(path) {
+        ///TODO: validate path
+
+        const tokens = path.split('/');
+        let folder = this.fileStructure.items;
+        for (let i = 0; i < tokens.length - 1; i++) {
+            folder = folder[tokens[i]];
+        }
+        return folder;
+    }
+
+    /**
+     * @param {*} path The path to a document or folder.
+     * @returns Returns the name of the document or folder.
+     */
+    getNameFromPath(path) {
+        const tokens = path.split('/');
+        if (tokens.length === 0) {
+            return null;
+        }
+        return tokens[tokens.length - 1];
+    }
+
+    /**
      * @brief Connects a client to a document.
      * 
      * @note It is assumed that the document exists.
@@ -176,6 +225,13 @@ class WorkspaceInstance {
         this.documents.set(path, document);
         ///TODO: check if succeeded.
         return document
+    }
+
+    /**
+     * @brief Closes the workspace and all document instances. Updates all files.
+     */
+    closeWorkspace() {
+        
     }
 }
 
