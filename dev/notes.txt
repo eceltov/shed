@@ -301,3 +301,27 @@ Consultation notes:
 
     A PHP front controller is probably not a good idea, compared to everything being handled by Node.js, because the bulk of the project is already written in JS.
     The CAS authentication would be handled in PHP, but the rest can be done in Node. This would result in a SPA design.
+
+Client Refactoring:
+    The client shall be refactored into individual modules:
+        Workspace Module, that initializes others, initializes the WebSocket connection, wraps it and passes it to others.
+        Editor Module, that contains a single document represented in the editor and handles all the neccessary editing communication.
+        File Directory Module, that allows to browse, view, create, rename and delete files in a workspace.
+
+    Component communication:
+        The main module only passes the wrapped communication to the editor component and the file directory component. There is no communication between components.
+
+    Communication:
+        The client will only have one WebSocket connection to the server. It will start by client authentication and authorization, after that
+        the server will send the workspace structure to the client. The client can then open a document. The server will send the document to the client and mark,
+        that the client has that document opened, meaning he will receive changes made to the document. After the client closes the document, the server will remove it
+        from the local client metadata and stop sending him messages of that document.
+
+        Each message will also have to have a documentID in the operation metadata, which will effectively be a hash to a given file within the workspace (the hash needs to be random for security!).
+
+    Workspace Module:
+        It will wrap the connection it the following way: 
+            The onmessage callback will be a swich that will invoke other callbacks specified by the editor and file directory components. This way the message does not need to be passed via props to React Components.
+
+    Editor Module:
+        It will contain all the opened document session (Ace editor sessions). After the editor message callback is invoked, it will check what document is targeted. Then it will pass that session to the GOTCA.
