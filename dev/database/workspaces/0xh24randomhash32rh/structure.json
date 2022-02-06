@@ -1,17 +1,19 @@
 {
-    "nextID": 3,
+    "nextID": 4,
+    "type": "root",
+    "ID": 0,
     "items": {
         "document.txt": {
-            "type": "file",
-            "ID": 0
+            "type": "doc",
+            "ID": 1
         },
         "folder1": {
             "type": "folder",
-            "ID": 1,
+            "ID": 2,
             "items": {
                 "file1.txt": {
-                    "type": "file",
-                    "ID": 2
+                    "type": "doc",
+                    "ID": 3
                 }
             }
         }

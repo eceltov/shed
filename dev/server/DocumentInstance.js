@@ -263,11 +263,18 @@ class DocumentInstance {
         this.document = resultingState.document;
     }
 
-    /**
-     * 
-     */
+    ///TODO: what should happen here? Make clients unable to edit the document, but what about messages on the way?
     closeInstance() {
+        /*// send closing message
+        let clientIterator = this.clients.values();
+        for (let i = 0; i < this.clients.size; i++) {
+            //clientIterator.next().value.connection.sendUTF(messageString);
+        }*/
 
+        // remove all connections
+        this.clients = new Map();
+
+        this.updateDocumentFile();
     }
 }
 

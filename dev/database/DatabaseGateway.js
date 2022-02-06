@@ -3,30 +3,32 @@ const roles = require('../lib/roles');
 
 class DatabaseGateway {
     constructor() {
-        //this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
-        this.usersPath = null; // absolute path to the user folder ending with '/'
-        this.workspacesPath = null; // absolute path to the workspaces folder ending with '/'
-        this.workspaceRootFolderPath = null; // relative path to the root folder inside a workspace ending with '/'
-        this.fileStructurePath = null; // relative path to the file structure file inside a workspace
+        this.paths = null;
+        // this.paths.usersPath: absolute path to the user folder ending with '/'
+        // this.paths.workspacesPath: absolute path to the workspaces folder ending with '/'
+        // this.paths.workspaceRootFolderPath: relative path to the root folder inside a workspace ending with '/'
+        // this.paths.fileStructurePath: relative path to the file structure file inside a workspace
+        // this.paths.pathMapPath: relative path to the workspace map from file IDs to their paths
         this.configPath = "./database/config.json";
     }
 
     initialize() {
         let configString = fs.readFileSync(this.configPath);
         let config = JSON.parse(configString);
-        this.usersPath = config.usersPath;
-        this.workspacesPath = config.workspacesPath;
-        this.workspaceRootFolderPath = config.workspaceRootFolderPath;
-        this.fileStructurePath = config.fileStructurePath;
+        this.paths = config.paths;
+        /*this.paths.usersPath = config.usersPath;
+        this.paths.workspacesPath = config.workspacesPath;
+        this.paths.workspaceRootFolderPath = config.workspaceRootFolderPath;
+        this.paths.fileStructurePath = config.fileStructurePath;*/
     }
 
     /**
-     * @brief Creates an absolute path to a document in a workspace so that it can be accessed.
-     * @param {*} workspaceHash The hash of the workspace.
-     * @param {*} path The relative path to the document starting at the workspace root.
+     * @brief Creates an absolute path to a document or folder in a workspace so that it can be accessed.
+     * @param {*} workspaceHash The hash of the workspace containing the document or folder.
+     * @param {*} path The relative path to the document or folder starting at the workspace root.
      * @returns 
      */
-    createDocumentPath(workspaceHash, path) {
+    createPath(workspaceHash, path) {
         return this.getWorkspaceRootPath(workspaceHash) + path;
     }
 
@@ -35,11 +37,11 @@ class DatabaseGateway {
      * @returns Returns the absolute path to the root folder of a workspace ending with '/'.
      */
     getWorkspaceRootPath(workspaceHash) {
-        return this.workspacesPath + workspaceHash + "/" + this.workspaceRootFolderPath;
+        return this.paths.workspacesPath + workspaceHash + "/" + this.paths.workspaceRootFolderPath;
     }
 
     getUserWorkspaces(userHash) {
-        const path = this.usersPath + userHash + ".json";
+        const path = this.paths.usersPath + userHash + ".json";
         let JSONString = fs.readFileSync(path);
         let userMeta = JSON.parse(JSONString);
         return userMeta.workspaces;
@@ -73,18 +75,43 @@ class DatabaseGateway {
      * @returns Document content.
      */
     getDocumentData(workspaceHash, path) {
-        const data = fs.readFileSync(this.createDocumentPath(workspaceHash, path), 'utf8');
+        const data = fs.readFileSync(this.createPath(workspaceHash, path), 'utf8');
         return data;
     }
 
     getFileStructureJSON(workspaceHash) {
-        const raw = fs.readFileSync(this.workspacesPath + workspaceHash + "/" + this.fileStructurePath, 'utf8');
+        const raw = fs.readFileSync(this.paths.workspacesPath + workspaceHash + "/" + this.paths.fileStructurePath, 'utf8');
         return JSON.parse(raw);
     }
 
+    getPathMapJSON(workspaceHash) {
+        const raw = fs.readFileSync(this.paths.workspacesPath + workspaceHash + "/" + this.paths.pathMapPath, 'utf8');
+        return JSON.parse(raw);
+    }
+
+    /**
+     * @brief Replaces the old file structure with a new one.
+     * @param {*} workspaceHash The hash of the workspace of the file structure.
+     * @param {*} JSONString The stringified file structure JSON data.
+     */
+    changeFileStructure(workspaceHash, JSONString) {
+        fs.writeFileSync(this.paths.workspacesPath + workspaceHash + "/" + this.paths.fileStructurePath, JSONString);
+    }
+
+    changePathMap(workspaceHash, JSONString) {
+        fs.writeFileSync(this.paths.workspacesPath + workspaceHash + "/" + this.paths.pathMapPath, JSONString);
+    }
+
+    /**
+     * @brief Attempts to create a document.
+     * @param {*} workspaceHash The hash of the workspace in which to create the document.
+     * @param {*} path The path of the document.
+     * @returns Returns whether the document was created successfully.
+     */
     createDocument(workspaceHash, path) {
+        const absolutePath = this.createPath(workspaceHash, path);
         try {
-            fs.writeFileSync(this.createDocumentPath(workspaceHash, path), "");
+            fs.writeFileSync(absolutePath, "");
             return true;
         }
         catch (err) {
@@ -93,9 +120,51 @@ class DatabaseGateway {
         }
     }
 
+    /**
+     * @ Attempts to create a folder.
+     * @param {*} workspaceHash The hash of the workspace in which to create the folder.
+     * @param {*} path The path of the folder.
+     * @returns Returns whether the folder was created successfully.
+     */
+    ///TODO: always returns true
+    createFolder(workspaceHash, path) {
+        const absolutePath = this.createPath(workspaceHash, path);
+        fs.mkdirSync(absolutePath);
+        return true;
+    }
+
+    ///TODO: always returns true
+    deleteDocument(workspaceHash, path) {
+        const absolutePath = this.createPath(workspaceHash, path);
+        fs.rmSync(absolutePath);
+        return true;
+    }
+
+    /**
+     * @brief Deletes a folder and all nested items.
+     * @param {*} workspaceHash The hash of the workspace containing the folder.
+     * @param {*} path The relative path to the folder.
+     * @returns Returns whether the folder was deleted successfully.
+     */
+    ///TODO: always returns true
+    deleteFolder(workspaceHash, path) {
+        const absolutePath = this.createPath(workspaceHash, path);
+        fs.rmSync(absolutePath, { recursive: true });
+        return true;
+    }
+
+    ///TODO: always returns true
+    renameFile(workspaceHash, oldPath, newPath) {
+        const absoluteOldPath = this.createPath(workspaceHash, oldPath);
+        const absoluteNewPath = this.createPath(workspaceHash, newPath);
+
+        fs.renameSync(absoluteOldPath, absoluteNewPath);
+        return true;
+    }
+
     writeDocumentData(workspaceHash, path, documentArray) {
         try {
-            const absolutePath = this.createDocumentPath(workspaceHash, path);
+            const absolutePath = this.createPath(workspaceHash, path);
             // erase file content and write first line
             fs.writeFileSync(absolutePath, documentArray[0]);
             // append the rest of lines

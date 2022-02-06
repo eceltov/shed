@@ -4,6 +4,7 @@ var DocumentInstance = require('./DocumentInstance');
 var to = require('../lib/dif');
 var com = require('../lib/communication');
 var fs = require('fs');
+const { Console } = require('console');
 
 /**
  * @note The WorkspaceInstance will probably send the whole file structure to newly joined clients,
@@ -31,6 +32,8 @@ class WorkspaceInstance {
         // attributes for client management
         this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
 
+        this.paths = null; // maps file IDs to file paths
+
         this.fileStructure = null;
     }
 
@@ -42,7 +45,7 @@ class WorkspaceInstance {
         this.database = databaseGateway;
         this.workspaceHash = workspaceHash;
         this.fileStructure = this.database.getFileStructureJSON(this.workspaceHash);
-        this.createDocument("folder1/file2.txt");
+        this.paths = new Map(this.database.getPathMapJSON(this.workspaceHash));
 
         console.log("Workspace initialized.");
     }
@@ -134,39 +137,215 @@ class WorkspaceInstance {
     }
 
     /**
+     * @brief Adds or removes an item from the fileStructure object. Removes the item by default.
+     * @param {*} path The path to the item.
+     * @param {*} item If specified, adds the item to the fileStructure. If omitted, deletes it instead.
+     */
+    updateFileStructure(path, item=null) {
+        const parentFolder = this.getParentFileStructureObject(path);
+        const name = this.getNameFromPath(path);
+
+        if (item !== null) {
+            parentFolder.items[name] = item;
+        }
+        else {
+            delete parentFolder.items[name];
+        }
+    }
+
+    getNewDocumentObj() {
+        return {
+            type: "doc",
+            ID: this.fileStructure.nextID++
+        };
+    }
+
+    getNewFolderObj() {
+        return {
+            type: "folder",
+            ID: this.fileStructure.nextID++,
+            items: {}
+        };
+    }
+
+    /**
      * @brief Creates a document in the database and updates the fileStructure object.
-     * @param {*} path The path of the document.
+     * @param {*} parentID The ID of the parent folder.
+     * @param {*} name The name of the new document.
      * @returns Returns whether the operation was successfull.
      */
-    createDocument(path) {
-        ///TODO: validate path
+    createDocument(parentID, name) {
+        const parentPath = this.paths.get(parentID);
+
+        if (parentPath === undefined) {
+            return false;
+        }
+
+        const parentFolder = this.getFileStructureObject(parentPath);
+
+        // fail if the name is taken
+        if (parentFolder.items[name] !== undefined) {
+            return false;
+        }
+
+        const path = (parentID === 0 ? "" : parentPath + "/") + name;
         const success = this.database.createDocument(this.workspaceHash, path);
 
         if (success) {
-            const folder = this.getContainingFolderObject(path);
-            const documentName = this.getNameFromPath(path);
-            folder[documentName] = {
-                type: "file",
-                ID: this.fileStructure.nextID++
-            };
+            const documentObj = getNewDocumentObj();
+            this.updateFileStructure(path, documentObj);
+            this.paths.set(documentObj.ID, path);
         }
 
         return success;
     }
 
     /**
-     * @param {*} path The path to a document.
-     * @returns Returns the file structure object representing the folder containing the specified document.
+     * @brief Creates a folder in the database and updates the fileStructure object.
+     * @param {*} parentID The ID of the parent folder.
+     * @param {*} name The name of the new folder.
+     * @returns Returns whether the operation was successfull.
      */
-    getContainingFolderObject(path) {
+    createFolder(parentID, name) {
+        const parentPath = this.paths.get(parentID);
+
+        if (parentPath === undefined) {
+            return false;
+        }
+
+        const parentFolder = this.getFileStructureObject(parentPath);
+
+        // fail if the name is taken
+        if (parentFolder.items[name] !== undefined) {
+            return false;
+        }
+
+        const path = (parentID === 0 ? "" : parentPath + "/") + name;
+        const success = this.database.createFolder(this.workspaceHash, path);
+
+        if (success) {
+            const folderObj = getNewFolderObj();
+            this.updateFileStructure(path, folderObj);
+            this.paths.set(folderObj.ID, path);
+        }
+
+        return success;
+    }
+
+    /**
+     * @brief Deletes a document in the database and updates the fileStructure object.
+     * @param {*} ID The ID of the document.
+     * @returns Returns whether the operation was successfull.
+     */
+    deleteDocument(ID) {
+        const path = this.paths.get(ID);
+
+        if (path === undefined) {
+            return false;
+        }
+
+        const success = this.database.deleteDocument(this.workspaceHash, path);
+
+        if (success) {
+            this.updateFileStructure(path);
+            this.paths.delete(ID);
+        }
+
+        return success;
+    }
+
+    /**
+     * @brief Deletes a folder in the database and updates the fileStructure object.
+     * @param {*} ID The ID of the folder.
+     * @returns Returns whether the operation was successfull.
+     */
+     deleteFolder(ID) {
+        const path = this.paths.get(ID);
+
+        if (path === undefined) {
+            return false;
+        }
+
+        const success = this.database.deleteFolder(this.workspaceHash, path);
+
+        if (success) {
+            this.paths.delete(ID);
+            this.recursivePathDelete(this.getFileStructureObject(path));
+            this.updateFileStructure(path);
+        }
+
+        return success;
+    }
+
+    renameFile(ID, newName) {
+        const oldPath = this.paths.get(ID);
+
+        if (oldPath === undefined) {
+            return false;
+        }
+
+        const parentFolder = this.getParentFileStructureObject(oldPath);
+
+        // fail if the name is taken
+        if (parentFolder.items[newName] !== undefined) {
+            return false;
+        }
+
+        const newPath = parentFolder.ID === 0 ? newName : this.paths.get(parentFolder.ID) + "/" + newName;
+
+        const success = this.database.renameFile(this.workspaceHash, oldPath, newPath);
+
+        if (success) {
+            const oldName = this.getNameFromPath(oldPath);
+            parentFolder.items[newName] = parentFolder.items[oldName];
+            delete parentFolder.items[oldName];
+            this.paths.set(ID, newPath);
+        }
+
+        return success;
+    }
+
+    /**
+     * @brief Recursively deletes all paths of items in a folder from the paths Map.
+     * @param {*} folderObj A folder from the file structure.
+     */
+    recursivePathDelete(folderObj) {
+        for (let item of folderObj.items) {
+            if (item.type === "folder") {
+                this.recursivePathDelete(item);
+            }
+            this.paths.delete(item.ID);
+        }
+    }
+
+    /**
+     * @param {*} path The path to a document or folder.
+     * @returns Returns an object representing the document or folder from this.fileStructure.
+     */
+    getFileStructureObject(path) {
+        ///TODO: validate path
+        ///TODO: does this work for path === "" ?
+
+        let obj = this.fileStructure;
+        const tokens = path.split('/');
+        for (let i = 0; i < tokens.length; i++) {
+            obj = obj.items[tokens[i]];
+        }
+        return obj;
+    }
+
+    /**
+     * @param {*} path The path to a document or folder.
+     * @returns Returns the folder containing the document or folder represented by path.
+     */
+     getParentFileStructureObject(path) {
         ///TODO: validate path
 
-        const tokens = path.split('/');
-        let folder = this.fileStructure.items;
-        for (let i = 0; i < tokens.length - 1; i++) {
-            folder = folder[tokens[i]];
+        const parentFolderEndIndex = path.lastIndexOf('/');
+        if (parentFolderEndIndex === -1) {
+            return this.fileStructure;
         }
-        return folder;
+        return this.getFileStructureObject(path.substring(0, parentFolderEndIndex));
     }
 
     /**
@@ -228,10 +407,16 @@ class WorkspaceInstance {
     }
 
     /**
-     * @brief Closes the workspace and all document instances. Updates all files.
+     * @brief Closes the workspace and all document instances. Saves all opened documents and updates the file structure.
      */
     closeWorkspace() {
-        
+        let documentIterator = this.documents.values();
+        for (let i = 0; i < this.documents.size; i++) {
+            documentIterator.next().value.closeInstance();
+        }
+
+        this.database.changeFileStructure(this.workspaceHash, JSON.stringify(this.fileStructure));
+        this.database.changePathMap(this.workspaceHash, JSON.stringify(Array.from(this.paths.entries())));
     }
 }
 

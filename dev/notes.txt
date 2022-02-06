@@ -325,3 +325,8 @@ Client Refactoring:
 
     Editor Module:
         It will contain all the opened document session (Ace editor sessions). After the editor message callback is invoked, it will check what document is targeted. Then it will pass that session to the GOTCA.
+
+    File Operations Message Format:
+        The messages sent by the client to the server with the goal of manipulating files will have the following format:
+            [fileID, operation, arguments...], where fileID is the ID specified in the file structure, operation is one of the enums specified in lib/communication.js and arguments are new names for the file if neccessarry.
+            fileID is the target file for delete and rename operations, or the parent folder for create operations.
