@@ -6,6 +6,8 @@ var com = require('../lib/communication');
 var fs = require('fs');
 const { Console } = require('console');
 
+///TODO: save structure.json and pathMap.json regularly, else progress may be lost
+
 /**
  * @note The WorkspaceInstance will probably send the whole file structure to newly joined clients,
  *       so that clients can view folders and files without interruption.
@@ -104,7 +106,7 @@ class WorkspaceInstance {
         this.log = true;
     }
 
-    ///TODO: not implemented
+    ///TODO: not fully implemented
     clientMessageProcessor(message, clientID) {
         if (this.log) console.log('Received Message: ' + JSON.stringify(message));
 
@@ -118,6 +120,21 @@ class WorkspaceInstance {
                 // send error message
             }
         }
+        else if (message.msgType === com.clientMsg.createDocument) {
+            this.handleCreateDocument(message, clientID);
+        }
+        else if (message.msgType === com.clientMsg.createFolder) {
+            this.handleCreateFolder(message, clientID);
+        }
+        else if (message.msgType === com.clientMsg.deleteDocument) {
+            this.handleDeleteDocument(message, clientID);
+        }
+        else if (message.msgType === com.clientMsg.deleteFolder) {
+            this.handleDeleteFolder(message, clientID);
+        }
+        else if (message.msgType === com.clientMsg.renameFile) {
+            this.handleRenameFile(message, clientID);
+        }
         // the client want to use the functionality of a document instance
         else {
             ///TODO: this is only a mock implementation
@@ -128,12 +145,104 @@ class WorkspaceInstance {
 
     ///TODO: not implemented
     /**
-     * @returns Returns true if the path specified points to a document in this workspace.
-     *          Else returns false.
-     * @param {*} path The absolute path to the document.
+     * @param {*} documentID An ID representing a document in the file structure.
+     * @returns Returns true if the documentID points to a document. Else returns false.
      */
-    documentExists(path) {
+    documentExists(documentID) {
         return true;
+
+        const path = this.paths.get(documentID);
+
+        if (path === undefined) {
+            return false;
+        }
+
+        const documentObj = this.getFileStructureObject(path);
+        if (documentObj.type !== "doc") {
+            return false;
+        }
+
+        return true;
+    }
+
+    handleCreateDocument(message, clientID) {
+        const result = this.createDocument(message.parentID, message.name);
+        if (result.success) {
+            ///TODO: log creation
+            const response = {
+                msgType: com.serverMsg.createDocument,
+                parentID: message.parentID,
+                fileID: result.fileID,
+                name: message.name
+            };
+            this.sendMessageToClients(JSON.stringify(response));
+        }
+        else {
+            ///TODO: log failure
+        }
+    }
+
+    handleCreateFolder(message, clientID) {
+        const result = this.createFolder(message.parentID, message.name);
+        if (result.success) {
+            ///TODO: log creation
+            const response = {
+                msgType: com.serverMsg.createFolder,
+                parentID: message.parentID,
+                fileID: result.fileID,
+                name: message.name
+            };
+            this.sendMessageToClients(JSON.stringify(response));
+        }
+        else {
+            ///TODO: log failure
+        }
+    }
+
+    handleDeleteDocument(message, clientID) {
+        const result = this.deleteDocument(message.fileID);
+        if (result) {
+            ///TODO: log deletion
+            const response = {
+                msgType: com.serverMsg.deleteDocument,
+                fileID: result.fileID,
+            };
+            this.sendMessageToClients(JSON.stringify(response));
+        }
+        else {
+            ///TODO: log failure
+        }
+    }
+
+    handleDeleteFolder(message, clientID) {
+        const result = this.deleteFolder(message.fileID);
+        if (result) {
+            ///TODO: log deletion
+            const response = {
+                msgType: com.serverMsg.deleteFolder,
+                fileID: result.fileID,
+            };
+            this.sendMessageToClients(JSON.stringify(response));
+        }
+        else {
+            ///TODO: log failure
+        }
+    }
+
+    handleRenameFile(message, clientID) {
+        const result = this.renameFile(message.fileID, message.name);
+        if (result) {
+            ///TODO: log rename
+            const response = {
+                msgType: com.serverMsg.renameFile,
+                fileID: result.fileID,
+                name: message.name
+            };
+            this.sendMessageToClients(JSON.stringify(response));
+        }
+        else {
+            ///TODO: log failure
+        }
     }
 
     /**
@@ -168,24 +277,31 @@ class WorkspaceInstance {
         };
     }
 
+    ///TODO: send to all client that a file had been modified
+
     /**
      * @brief Creates a document in the database and updates the fileStructure object.
      * @param {*} parentID The ID of the parent folder.
      * @param {*} name The name of the new document.
-     * @returns Returns whether the operation was successfull.
+     * @returns Returns an object: { success, fileID }, where success is whether the operation was successfull and fileID is the ID of the new file.
      */
     createDocument(parentID, name) {
+        const response = {
+            success: false,
+            fileID: null
+        };
+
         const parentPath = this.paths.get(parentID);
 
         if (parentPath === undefined) {
-            return false;
+            return response;
         }
 
         const parentFolder = this.getFileStructureObject(parentPath);
 
         // fail if the name is taken
         if (parentFolder.items[name] !== undefined) {
-            return false;
+            return response;
         }
 
         const path = (parentID === 0 ? "" : parentPath + "/") + name;
@@ -195,29 +311,36 @@ class WorkspaceInstance {
             const documentObj = getNewDocumentObj();
             this.updateFileStructure(path, documentObj);
             this.paths.set(documentObj.ID, path);
+            response.success = true;
+            response.fileID = documentObj.ID;
         }
 
-        return success;
+        return response;
     }
 
     /**
      * @brief Creates a folder in the database and updates the fileStructure object.
      * @param {*} parentID The ID of the parent folder.
      * @param {*} name The name of the new folder.
-     * @returns Returns whether the operation was successfull.
+     * @returns Returns an object: { success, fileID }, where success is whether the operation was successfull and fileID is the ID of the new file.
      */
     createFolder(parentID, name) {
+        const response = {
+            success: false,
+            fileID: null
+        };
+
         const parentPath = this.paths.get(parentID);
 
         if (parentPath === undefined) {
-            return false;
+            return response;
         }
 
         const parentFolder = this.getFileStructureObject(parentPath);
 
         // fail if the name is taken
         if (parentFolder.items[name] !== undefined) {
-            return false;
+            return response;
         }
 
         const path = (parentID === 0 ? "" : parentPath + "/") + name;
@@ -227,9 +350,11 @@ class WorkspaceInstance {
             const folderObj = getNewFolderObj();
             this.updateFileStructure(path, folderObj);
             this.paths.set(folderObj.ID, path);
+            response.success = true;
+            response.fileID = folderObj.ID;
         }
 
-        return success;
+        return response;
     }
 
     /**
@@ -241,6 +366,11 @@ class WorkspaceInstance {
         const path = this.paths.get(ID);
 
         if (path === undefined) {
+            return false;
+        }
+
+        const documentObj = this.getFileStructureObject(path);
+        if (documentObj.type !== "doc") {
             return false;
         }
 
@@ -263,6 +393,11 @@ class WorkspaceInstance {
         const path = this.paths.get(ID);
 
         if (path === undefined) {
+            return false;
+        }
+
+        const folderObj = this.getFileStructureObject(path);
+        if (folderObj.type !== "folder") {
             return false;
         }
 

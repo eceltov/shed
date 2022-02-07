@@ -126,15 +126,16 @@ class DocumentInstance {
 
             // send the message to each client
             // testing
+            const messageString = JSON.stringify(message);
             if (this.GCStartDelay > 0) {
                 let that = this;
                 setTimeout(() => {
-                    that.garbageRoster.forEach(clientID => that.sendMessageToClient(clientID, JSON.stringify(message)));
+                    that.garbageRoster.forEach(clientID => that.sendMessageToClient(clientID, messageString));
                 }, that.GCStartDelay);
 
             }
             else {
-                this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
+                this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, messageString));
             }
 
             // reset the counter
