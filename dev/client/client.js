@@ -12,7 +12,7 @@ function log(content) {
     console.log(JSON.parse(JSON.stringify(content)));
 }
 
-class Client extends React.Component {
+class Editor extends React.Component {
     constructor(props) {
         super(props);
         this.processOperation = this.processOperation.bind(this);
@@ -35,7 +35,7 @@ class Client extends React.Component {
             serverOrdering: [], // contains elements: [clientID, commitSerialNumber, prevclientID, prevCommitSerialNumber], where the information is taken from incoming messages
             firstSOMessageNumber: 0, // the total serial number of the first SO entry
 
-            aceTheme: "ace/theme/monokai",
+            aceTheme: "ace/theme/chaos",
             aceMode: "ace/mode/javascript",
 
             role: roles.none
@@ -412,28 +412,9 @@ class Client extends React.Component {
 
     }
 
-    // menu copyright: Copyright (c) 2021 by Jelena Jovanovic (https://codepen.io/plavookac/pen/qomrMw)
     render() {
         return (
-            <div className="main">
-                <div className="headerBar"></div>
-                <input type="checkbox" className="openSidebarMenu" id="openSidebarMenu" />
-                <label htmlFor="openSidebarMenu" className="sidebarIconToggle">
-                    <div className="spinner diagonal part-1"></div>
-                    <div className="spinner horizontal"></div>
-                    <div className="spinner diagonal part-2"></div>
-                </label>
-
-                <div id="sidebarMenu">
-                    <div className="sidebarMenuInner">
-                        <Testing testingApplyLastInverse={this.testingApplyLastInverse} />
-                    </div>
-                </div>
-
-                <div className="content">
-                    <div id="editor" className="editor"></div>
-                </div>
-            </div>
+            <div id="editor" className="editor"></div>
         );
     }
 }
@@ -481,25 +462,198 @@ class Testing extends React.Component {
     }
 }
 
+class FileStructureDocument extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <li className="document" key={this.props.fileID.toString()}>
+                {this.props.name}
+            </li>
+        );
+    }
+}
+
+class FileStructureFolder extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    createDocument(fileID, name) {
+        return (
+            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} />
+        );
+    }
+
+    createFolder(fileID, name, items) {
+        return (
+            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} />
+        );
+    }
+
+    createItem(file, name) {
+        if(file.type === "doc") {
+            return this.createDocument(file.ID, name);
+        }
+        else {
+            return this.createFolder(file.ID, name, file.items);
+        }
+    }
+
+
+    render() {
+        return (
+            <li key={this.props.fileID.toString()}>
+                <input type="checkbox" id={this.props.fileID} className="folder"/> 
+                <label htmlFor={this.props.fileID}>{this.props.name}</label>   
+                <ul>
+                    {this.props.items === null ? null : Object.entries(this.props.items).map((keyValuePair) => this.createItem(keyValuePair[1], keyValuePair[0]))}
+                </ul>
+            </li>
+        );
+    }
+}
+
 class FileStructure extends React.Component {
     constructor(props) {
         super(props);
     }
 
+    render() {
+        return (
+            <div id="fileStructure">
+                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure}/>
+            </div>
+        );
+    }
 
 }
 
 class Workspace extends React.Component {
     constructor(props) {
         super(props);
+        this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
+        this.state = {
+            connectionWrapper: null,
+            clientID: null,
+            role: roles.none,
+            fileStructure: null
+        };
     }
 
+    /**
+     * @brief Initializes a WobSocket connection with the server.
+     */
+     connect = () => {
+        const urlParams = new URLSearchParams(window.location.search);
+        const workspaceHash = urlParams.get('hash');
+        const token = urlParams.get('token');
 
+        var connection = new WebSocket(SERVER_URL);
+
+        ///TODO: use hooks instead of 'that'?
+        let that = this;
+
+        connection.onopen = function (e) {
+            console.log("[open] Connection established");
+
+            // send information about what workspace to access alongside an authentication token
+            const initMsg = {
+                msgType: msgTypes.client.connect,
+                token: token,
+                workspaceHash: workspaceHash
+            };
+            connection.send(JSON.stringify(initMsg));
+
+            const connectionWrapper = {
+                connection: connection,
+            }
+
+            that.setState({
+                connectionWrapper: connectionWrapper
+            });
+
+        };
+
+        connection.onmessage = function (messageWrapper) {
+            let message = JSON.parse(messageWrapper.data);
+            //console.log("recv message obj", message_obj);
+            //console.log("recv message", message.data);
+            that.serverMessageProcessor(message);
+        }
+    }
+
+    serverMessageProcessor(message) {
+        const type = message.msgType;
+
+        ///TODO: give operations a type or document their absence
+        if (type === undefined && this.state.connectionWrapper.onOperation !== undefined) {
+            this.state.connectionWrapper.onOperation(message);
+        }
+        else if (type === msgTypes.server.initialize && this.state.connectionWrapper.onInitialize !== undefined) {
+            this.state.connectionWrapper.onInitialize(message);
+        }
+        else if (type === msgTypes.server.initWorkspace) {
+            // this will rerender the FileStructure component
+            this.setState((prevState) => ({
+                role: message.role,
+                fileStructure: message.fileStructure
+            }));
+        }
+        else if (type === msgTypes.server.initDocument && this.state.connectionWrapper.onInitDocument !== undefined) {
+            this.state.connectionWrapper.onInitDocument(message);
+        }
+        else if (type === msgTypes.server.GCMetadataRequest && this.state.connectionWrapper.onGCMetadataRequest !== undefined) {
+            this.state.connectionWrapper.onGCMetadataRequest(message);
+        }
+        else if (type === msgTypes.server.GC && this.state.connectionWrapper.onGC !== undefined) {
+            this.state.connectionWrapper.onGC(message);
+        }
+        else if (type === msgTypes.server.createDocument && this.state.connectionWrapper.onCreateDocument !== undefined) {
+            this.state.connectionWrapper.onCreateDocument(message);
+        }
+        else if (type === msgTypes.server.createFolder && this.state.connectionWrapper.onCreateFolder !== undefined) {
+            this.state.connectionWrapper.onCreateFolder(message);
+        }
+        else if (type === msgTypes.server.deleteDocument && this.state.connectionWrapper.onDeleteDocument !== undefined) {
+            this.state.connectionWrapper.onDeleteDocument(message);
+        }
+        else if (type === msgTypes.server.deleteFolder && this.state.connectionWrapper.onDeleteFolder !== undefined) {
+            this.state.connectionWrapper.onDeleteFolder(message);
+        }
+        else if (type === msgTypes.server.renameFile && this.state.connectionWrapper.onRenameFile !== undefined) {
+            this.state.connectionWrapper.onRenameFile(message);
+        }
+        else {
+            console.log("Received unknown message type: " + JSON.stringify(message));
+        }
+    }
+
+    componentDidMount() {
+        this.connect();
+    }
+
+    render() {
+        return (
+            <div className="main">
+                <div className="headerBar"></div>
+                <div id="leftBar">
+                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} />
+                </div>
+
+                <div className="content">
+                    <Editor />
+                </div>
+            </div>
+        );
+    }
 }
 
 // ========================================
 
 ReactDOM.render(
-    <Client />,
+    <Workspace />,
     document.getElementById('reactContainer')
 );

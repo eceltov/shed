@@ -1,128 +1,115 @@
 :root {
     --top-bar-height: 60px;
     --top-bar-height2: 600px;
-  }
-  
+    --left-side-bar-width: 20vw;
+}
 
+#leftBar {
+    height: 100%;
+    position: fixed;
+    left: 0;
+    width: var(--left-side-bar-width);
+    margin-top: var(--top-bar-height);
+    background: rgb(30,30,30);
+    user-select: none;
+}
 
-/* Copyright (c) 2021 by Jelena Jovanovic (https://codepen.io/plavookac/pen/qomrMw) */
+#fileStructure {
+    font-size: 11px;
+}
+
+#fileStructure ul{
+    list-style:none;
+    padding-left: 0px;
+    /*padding: 5vh 0vw 0vh 0vw;*/
+    border-left: 1px solid rgb(80, 80, 80);
+}
+#fileStructure ul li{
+    color:antiquewhite;
+    /*border-top:1px solid rgba(0,255,0);
+    border-bottom:1px solid rgba(0,255,0);*/
+    padding-left: 7px;
+}
+#fileStructure ul .document{
+    color:antiquewhite;
+    height: 20px;
+}
+#fileStructure ul .document:hover{
+    display: inline-block;
+    background:rgba(22, 160, 133,0.8);
+}
+#fileStructure label:hover{
+    background:rgba(22, 160, 133,0.8);
+}
+#fileStructure label{
+    color:antiquewhite;
+    height: 20px;
+    padding: 0px;
+    margin: 0px;
+    cursor:pointer;
+    /*border-top:1px solid rgba(0,255,0);
+    border-bottom:1px solid rgba(0,255,0);*/
+}
+#fileStructure .folder{
+    visibility:hidden;
+    position:absolute;
+}
+#fileStructure .folder:checked ~ ul li{
+    display:none;
+    margin-top:0;
+}
+
+/* Arrow before opened folder */
+#fileStructure .folder:checked ~ label::before{
+    content: "";
+    border: solid antiquewhite;
+    display: inline-block;
+    padding: 2.5px;
+    margin: 0px 4px 0px 4px;
+    border-width: 0 2px 2px 0;
+    transform: rotate(-45deg);
+}
+/* Arrow before closed folder */
+#fileStructure .folder:not(:checked) ~ label::before{
+    content: "";
+    border: solid antiquewhite;
+    display: inline-block;
+    padding: 2.5px;
+    margin: 0px 4px 0px 4px;
+    border-width: 0 2px 2px 0;
+    transform: rotate(45deg);
+}
+
 .main {
     width: 100%;
     max-width: 100%;
     height: 100%;
     position: fixed;
 }
+
+
+
 .headerBar {
     display: block;
     margin: 0 auto;
     width: 100%;
     max-width: 100%;
     box-shadow: none;
-    background-color: #7eb2ff;
+    background: rgb(40,40,40);
     position: fixed;
     height: var(--top-bar-height);
     overflow: hidden;
-    z-index: 10;
-}
-#sidebarMenu {
-    height: 100%;
-    position: fixed;
-    left: 0;
-    width: 30vw;
-    margin-top: var(--top-bar-height);
-    transform: translateX(-30vw);
-    transition: transform 250ms ease-in-out;
-    background: linear-gradient(180deg, #7eb2ff 0%, #3F5EFB 100%);
-}
-.sidebarMenuInner{
-    margin: 1vw 0 0 1vw;
-    color: #fff;
-    font-weight: bold;
-}
-input[type="checkbox"]:checked ~ #sidebarMenu {
-    transform: translateX(0);
-}
-input[type=checkbox] {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    display: none;
-}
-.sidebarIconToggle {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    cursor: pointer;
-    position: absolute;
-    z-index: 99;
-    height: 100%;
-    width: 100%;
-    top: 22px;
-    left: 15px;
-    height: 22px;
-    width: 22px;
-}
-.spinner {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    position: absolute;
-    height: 3px;
-    width: 100%;
-    background-color: #fff;
-}
-.horizontal {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    position: relative;
-    float: left;
-    margin-top: 3px;
-}
-.diagonal.part-1 {
-    position: relative;
-    transition: all 0.3s;
-    box-sizing: border-box;
-    float: left;
-}
-.diagonal.part-2 {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    position: relative; 
-    float: left;
-    margin-top: 3px;
-}
-input[type=checkbox]:checked ~ .sidebarIconToggle > .horizontal {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    opacity: 0;
-}
-input[type=checkbox]:checked ~ .sidebarIconToggle > .diagonal.part-1 {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    transform: rotate(135deg);
-    margin-top: 8px;
-}
-input[type=checkbox]:checked ~ .sidebarIconToggle > .diagonal.part-2 {
-    transition: all 0.3s;
-    box-sizing: border-box;
-    transform: rotate(-135deg);
-    margin-top: -9px;
-}
-.content {
-    height: 100%;
-    padding-top: var(--top-bar-height);
-    transition: transform 250ms ease-in-out;
-}
-input[type=checkbox]:checked ~ .content {
-    display: block;
-    height: 100%;
-    padding-top: var(--top-bar-height);
-    transform: translateX(30vw);
-    transition: transform 250ms ease-in-out;
-}
-.textArea {
-    margin: 1vh 0 0 1vh;
 }
 
-#editor { 
+.content {
+    left: var(--left-side-bar-width);
     position: relative;
+    height: 100%;
+    padding-top: var(--top-bar-height);
+}
+
+
+#editor { 
     width: 100%;
     height: 100%;
 }
