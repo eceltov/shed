@@ -25,7 +25,7 @@ class Workspace extends React.Component {
                     <script src="editor/ace-builds/src-noconflict/ace.js" type="text/javascript" charSet="utf-8"></script>
                     <script src="lib/dif.js" type="text/javascript"></script>
                     <script src="lib/roles.js" type="text/javascript"></script>
-                    <script src="lib/communication.js" type="text/javascript"></script>
+                    <script src="lib/messageTypes.js" type="text/javascript"></script>
                     <script src="client/client.js" type="text/babel"></script>
 
                 </head>

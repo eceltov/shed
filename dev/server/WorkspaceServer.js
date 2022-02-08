@@ -2,7 +2,7 @@ const WebSocketServer = require('websocket').server;
 const http = require('http');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const to = require('../lib/dif');
-const com = require('../lib/communication');
+const msgTypes = require('../lib/messageTypes');
 const roles = require('../lib/roles');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
@@ -154,7 +154,7 @@ class Server {
         if (this.log) console.log('Received Message: ' + JSON.stringify(message));
 
         // the client wants to connect to a workspace
-        if (message.msgType === com.clientMsg.connect) {
+        if (message.msgType === msgTypes.client.connect) {
             console.log("Received connect metadata");
             const userHash = this.getUserHash(message.token);
             if (userHash === null) {

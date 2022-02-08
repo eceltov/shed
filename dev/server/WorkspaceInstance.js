@@ -2,7 +2,7 @@ var WebSocketServer = require('websocket').server;
 var http = require('http');
 var DocumentInstance = require('./DocumentInstance');
 var to = require('../lib/dif');
-var com = require('../lib/communication');
+var msgTypes = require('../lib/messageTypes');
 var fs = require('fs');
 const { Console } = require('console');
 
@@ -84,7 +84,7 @@ class WorkspaceInstance {
      */
     sendWorkspaceData(clientID, role) {
         const message = {
-            msgType: com.serverMsg.initWorkspace,
+            msgType: msgTypes.server.initWorkspace,
             fileStructure: this.fileStructure.items,
             role: role
         };
@@ -110,7 +110,7 @@ class WorkspaceInstance {
     clientMessageProcessor(message, clientID) {
         if (this.log) console.log('Received Message: ' + JSON.stringify(message));
 
-        if (message.msgType === com.clientMsg.getDocument) {
+        if (message.msgType === msgTypes.client.getDocument) {
             console.log("WorkspaceInstance: received file request");
             ///TODO: it is assumed that all clients have the right to view all documents
             if (this.documentExists(message.path)) {
@@ -120,19 +120,19 @@ class WorkspaceInstance {
                 // send error message
             }
         }
-        else if (message.msgType === com.clientMsg.createDocument) {
+        else if (message.msgType === msgTypes.client.createDocument) {
             this.handleCreateDocument(message, clientID);
         }
-        else if (message.msgType === com.clientMsg.createFolder) {
+        else if (message.msgType === msgTypes.client.createFolder) {
             this.handleCreateFolder(message, clientID);
         }
-        else if (message.msgType === com.clientMsg.deleteDocument) {
+        else if (message.msgType === msgTypes.client.deleteDocument) {
             this.handleDeleteDocument(message, clientID);
         }
-        else if (message.msgType === com.clientMsg.deleteFolder) {
+        else if (message.msgType === msgTypes.client.deleteFolder) {
             this.handleDeleteFolder(message, clientID);
         }
-        else if (message.msgType === com.clientMsg.renameFile) {
+        else if (message.msgType === msgTypes.client.renameFile) {
             this.handleRenameFile(message, clientID);
         }
         // the client want to use the functionality of a document instance
@@ -170,7 +170,7 @@ class WorkspaceInstance {
         if (result.success) {
             ///TODO: log creation
             const response = {
-                msgType: com.serverMsg.createDocument,
+                msgType: msgTypes.server.createDocument,
                 parentID: message.parentID,
                 fileID: result.fileID,
                 name: message.name
@@ -187,7 +187,7 @@ class WorkspaceInstance {
         if (result.success) {
             ///TODO: log creation
             const response = {
-                msgType: com.serverMsg.createFolder,
+                msgType: msgTypes.server.createFolder,
                 parentID: message.parentID,
                 fileID: result.fileID,
                 name: message.name
@@ -204,7 +204,7 @@ class WorkspaceInstance {
         if (result) {
             ///TODO: log deletion
             const response = {
-                msgType: com.serverMsg.deleteDocument,
+                msgType: msgTypes.server.deleteDocument,
                 fileID: result.fileID,
             };
             this.sendMessageToClients(JSON.stringify(response));
@@ -219,7 +219,7 @@ class WorkspaceInstance {
         if (result) {
             ///TODO: log deletion
             const response = {
-                msgType: com.serverMsg.deleteFolder,
+                msgType: msgTypes.server.deleteFolder,
                 fileID: result.fileID,
             };
             this.sendMessageToClients(JSON.stringify(response));
@@ -234,7 +234,7 @@ class WorkspaceInstance {
         if (result) {
             ///TODO: log rename
             const response = {
-                msgType: com.serverMsg.renameFile,
+                msgType: msgTypes.server.renameFile,
                 fileID: result.fileID,
                 name: message.name
             };

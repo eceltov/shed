@@ -3,7 +3,7 @@ const http = require('http');
 const StatusChecker = require('../lib/status_checker');
 const to = require('../lib/dif');
 const roles = require('../lib/roles');
-const com = require('../lib/communication');
+const msgTypes = require('../lib/messageTypes');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
 
@@ -113,7 +113,7 @@ class DocumentInstance {
             //if (this.log) console.log("-------------------------------");
             this.GCInProgress = true;
             this.GCOldestMessageNumber = null; // reset the oldest message number so a new can be selected
-            let message = { msgType: com.msgTypes.GCMetadataRequest };
+            let message = { msgType: msgTypes.server.GCMetadataRequest };
 
             // clean up the garbage roster and fill it with current clients
             this.garbageRoster = [];
@@ -188,7 +188,7 @@ class DocumentInstance {
         this.firstSOMessageNumber += SOGarbageIndex;
 
         let message = {
-            msgType: com.msgTypes.GC,
+            msgType: msgTypes.server.GC,
             GCOldestMessageNumber: this.GCOldestMessageNumber
         };
         this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
@@ -200,7 +200,7 @@ class DocumentInstance {
 
     createClientInitData(clientID) {
         return {
-            msgType: com.serverMsg.initDocument,
+            msgType: msgTypes.server.initDocument,
             clientID: clientID,
             serverDocument: to.prim.deepCopy(this.document),
             serverHB: to.prim.deepCopy(this.HB),
@@ -237,7 +237,7 @@ class DocumentInstance {
 
         if (message.hasOwnProperty('msgType')) {
             if (this.log) console.log('Received Message: ' + messageString);
-            if (message.msgType === com.msgTypes.GCMetadataResponse) {
+            if (message.msgType === msgTypes.client.GCMetadataResponse) {
                 this.processGCResponse(message);
             }
         }

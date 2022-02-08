@@ -152,7 +152,7 @@ class Client extends React.Component {
 
         //console.log(this.serverOrdering);
         let message = {
-            msgType: com.msgTypes.GCMetadataResponse,
+            msgType: msgTypes.client.GCMetadataResponse,
             clientID: this.state.clientID,
             dependancy: dependancy
         };
@@ -192,16 +192,16 @@ class Client extends React.Component {
     serverMessageProcessor(message) {
         let that = this;
         if (message.hasOwnProperty('msgType')) {
-            if (message.msgType === com.serverMsg.initDocument) { ///TODO: what if this is lost somehow?
+            if (message.msgType === msgTypes.server.initDocument) { ///TODO: what if this is lost somehow?
                 this.initializeDocument(message);
             }
-            else if (message.msgType === com.msgTypes.GCMetadataRequest) {
+            else if (message.msgType === msgTypes.server.GCMetadataRequest) {
                 this.sendGCMetadata();
             }
-            else if (message.msgType === com.msgTypes.GC) {
+            else if (message.msgType === msgTypes.server.GC) {
                 this.GC(message.GCOldestMessageNumber);
             }
-            else if (message.msgType === com.serverMsg.initWorkspace) {
+            else if (message.msgType === msgTypes.server.initWorkspace) {
                 ///TODO: process file structure
                 ///note: after this, the client can interact with the workspace,
                 ///      that means creating new files/folders and viewing files
@@ -231,7 +231,7 @@ class Client extends React.Component {
      */
     viewFile(path) {
         const message = {
-            msgType: com.clientMsg.getDocument,
+            msgType: msgTypes.client.getDocument,
             path: path
         };
         this.sendMessageToServer(JSON.stringify(message));
@@ -255,7 +255,7 @@ class Client extends React.Component {
 
             // send information about what workspace to access alongside an authentication token
             const initMsg = {
-                msgType: com.clientMsg.connect,
+                msgType: msgTypes.client.connect,
                 token: token,
                 workspaceHash: workspaceHash
             };
