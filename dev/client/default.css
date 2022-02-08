@@ -1,7 +1,7 @@
 :root {
     --top-bar-height: 60px;
     --top-bar-height2: 600px;
-    --left-side-bar-width: 20vw;
+    --left-side-bar-width: 15vw;
 }
 
 #leftBar {
@@ -33,6 +33,7 @@
 #fileStructure ul .document{
     color:antiquewhite;
     display: inline-block;
+    cursor:pointer;
     height: 20px;
 }
 #fileStructure ul .document:hover{
@@ -54,13 +55,13 @@
     visibility:hidden;
     position:absolute;
 }
-#fileStructure .folder:checked ~ ul li{
+#fileStructure .folder:not(:checked) ~ ul li{
     display:none;
     margin-top:0;
 }
 
-/* Arrow before opened folder */
-#fileStructure .folder:checked ~ label::before{
+/* Arrow before closed folder */
+#fileStructure .folder:not(:checked) ~ label::before{
     content: "";
     border: solid antiquewhite;
     display: inline-block;
@@ -69,8 +70,8 @@
     border-width: 0 2px 2px 0;
     transform: rotate(-45deg);
 }
-/* Arrow before closed folder */
-#fileStructure .folder:not(:checked) ~ label::before{
+/* Arrow before opened folder */
+#fileStructure .folder:checked ~ label::before{
     content: "";
     border: solid antiquewhite;
     display: inline-block;
