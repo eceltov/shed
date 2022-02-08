@@ -6,7 +6,6 @@ const msgTypes = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const fs = require('fs');
 const { Console } = require('console');
-const msgFactory = require('../lib/serverMessageFactory');
 const roles = require('../lib/roles');
 
 ///TODO: save structure.json and pathMap.json regularly, else progress may be lost
