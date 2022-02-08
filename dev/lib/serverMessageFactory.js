@@ -10,18 +10,18 @@ msgFactory.initialize = function() {
  * @param {*} fileStructureItems The fileStructure.items property.
  * @param {*} role The role of the client.
  */
-msgFactory.initWorkspace = function(fileStructureItems, role) {
+msgFactory.initWorkspace = function(clientID, fileStructureItems, role) {
     return {
         msgType: msgTypes.server.initWorkspace,
+        clientID: clientID,
         fileStructure: fileStructureItems,
         role: role
     };
 }
 
-msgFactory.initDocument = function(clientID, serverDocument, serverHB, serverOrdering, firstSOMessageNumber) {
+msgFactory.initDocument = function(serverDocument, serverHB, serverOrdering, firstSOMessageNumber) {
     return {
         msgType: msgTypes.server.initDocument,
-        clientID: clientID,
         serverDocument: serverDocument,
         serverHB: serverHB,
         serverOrdering: serverOrdering,

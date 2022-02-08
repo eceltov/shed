@@ -15,6 +15,7 @@ class DocumentInstance {
         this.processOperation = this.processOperation.bind(this);
         this.GC = this.GC.bind(this);
         this.initializeClient = this.initializeClient.bind(this);
+        this.clientPresent = this.clientPresent.bind(this);
 
         // attributes for document maintenance
         this.HB = [];
@@ -47,14 +48,14 @@ class DocumentInstance {
     initialize(documentPath, workspaceHash, databaseGateway) {
         this.workspaceHash = workspaceHash;
         this.database = databaseGateway;
-        this.document = this.getInitialDocument(workspaceHash, documentPath);
         this.documentPath = documentPath;
+        this.document = this.getInitialDocument();
 
         console.log("Document initialized.");
     }
 
     initializeClient(clientID, connection, role) {
-        if (this.clients.has(clientID)) {
+        if (this.clientPresent(clientID)) {
             ///TODO: handle client present
         }
         else {
@@ -64,22 +65,25 @@ class DocumentInstance {
             };
             this.clients.set(clientID, clientMetadata);
 
-            let clientInitData = msgFactory.initDocument(clientID, this.document, this.HB, this.serverOrdering, this.firstSOMessageNumber);
+            let clientInitData = msgFactory.initDocument(this.document, this.HB, this.serverOrdering, this.firstSOMessageNumber);
             connection.sendUTF(JSON.stringify(clientInitData));
         }
+    }
+
+    clientPresent(clientID) {
+        return this.clients.has(clientID);
     }
 
     /**
      * @brief Retrieves the initial document state from a file.
      * @note The file should always be present.
-     * @param documentPath The path to the file.
      * @returns The initial document state.
      */
-    getInitialDocument(workspaceHash, documentPath) {
+    getInitialDocument() {
         let document;
 
         try {
-            const data = this.database.getDocumentData(workspaceHash, documentPath);
+            const data = this.database.getDocumentData(this.workspaceHash, this.documentPath);
             document = data.split(/\r?\n/);
         }
         catch (err) {
@@ -223,7 +227,6 @@ class DocumentInstance {
         let messageString = JSON.stringify(message);
 
         if (message.hasOwnProperty('msgType')) {
-            if (this.log) console.log('Received Message: ' + messageString);
             if (message.msgType === msgTypes.client.GCMetadataResponse) {
                 this.processGCResponse(message);
             }
@@ -232,7 +235,6 @@ class DocumentInstance {
         else {
             const role = this.clients.get(clientID).role;
             if (roles.canEdit(role)) {
-                if (this.log) console.log('Received Message: ' + messageString);
                 this.sendMessageToClients(messageString);
                 this.processOperation(message);
                 this.startGC();

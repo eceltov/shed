@@ -32,10 +32,10 @@
 }
 #fileStructure ul .document{
     color:antiquewhite;
+    display: inline-block;
     height: 20px;
 }
 #fileStructure ul .document:hover{
-    display: inline-block;
     background:rgba(22, 160, 133,0.8);
 }
 #fileStructure label:hover{

@@ -85,7 +85,7 @@ class WorkspaceInstance {
      * @param {*} role The workspace role of the client.
      */
     sendWorkspaceData(clientID, role) {
-        const message = msgFactory.initWorkspace(this.fileStructure.items, role);
+        const message = msgFactory.initWorkspace(clientID, this.fileStructure.items, role);
         this.sendMessageToClient(clientID, JSON.stringify(message));
     }
 
@@ -104,19 +104,12 @@ class WorkspaceInstance {
         this.log = true;
     }
 
+    
+
     ///TODO: not fully implemented
     clientMessageProcessor(message, clientID) {
-        if (this.log) console.log('Received Message: ' + JSON.stringify(message));
-
         if (message.msgType === msgTypes.client.getDocument) {
-            console.log("WorkspaceInstance: received file request");
-            ///TODO: it is assumed that all clients have the right to view all documents
-            if (this.documentExists(message.path)) {
-                this.connectClientToDocument(clientID, message.path);
-            }
-            else {
-                // send error message
-            }
+            this.handleDocumentRequest(message, clientID);
         }
         else if (message.msgType === msgTypes.client.createDocument) {
             this.handleCreateDocument(message, clientID);
@@ -141,14 +134,11 @@ class WorkspaceInstance {
         }
     }
 
-    ///TODO: not implemented
     /**
      * @param {*} documentID An ID representing a document in the file structure.
      * @returns Returns true if the documentID points to a document. Else returns false.
      */
     documentExists(documentID) {
-        return true;
-
         const path = this.paths.get(documentID);
 
         if (path === undefined) {
@@ -161,6 +151,16 @@ class WorkspaceInstance {
         }
 
         return true;
+    }
+
+    handleDocumentRequest(message, clientID) {
+        console.log("WorkspaceInstance: received file request");
+        if (this.documentExists(message.fileID)) {
+            this.connectClientToDocument(clientID, message.fileID);
+        }
+        else {
+            // send error message
+        }
     }
 
     handleCreateDocument(message, clientID) {
@@ -503,13 +503,18 @@ class WorkspaceInstance {
      * @note It is assumed that the document exists.
      * 
      * @param {*} clientID The ID of the client.
-     * @param {*} path The absolute path to the document.
+     * @param {*} documentID The fileID of the document.
      */
-    connectClientToDocument(clientID, path) {
+    connectClientToDocument(clientID, documentID) {
+        const client = this.clients.get(clientID);
+        if (!roles.canView(client.role)) {
+            return;
+        }
+
         let document;
 
-        if (!this.documents.has(path)) {
-            document = this.startDocument(path);
+        if (!this.documents.has(documentID)) {
+            document = this.startDocument(documentID);
             if (document === null) {
                 // the document could not be instantiated
                 ///TODO: send an error message
@@ -517,10 +522,15 @@ class WorkspaceInstance {
             }
         }
         else {
-            document = this.documents.get(path);
+            document = this.documents.get(documentID);
         }
 
-        const client = this.clients.get(clientID);
+        // handle client already connected to the document
+        ///TODO: this should probably be handled sooner than here
+        if (document.clientPresent(clientID)) {
+            return;
+        }
+
         client.documents.push(document);
         document.initializeClient(clientID, client.connection, client.role);
     }
@@ -529,16 +539,17 @@ class WorkspaceInstance {
     /**
      * Starts a document instance.
      * 
-     * @param {*} path The absolute path to the document.
+     * @param {*} documentID The fileID of the document.
      * @returns Returns the document if the instantiation succeeded, else returns false.
      */
-    startDocument(path) {
-        if (this.documents.get(path) !== undefined) return;
+    startDocument(documentID) {
+        if (this.documents.get(documentID) !== undefined) return;
 
+        const path = this.paths.get(documentID);
         let document = new DocumentInstance();
         document.initialize(path, this.workspaceHash, this.database);
         document.log = this.log;
-        this.documents.set(path, document);
+        this.documents.set(documentID, document);
         ///TODO: check if succeeded.
         return document
     }

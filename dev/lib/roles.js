@@ -43,6 +43,14 @@ roles.getRoleName = function(role) {
 
 /**
  * @param {*} role The role of some entity.
+ * @returns Returns true if the role can view documents, else returns false. 
+ */
+ roles.canView = function(role) {
+    return (role === roles.viewer) || (role === roles.editor) || (role == roles.workspaceEditor) || (role === roles.admin) || (role === roles.owner);
+}
+
+/**
+ * @param {*} role The role of some entity.
  * @returns Returns true if the role can edit documents, else returns false. 
  */
 roles.canEdit = function(role) {

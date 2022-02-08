@@ -21,13 +21,14 @@ class Editor extends React.Component {
         this.intervalBufClear = this.intervalBufClear.bind(this);
         this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
         this.handleChange = this.handleChange.bind(this);
-        this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
+        this.initializeDocument = this.initializeDocument.bind(this);
+        this.sendGCMetadata = this.sendGCMetadata.bind(this);
+        this.GC = this.GC.bind(this);
+        //this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
         this.state = {
             editor: null,
             intervalBuf: [],
             measuring: false, // true for half a second after the user changed the state
-            connection: null,
-            clientID: null,
             commitSerialNumber: 0,
 
             //entry format: [[clientID, commitSerialNumber, preceding clientID, preceding commitSerialNumber], dif]
@@ -37,8 +38,6 @@ class Editor extends React.Component {
 
             aceTheme: "ace/theme/chaos",
             aceMode: "ace/mode/javascript",
-
-            role: roles.none
         };
     }
 
@@ -77,7 +76,7 @@ class Editor extends React.Component {
     sendMessageToServer(messageString) {
         let that = this;
         setTimeout(function () {
-            that.state.connection.send(messageString);
+            that.props.connectionWrapper.connection.send(messageString);
         }, CSLatency); // latency testing
     }
 
@@ -108,7 +107,7 @@ class Editor extends React.Component {
 
         this.setState((prevState) => ({
             HB: [...prevState.HB, [
-                [prevState.clientID, prevState.commitSerialNumber, prevClientID, prevCommitSerialNumber], wDif
+                [this.props.clientID, prevState.commitSerialNumber, prevClientID, prevCommitSerialNumber], wDif
             ]],
             commitSerialNumber: prevState.commitSerialNumber + 1
         }));
@@ -123,7 +122,6 @@ class Editor extends React.Component {
 
     initializeDocument(message) {
         this.setState({
-            clientID: message.clientID,
             HB: message.serverHB,
             serverOrdering: message.serverOrdering,
             firstSOMessageNumber: message.firstSOMessageNumber,
@@ -141,7 +139,7 @@ class Editor extends React.Component {
         this.setEditorStyle();
     }
 
-    sendGCMetadata() {
+    sendGCMetadata(message) {
         let dependancy = -1; // value if there is no garbage
 
         if (this.state.serverOrdering.length > 0) {
@@ -151,16 +149,16 @@ class Editor extends React.Component {
         }
 
         //console.log(this.serverOrdering);
-        let message = {
+        const response = {
             msgType: msgTypes.client.GCMetadataResponse,
-            clientID: this.state.clientID,
+            clientID: this.props.clientID,
             dependancy: dependancy
         };
-        let messageString = JSON.stringify(message);
-        this.sendMessageToServer(messageString);
+        this.sendMessageToServer(JSON.stringify(response));
     }
 
-    GC(GCOldestMessageNumber) {
+    GC(message) {
+        let GCOldestMessageNumber = message.GCOldestMessageNumber;
         let SOGarbageIndex = GCOldestMessageNumber - this.state.firstSOMessageNumber;
 
         if (SOGarbageIndex < 0 || SOGarbageIndex >= this.state.serverOrdering.length) {
@@ -189,90 +187,12 @@ class Editor extends React.Component {
         }));
     }
 
-    serverMessageProcessor(message) {
-        let that = this;
-        if (message.hasOwnProperty('msgType')) {
-            if (message.msgType === msgTypes.server.initDocument) { ///TODO: what if this is lost somehow?
-                this.initializeDocument(message);
-            }
-            else if (message.msgType === msgTypes.server.GCMetadataRequest) {
-                this.sendGCMetadata();
-            }
-            else if (message.msgType === msgTypes.server.GC) {
-                this.GC(message.GCOldestMessageNumber);
-            }
-            else if (message.msgType === msgTypes.server.initWorkspace) {
-                ///TODO: process file structure
-                ///note: after this, the client can interact with the workspace,
-                ///      that means creating new files/folders and viewing files
-                this.setState((prevState) => ({
-                    role: message.role
-                }));
-                this.viewFile('document.txt'); ///TODO: this should not be here, it serves only as a mock
-            }
-            else {
-                console.log("Received unknown message.", JSON.stringify(message));
-            }
-        }
-        // message is an operation
-        else {
-            setTimeout(function () {
-                that.processOperation(message);
-            }, that.SCLatency); // latency testing
-        }
-    }
+    bindConnectionEvents() {
+        this.props.connectionWrapper.onInitDocument = this.initializeDocument;
+        this.props.connectionWrapper.onGCMetadataRequest = this.sendGCMetadata;
+        this.props.connectionWrapper.onGC = this.GC;
+        this.props.connectionWrapper.onOperation = this.processOperation;
 
-    /**
-     * @brief Sends a request to the server to fetch a file.
-     * 
-     * @note Invoked after the user requests to view a file.
-     * 
-     * @param path The absolute path to the file
-     */
-    viewFile(path) {
-        const message = {
-            msgType: msgTypes.client.getDocument,
-            path: path
-        };
-        this.sendMessageToServer(JSON.stringify(message));
-    }
-
-    /**
-     * @brief Initializes a WobSocket connection with the server.
-     */
-    connect = () => {
-        const urlParams = new URLSearchParams(window.location.search);
-        const workspaceHash = urlParams.get('hash');
-        const token = urlParams.get('token');
-
-        var connection = new WebSocket(SERVER_URL); ///TODO: protocol
-
-        ///TODO: use hooks instead of 'that'?
-        let that = this;
-
-        connection.onopen = function (e) {
-            console.log("[open] Connection established");
-
-            // send information about what workspace to access alongside an authentication token
-            const initMsg = {
-                msgType: msgTypes.client.connect,
-                token: token,
-                workspaceHash: workspaceHash
-            };
-            connection.send(JSON.stringify(initMsg));
-
-            that.setState({
-                connection: connection
-            });
-
-        };
-
-        connection.onmessage = function (messageWrapper) {
-            let message = JSON.parse(messageWrapper.data);
-            //console.log("recv message obj", message_obj);
-            //console.log("recv message", message.data);
-            that.serverMessageProcessor(message);
-        }
     }
 
     ///TODO: copy pasta
@@ -281,7 +201,7 @@ class Editor extends React.Component {
             editor.setTheme(this.state.aceTheme);
             editor.session.setMode(this.state.aceMode);
             editor.session.on('change', this.handleChange);
-            if (!roles.canEdit(this.state.role)) {
+            if (!roles.canEdit(this.props.role)) {
                 editor.setReadOnly(true);
             }
             else {
@@ -292,7 +212,7 @@ class Editor extends React.Component {
             this.state.editor.setTheme(this.state.aceTheme);
             this.state.editor.session.setMode(this.state.aceMode);
             this.state.editor.session.on('change', this.handleChange);
-            if (!roles.canEdit(this.state.role)) {
+            if (!roles.canEdit(this.props.role)) {
                 this.state.editor.setReadOnly(true);
             }
             else {
@@ -318,7 +238,7 @@ class Editor extends React.Component {
         let authorID = message[0][0];
 
         // own message
-        if (authorID === this.state.clientID) {
+        if (authorID === this.props.clientID) {
             this.setState((prevState) => ({
                 serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]] // append serverOrdering
             }));
@@ -400,7 +320,8 @@ class Editor extends React.Component {
     }
 
     componentDidMount() {
-        this.connect();
+        //this.connect();
+        this.bindConnectionEvents();
 
 
         let editor = ace.edit("editor");
@@ -419,57 +340,19 @@ class Editor extends React.Component {
     }
 }
 
-class Testing extends React.Component {
-    constructor(props) {
-        super(props);
-        this.CSHandleChange = this.CSHandleChange.bind(this);
-        this.SCHandleChange = this.SCHandleChange.bind(this);
-    }
-
-    /**
-     * @note CS latency is implemented in the App.propagateLocalDif function
-     */
-    CSHandleChange(e) {
-        CSLatency = e.target.value;
-    }
-
-    /**
-     * @note SC latency is implemented in the App.connect onmessage event call
-     */
-    SCHandleChange(e) {
-        SCLatency = e.target.value;
-    }
-
-    render() {
-        return (
-            <div>
-                <h1>Testing</h1>
-                <div>
-                    <label className="mx-2 my-3" htmlFor="client-server">client -&gt; server latency (ms):</label>
-                    <input className="text-right w-25" type="number" id="client-server" name="client-server" min="0" step="100" defaultValue={CSLatency} onChange={this.CSHandleChange}></input>
-                </div>
-
-                <div className="my-3">
-                    <label className="mx-2" htmlFor="server-client">server -&gt; client latency (ms):</label>
-                    <input className="text-right w-25" type="number" id="server-client" name="server-client" min="0" step="100" defaultValue={SCLatency} onChange={this.SCHandleChange}></input>
-                </div>
-
-                <div className="my-3">
-                    <button type="button" className="btn btn-light" name="reverse" >NOT FUNCTIONAL</button>
-                </div>
-            </div>
-        );
-    }
-}
-
 class FileStructureDocument extends React.Component {
     constructor(props) {
         super(props);
+        this.handleOnClick = this.handleOnClick.bind(this);
+    }
+
+    handleOnClick() {
+        this.props.requestDocument(this.props.fileID);
     }
 
     render() {
         return (
-            <li className="document" key={this.props.fileID.toString()}>
+            <li onClick={this.handleOnClick} className="document" key={this.props.fileID.toString()}>
                 {this.props.name}
             </li>
         );
@@ -483,13 +366,13 @@ class FileStructureFolder extends React.Component {
 
     createDocument(fileID, name) {
         return (
-            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} />
+            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} requestDocument={this.props.requestDocument} />
         );
     }
 
     createFolder(fileID, name, items) {
         return (
-            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} />
+            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} requestDocument={this.props.requestDocument} />
         );
     }
 
@@ -524,7 +407,7 @@ class FileStructure extends React.Component {
     render() {
         return (
             <div id="fileStructure">
-                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure}/>
+                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure} key="0" requestDocument={this.props.requestDocument} />
             </div>
         );
     }
@@ -535,8 +418,10 @@ class Workspace extends React.Component {
     constructor(props) {
         super(props);
         this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
+        this.sendMessageToServer = this.sendMessageToServer.bind(this);
+        this.requestDocument = this.requestDocument.bind(this);
         this.state = {
-            connectionWrapper: null,
+            connectionWrapper: {},
             clientID: null,
             role: roles.none,
             fileStructure: null
@@ -567,14 +452,7 @@ class Workspace extends React.Component {
             };
             connection.send(JSON.stringify(initMsg));
 
-            const connectionWrapper = {
-                connection: connection,
-            }
-
-            that.setState({
-                connectionWrapper: connectionWrapper
-            });
-
+            that.state.connectionWrapper.connection = connection;
         };
 
         connection.onmessage = function (messageWrapper) {
@@ -585,7 +463,27 @@ class Workspace extends React.Component {
         }
     }
 
+    /**
+     * @brief Sends a request to the server to fetch a file.
+     * 
+     * @note Invoked after the user requests to view a file.
+     * 
+     * @param fileID The ID of a document.
+     */
+     requestDocument(fileID) {
+        const message = {
+            msgType: msgTypes.client.getDocument,
+            fileID: fileID
+        };
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    sendMessageToServer(messageString) {
+        this.state.connectionWrapper.connection.send(messageString);
+    }
+
     serverMessageProcessor(message) {
+        console.log(JSON.stringify(message));
         const type = message.msgType;
 
         ///TODO: give operations a type or document their absence
@@ -598,6 +496,7 @@ class Workspace extends React.Component {
         else if (type === msgTypes.server.initWorkspace) {
             // this will rerender the FileStructure component
             this.setState((prevState) => ({
+                clientID: message.clientID,
                 role: message.role,
                 fileStructure: message.fileStructure
             }));
@@ -640,11 +539,11 @@ class Workspace extends React.Component {
             <div className="main">
                 <div className="headerBar"></div>
                 <div id="leftBar">
-                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} />
+                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} requestDocument={this.requestDocument} />
                 </div>
 
                 <div className="content">
-                    <Editor />
+                    <Editor connectionWrapper={this.state.connectionWrapper} clientID={this.state.clientID} role={this.state.role} />
                 </div>
             </div>
         );
