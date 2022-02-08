@@ -3,6 +3,7 @@ const http = require('http');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const to = require('../lib/dif');
 const msgTypes = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
 const roles = require('../lib/roles');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');

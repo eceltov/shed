@@ -4,6 +4,7 @@ const StatusChecker = require('../lib/status_checker');
 const to = require('../lib/dif');
 const roles = require('../lib/roles');
 const msgTypes = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
 const DatabaseGateway = require('../database/DatabaseGateway');
 const fs = require('fs');
 
@@ -63,7 +64,7 @@ class DocumentInstance {
             };
             this.clients.set(clientID, clientMetadata);
 
-            let clientInitData = this.createClientInitData(clientID);
+            let clientInitData = msgFactory.initDocument(clientID, this.document, this.HB, this.serverOrdering, this.firstSOMessageNumber);
             connection.sendUTF(JSON.stringify(clientInitData));
         }
     }
@@ -113,7 +114,7 @@ class DocumentInstance {
             //if (this.log) console.log("-------------------------------");
             this.GCInProgress = true;
             this.GCOldestMessageNumber = null; // reset the oldest message number so a new can be selected
-            let message = { msgType: msgTypes.server.GCMetadataRequest };
+            let message = msgFactory.GCMetadataRequest();
 
             // clean up the garbage roster and fill it with current clients
             this.garbageRoster = [];
@@ -187,26 +188,12 @@ class DocumentInstance {
         this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
         this.firstSOMessageNumber += SOGarbageIndex;
 
-        let message = {
-            msgType: msgTypes.server.GC,
-            GCOldestMessageNumber: this.GCOldestMessageNumber
-        };
+        let message = msgFactory.GC(this.GCOldestMessageNumber);
         this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
 
         this.garbageRoster = [];
         this.GCInProgress = false;
         this.GCOldestMessageNumber = null;
-    }
-
-    createClientInitData(clientID) {
-        return {
-            msgType: msgTypes.server.initDocument,
-            clientID: clientID,
-            serverDocument: to.prim.deepCopy(this.document),
-            serverHB: to.prim.deepCopy(this.HB),
-            serverOrdering: to.prim.deepCopy(this.serverOrdering),
-            firstSOMessageNumber: this.firstSOMessageNumber,
-        }
     }
 
     removeConnection(clientID) {

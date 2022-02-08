@@ -17,8 +17,8 @@ msgTypes.client.renameFile = 7; // send to rename a file: {msgType, fileID, name
 
 // messages sent by server
 msgTypes.server.initialize = 51; // sent alongside necessary data to initialize the client workspace
-msgTypes.server.initDocument = 52; // send the initial document state
-msgTypes.server.initWorkspace = 53; // sent alongside the folder structure of the workspace
+msgTypes.server.initWorkspace = 52; // sent alongside the folder structure of the workspace
+msgTypes.server.initDocument = 53; // send the initial document state
 msgTypes.server.GCMetadataRequest = 54; // sent to start the GC process
 msgTypes.server.GC = 55; // a command to collect garbage
 msgTypes.server.createDocument = 56; // sent after document creation: {msgType, parentID, fileID, name}

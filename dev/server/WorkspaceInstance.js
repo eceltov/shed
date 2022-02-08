@@ -1,10 +1,13 @@
-var WebSocketServer = require('websocket').server;
-var http = require('http');
-var DocumentInstance = require('./DocumentInstance');
-var to = require('../lib/dif');
-var msgTypes = require('../lib/messageTypes');
-var fs = require('fs');
+const WebSocketServer = require('websocket').server;
+const http = require('http');
+const DocumentInstance = require('./DocumentInstance');
+const to = require('../lib/dif');
+const msgTypes = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
+const fs = require('fs');
 const { Console } = require('console');
+const msgFactory = require('../lib/serverMessageFactory');
+const roles = require('../lib/roles');
 
 ///TODO: save structure.json and pathMap.json regularly, else progress may be lost
 
@@ -83,11 +86,7 @@ class WorkspaceInstance {
      * @param {*} role The workspace role of the client.
      */
     sendWorkspaceData(clientID, role) {
-        const message = {
-            msgType: msgTypes.server.initWorkspace,
-            fileStructure: this.fileStructure.items,
-            role: role
-        };
+        const message = msgFactory.initWorkspace(this.fileStructure.items, role);
         this.sendMessageToClient(clientID, JSON.stringify(message));
     }
 
@@ -166,15 +165,10 @@ class WorkspaceInstance {
     }
 
     handleCreateDocument(message, clientID) {
-        const result = this.createDocument(message.parentID, message.name);
+        const result = this.createDocument(clientID, message.parentID, message.name);
         if (result.success) {
             ///TODO: log creation
-            const response = {
-                msgType: msgTypes.server.createDocument,
-                parentID: message.parentID,
-                fileID: result.fileID,
-                name: message.name
-            };
+            const response = msgFactory.createDocument(message.parentID, result.fileID, message.name);
             this.sendMessageToClients(JSON.stringify(response));
         }
         else {
@@ -183,15 +177,10 @@ class WorkspaceInstance {
     }
 
     handleCreateFolder(message, clientID) {
-        const result = this.createFolder(message.parentID, message.name);
+        const result = this.createFolder(clientID, message.parentID, message.name);
         if (result.success) {
             ///TODO: log creation
-            const response = {
-                msgType: msgTypes.server.createFolder,
-                parentID: message.parentID,
-                fileID: result.fileID,
-                name: message.name
-            };
+            const response = msgFactory.createFolder(message.parentID, result.fileID, message.name);
             this.sendMessageToClients(JSON.stringify(response));
         }
         else {
@@ -200,13 +189,10 @@ class WorkspaceInstance {
     }
 
     handleDeleteDocument(message, clientID) {
-        const result = this.deleteDocument(message.fileID);
+        const result = this.deleteDocument(clientID, message.fileID);
         if (result) {
             ///TODO: log deletion
-            const response = {
-                msgType: msgTypes.server.deleteDocument,
-                fileID: result.fileID,
-            };
+            const response = msgFactory.deleteDocument(message.fileID);
             this.sendMessageToClients(JSON.stringify(response));
         }
         else {
@@ -215,13 +201,10 @@ class WorkspaceInstance {
     }
 
     handleDeleteFolder(message, clientID) {
-        const result = this.deleteFolder(message.fileID);
+        const result = this.deleteFolder(clientID, message.fileID);
         if (result) {
             ///TODO: log deletion
-            const response = {
-                msgType: msgTypes.server.deleteFolder,
-                fileID: result.fileID,
-            };
+            const response = msgFactory.deleteFolder(message.fileID);
             this.sendMessageToClients(JSON.stringify(response));
         }
         else {
@@ -230,14 +213,10 @@ class WorkspaceInstance {
     }
 
     handleRenameFile(message, clientID) {
-        const result = this.renameFile(message.fileID, message.name);
+        const result = this.renameFile(clientID, message.fileID, message.name);
         if (result) {
             ///TODO: log rename
-            const response = {
-                msgType: msgTypes.server.renameFile,
-                fileID: result.fileID,
-                name: message.name
-            };
+            const response = msgFactory.renameFile(message.fileID, message.name);
             this.sendMessageToClients(JSON.stringify(response));
         }
         else {
@@ -277,6 +256,10 @@ class WorkspaceInstance {
         };
     }
 
+    getClientRole(clientID) {
+        return this.clients.get(clientID).role;
+    }
+
     ///TODO: send to all client that a file had been modified
 
     /**
@@ -285,11 +268,15 @@ class WorkspaceInstance {
      * @param {*} name The name of the new document.
      * @returns Returns an object: { success, fileID }, where success is whether the operation was successfull and fileID is the ID of the new file.
      */
-    createDocument(parentID, name) {
+    createDocument(clientID, parentID, name) {
         const response = {
             success: false,
             fileID: null
         };
+
+        if (!roles.canManageFiles(this.getClientRole(clientID))) {
+            return response;
+        }
 
         const parentPath = this.paths.get(parentID);
 
@@ -324,11 +311,15 @@ class WorkspaceInstance {
      * @param {*} name The name of the new folder.
      * @returns Returns an object: { success, fileID }, where success is whether the operation was successfull and fileID is the ID of the new file.
      */
-    createFolder(parentID, name) {
+    createFolder(clientID, parentID, name) {
         const response = {
             success: false,
             fileID: null
         };
+
+        if (!roles.canManageFiles(this.getClientRole(clientID))) {
+            return response;
+        }
 
         const parentPath = this.paths.get(parentID);
 
@@ -359,11 +350,15 @@ class WorkspaceInstance {
 
     /**
      * @brief Deletes a document in the database and updates the fileStructure object.
-     * @param {*} ID The ID of the document.
+     * @param {*} fileID The ID of the document.
      * @returns Returns whether the operation was successfull.
      */
-    deleteDocument(ID) {
-        const path = this.paths.get(ID);
+    deleteDocument(clientID, fileID) {
+        if (!roles.canManageFiles(this.getClientRole(clientID))) {
+            return false;
+        }
+
+        const path = this.paths.get(fileID);
 
         if (path === undefined) {
             return false;
@@ -378,7 +373,7 @@ class WorkspaceInstance {
 
         if (success) {
             this.updateFileStructure(path);
-            this.paths.delete(ID);
+            this.paths.delete(fileID);
         }
 
         return success;
@@ -386,11 +381,15 @@ class WorkspaceInstance {
 
     /**
      * @brief Deletes a folder in the database and updates the fileStructure object.
-     * @param {*} ID The ID of the folder.
+     * @param {*} fileID The ID of the folder.
      * @returns Returns whether the operation was successfull.
      */
-     deleteFolder(ID) {
-        const path = this.paths.get(ID);
+     deleteFolder(clientID, fileID) {
+        if (!roles.canManageFiles(this.getClientRole(clientID))) {
+            return false;
+        }
+
+        const path = this.paths.get(fileID);
 
         if (path === undefined) {
             return false;
@@ -404,7 +403,7 @@ class WorkspaceInstance {
         const success = this.database.deleteFolder(this.workspaceHash, path);
 
         if (success) {
-            this.paths.delete(ID);
+            this.paths.delete(fileID);
             this.recursivePathDelete(this.getFileStructureObject(path));
             this.updateFileStructure(path);
         }
@@ -412,8 +411,12 @@ class WorkspaceInstance {
         return success;
     }
 
-    renameFile(ID, newName) {
-        const oldPath = this.paths.get(ID);
+    renameFile(clientID, fileID, newName) {
+        if (!roles.canManageFiles(this.getClientRole(clientID))) {
+            return false;
+        }
+
+        const oldPath = this.paths.get(fileID);
 
         if (oldPath === undefined) {
             return false;
@@ -434,7 +437,7 @@ class WorkspaceInstance {
             const oldName = this.getNameFromPath(oldPath);
             parentFolder.items[newName] = parentFolder.items[oldName];
             delete parentFolder.items[oldName];
-            this.paths.set(ID, newPath);
+            this.paths.set(fileID, newPath);
         }
 
         return success;
