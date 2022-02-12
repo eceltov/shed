@@ -302,6 +302,8 @@ to.undoDifTest = function(wDif, document) {
     return document;
 }
 
+
+///TODO: remove HB = [...HB, operation], too slow
 /**
  * @brief The undo/do/redo algorithm. Applies a message to a document.
  * @param {*} dMessage An operation to be applied.

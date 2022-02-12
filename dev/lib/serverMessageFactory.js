@@ -19,25 +19,28 @@ msgFactory.initWorkspace = function(clientID, fileStructureItems, role) {
     };
 }
 
-msgFactory.initDocument = function(serverDocument, serverHB, serverOrdering, firstSOMessageNumber) {
+msgFactory.initDocument = function(serverDocument, fileID, serverHB, serverOrdering, firstSOMessageNumber) {
     return {
         msgType: msgTypes.server.initDocument,
         serverDocument: serverDocument,
+        fileID: fileID,
         serverHB: serverHB,
         serverOrdering: serverOrdering,
         firstSOMessageNumber: firstSOMessageNumber,
     };
 }
 
-msgFactory.GCMetadataRequest = function() {
+msgFactory.GCMetadataRequest = function(fileID) {
     return { 
-        msgType: msgTypes.server.GCMetadataRequest
+        msgType: msgTypes.server.GCMetadataRequest,
+        fileID: fileID
     };
 }
 
-msgFactory.GC = function(GCOldestMessageNumber) {
+msgFactory.GC = function(fileID, GCOldestMessageNumber) {
     return {
         msgType: msgTypes.server.GC,
+        fileID: fileID,
         GCOldestMessageNumber: GCOldestMessageNumber
     };
 }

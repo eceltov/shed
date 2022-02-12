@@ -22,6 +22,7 @@ class DocumentInstance {
         this.serverOrdering = [];
         this.firstSOMessageNumber = 0; // the total serial number of the first SO entry
         this.document = null;
+        this.fileID = null; // the ID of the document
         this.documentPath = null; // the document path will always be provided by the Controller
         this.database = null;
         this.workspaceHash = null;
@@ -45,10 +46,11 @@ class DocumentInstance {
      * @brief Initializes the document instance by loading the document from the database.
      * @param {*} path The absolute path to the document (inside the workspace folder).
      */
-    initialize(documentPath, workspaceHash, databaseGateway) {
+    initialize(documentPath, fileID, workspaceHash, databaseGateway) {
         this.workspaceHash = workspaceHash;
         this.database = databaseGateway;
         this.documentPath = documentPath;
+        this.fileID = fileID;
         this.document = this.getInitialDocument();
 
         console.log("Document initialized.");
@@ -65,7 +67,7 @@ class DocumentInstance {
             };
             this.clients.set(clientID, clientMetadata);
 
-            let clientInitData = msgFactory.initDocument(this.document, this.HB, this.serverOrdering, this.firstSOMessageNumber);
+            let clientInitData = msgFactory.initDocument(this.document, this.fileID, this.HB, this.serverOrdering, this.firstSOMessageNumber);
             connection.sendUTF(JSON.stringify(clientInitData));
         }
     }
@@ -118,7 +120,7 @@ class DocumentInstance {
             //if (this.log) console.log("-------------------------------");
             this.GCInProgress = true;
             this.GCOldestMessageNumber = null; // reset the oldest message number so a new can be selected
-            let message = msgFactory.GCMetadataRequest();
+            let message = msgFactory.GCMetadataRequest(this.fileID);
 
             // clean up the garbage roster and fill it with current clients
             this.garbageRoster = [];
@@ -142,6 +144,8 @@ class DocumentInstance {
             else {
                 this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, messageString));
             }
+
+            console.log("Sent GCMetadataRequest");
 
             // reset the counter
             this.garbageCount = 0;
@@ -192,7 +196,7 @@ class DocumentInstance {
         this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
         this.firstSOMessageNumber += SOGarbageIndex;
 
-        let message = msgFactory.GC(this.GCOldestMessageNumber);
+        let message = msgFactory.GC(this.fileID, this.GCOldestMessageNumber);
         this.garbageRoster.forEach(clientID => this.sendMessageToClient(clientID, JSON.stringify(message)));
 
         this.garbageRoster = [];

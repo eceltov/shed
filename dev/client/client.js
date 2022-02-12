@@ -1,4 +1,3 @@
-const LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 /// How to propagate the target server to the client?
 //const SERVER_URL = 'ws://dev.lan:8080/';
 const SERVER_URL = 'ws://localhost:8080/';
@@ -12,420 +11,35 @@ function log(content) {
     console.log(JSON.parse(JSON.stringify(content)));
 }
 
-class Editor extends React.Component {
-    constructor(props) {
-        super(props);
-        this.processOperation = this.processOperation.bind(this);
-        this.propagateLocalDif = this.propagateLocalDif.bind(this);
-        this.intervalTimerStart = this.intervalTimerStart.bind(this);
-        this.intervalBufClear = this.intervalBufClear.bind(this);
-        this.intervalTimerCallback = this.intervalTimerCallback.bind(this);
-        this.handleChange = this.handleChange.bind(this);
-        this.initializeDocument = this.initializeDocument.bind(this);
-        this.sendGCMetadata = this.sendGCMetadata.bind(this);
-        this.GC = this.GC.bind(this);
-        //this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
-        this.state = {
-            editor: null,
-            intervalBuf: [],
-            measuring: false, // true for half a second after the user changed the state
-            commitSerialNumber: 0,
-
-            //entry format: [[clientID, commitSerialNumber, preceding clientID, preceding commitSerialNumber], dif]
-            HB: [],
-            serverOrdering: [], // contains elements: [clientID, commitSerialNumber, prevclientID, prevCommitSerialNumber], where the information is taken from incoming messages
-            firstSOMessageNumber: 0, // the total serial number of the first SO entry
-
-            aceTheme: "ace/theme/chaos",
-            aceMode: "ace/mode/javascript",
-        };
-    }
-
-    intervalBufAddDif(dif) {
-        this.intervalTimerStart(); // starts the timer
-        this.setState((prevState) => ({
-            intervalBuf: [...prevState.intervalBuf, ...dif],
-        }));
-        //logDif();
-    }
-
-    intervalBufClear() {
-        this.setState((prevState) => ({
-            intervalBuf: [],
-        }));
-    }
-
-    intervalTimerStart() {
-        if (this.state.measuring) {
-            return;
-        }
-
-        this.setState((prevState) => ({
-            measuring: true
-        }));
-        setTimeout(this.intervalTimerCallback, LISTEN_INTERVAL, this);
-    }
-
-    intervalTimerCallback(that) {
-        that.setState((prevState) => ({
-            measuring: false
-        }));
-        that.propagateLocalDif();
-    }
-
-    sendMessageToServer(messageString) {
-        let that = this;
-        setTimeout(function () {
-            that.props.connectionWrapper.connection.send(messageString);
-        }, CSLatency); // latency testing
-    }
-
-    propagateLocalDif() {
-        let dif = to.compress(this.state.intervalBuf); // organise the dif
-        this.intervalBufClear(); // clear the buffer for a new listening interval
-        this.pushLocalDifToHB(dif); // push the dif into the history buffer and add the neccesary metadata
-
-        let message = to.prim.deepCopy(this.HBGetLast());
-        message[1] = to.prim.unwrapDif(message[1]);
-
-        let messageString = JSON.stringify(message);
-        this.sendMessageToServer(messageString);
-    }
-
-    /**
-     * @brief Applies the changes the user want to make to the document state and send those changes to other users.
-     */
-
-    /**
-     * @brief Pushed the dif to HB and adds the neccessary metadata.
-     */
-    pushLocalDifToHB(dif) {
-        let prevClientID = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][0];
-        let prevCommitSerialNumber = (this.state.serverOrdering.length == 0) ? -1 : this.state.serverOrdering[this.state.serverOrdering.length - 1][1];
-
-        let wDif = to.prim.wrapDif(dif);
-
-        this.setState((prevState) => ({
-            HB: [...prevState.HB, [
-                [this.props.clientID, prevState.commitSerialNumber, prevClientID, prevCommitSerialNumber], wDif
-            ]],
-            commitSerialNumber: prevState.commitSerialNumber + 1
-        }));
-    }
-
-    /**
-     * @returns Returns the last entry in HB.
-     */
-    HBGetLast() {
-        return (this.state.HB[this.state.HB.length - 1]);
-    }
-
-    initializeDocument(message) {
-        this.setState({
-            HB: message.serverHB,
-            serverOrdering: message.serverOrdering,
-            firstSOMessageNumber: message.firstSOMessageNumber,
-        });
-
-        let document = new Document(this.state.editor.getSession().getDocument().getAllLines()); ///TODO: this should be a clean doc
-
-        for (let i = 0; i < message.serverDocument.length; i++) {
-            let line = (i == message.serverDocument.length - 1) ? message.serverDocument[i] : message.serverDocument[i] + "\n";
-            document.insert({ row: i, column: 0 }, line);
-        }
-
-        this.state.editor.setSession(new EditSession(document));
-        this.state.editor.session.on('change', this.handleChange);
-        this.setEditorStyle();
-    }
-
-    sendGCMetadata(message) {
-        let dependancy = -1; // value if there is no garbage
-
-        if (this.state.serverOrdering.length > 0) {
-            let lastEntry = this.state.serverOrdering[this.state.serverOrdering.length - 1];
-            dependancy = this.state.serverOrdering.findIndex(entry => entry[0] === lastEntry[2] && entry[1] === lastEntry[3]);
-            dependancy += this.state.firstSOMessageNumber; // so that the offset is correct
-        }
-
-        //console.log(this.serverOrdering);
-        const response = {
-            msgType: msgTypes.client.GCMetadataResponse,
-            clientID: this.props.clientID,
-            dependancy: dependancy
-        };
-        this.sendMessageToServer(JSON.stringify(response));
-    }
-
-    GC(message) {
-        let GCOldestMessageNumber = message.GCOldestMessageNumber;
-        let SOGarbageIndex = GCOldestMessageNumber - this.state.firstSOMessageNumber;
-
-        if (SOGarbageIndex < 0 || SOGarbageIndex >= this.state.serverOrdering.length) {
-            console.log("GC Bad SO index");
-            return;
-        }
-
-        let GCClientID = this.state.serverOrdering[SOGarbageIndex][0];
-        let GCCommitSerialNumber = this.state.serverOrdering[SOGarbageIndex][1];
-
-        let HBGarbageIndex = 0;
-
-        for (let i = 0; i < this.state.HB.length; i++) {
-            let HBClientID = this.state.HB[i][0][0];
-            let HBCommitSerialNumber = this.state.HB[i][0][1];
-            if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
-                HBGarbageIndex = i;
-                break;
-            }
-        }
-
-        this.setState((prevState) => ({
-            HB: prevState.HB.slice(HBGarbageIndex),
-            serverOrdering: prevState.serverOrdering.slice(SOGarbageIndex),
-            firstSOMessageNumber: prevState.firstSOMessageNumber + SOGarbageIndex
-        }));
-    }
-
-    bindConnectionEvents() {
-        this.props.connectionWrapper.onInitDocument = this.initializeDocument;
-        this.props.connectionWrapper.onGCMetadataRequest = this.sendGCMetadata;
-        this.props.connectionWrapper.onGC = this.GC;
-        this.props.connectionWrapper.onOperation = this.processOperation;
-
-    }
-
-    ///TODO: copy pasta
-    setEditorStyle(editor = null) {
-        if (editor !== null) {
-            editor.setTheme(this.state.aceTheme);
-            editor.session.setMode(this.state.aceMode);
-            editor.session.on('change', this.handleChange);
-            if (!roles.canEdit(this.props.role)) {
-                editor.setReadOnly(true);
-            }
-            else {
-                editor.setReadOnly(false);
-            }
-        }
-        else {
-            this.state.editor.setTheme(this.state.aceTheme);
-            this.state.editor.session.setMode(this.state.aceMode);
-            this.state.editor.session.on('change', this.handleChange);
-            if (!roles.canEdit(this.props.role)) {
-                this.state.editor.setReadOnly(true);
-            }
-            else {
-                this.state.editor.setReadOnly(false);
-            }
-        }
-    }
-
-    /**
-     * @brief Processes incoming server messages. If it is an external operation, executes it
-       using the GOT control scheme.
-  
-     * @note Manages serverOrdering
-     * 
-     * @param message Operation send by the server
-     */
-    processOperation(message) {
-        console.log('incoming message:');
-        log(message);
-        //let prevclientID = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][0];
-        //let prevCommitSerialNumber = (this.state.HB.length == 0) ? -1 : this.state.HB[this.state.HB.length - 1][0][1];
-
-        let authorID = message[0][0];
-
-        // own message
-        if (authorID === this.props.clientID) {
-            this.setState((prevState) => ({
-                serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]] // append serverOrdering
-            }));
-        }
-        // GOT control algorithm
-        else {
-            let oldCursorPosition = this.state.editor.getCursorPosition();
-            let document = new Document(this.state.editor.getSession().getDocument().getAllLines());
-            let finalState = to.UDR(message, document, this.state.HB, this.state.serverOrdering, false, oldCursorPosition);
-            this.state.editor.setSession(new EditSession(finalState.document)); ///TODO: it might be a good idea to buffer changes
-            this.state.editor.moveCursorTo(oldCursorPosition.row, oldCursorPosition.column);
-            this.setEditorStyle();
-
-
-            this.setState((prevState) => ({
-                serverOrdering: [...prevState.serverOrdering, [message[0][0], message[0][1], message[0][2], message[0][3]]], // append serverOrdering
-                HB: finalState.HB
-            }));
-        }
-    }
-
-    handleChange(e) {
-        //console.log(e);
-        console.log('handleChange');
-        let dif = [];
-
-        if (e.action === "insert") {
-            // single line text
-            if (e.lines.length === 1) {
-                dif.push([e.start.row, e.start.column, e.lines[0]]);
-            }
-
-            // newline
-            else if (e.lines.length === 2 && e.lines[0] === "" && e.lines[1] === "") {
-                let trailingText = this.state.editor.session.getLine(e.end.row);
-                dif.push(e.end.row); // add new row
-                if (trailingText.length > 0) {
-                    dif.push(to.move(e.start.row, e.start.column, e.end.row, 0, trailingText.length));
-                }
-            }
-
-            // paste
-            else {
-                let trailingText = this.state.editor.session.getLine(e.start.row).substr(e.start.column);
-                dif = to.textToDif(e.start.row, e.start.column, e.lines, trailingText);
-            }
-        }
-        else if (e.action === "remove") {
-            // single line text removal
-            if (e.lines.length === 1) {
-                dif.push([e.start.row, e.start.column, e.lines[0].length]);
-            }
-
-            // remline
-            else if (e.lines.length === 2 && e.lines[0] === "" && e.lines[1] === "") {
-                let trailingText = this.state.editor.session.getLine(e.start.row).substr(e.start.column);
-                if (trailingText.length > 0) {
-                    dif.push(to.move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
-                }
-                dif.push(-e.end.row);
-            }
-
-            // multiline delete
-            else {
-                dif.push(to.del(e.start.row, e.start.column, e.lines[0].length));
-                for (let i = 1; i < e.lines.length - 1; i++) {
-                    dif.push(to.del(e.start.row + i, 0, e.lines[i].length));
-                }
-                dif.push(to.del(e.end.row, 0, e.lines[e.lines.length - 1].length));
-                let trailingText = this.state.editor.session.getLine(e.start.row).substr(e.start.column);
-                dif.push(to.move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
-                for (let i = e.end.row; i > e.start.row; i--) {
-                    dif.push(to.remline(i));
-                }
-            }
-        }
-        if (dif.length === 0) console.log("handleChange dif is empty!");
-        this.intervalBufAddDif(dif);
-    }
-
-    componentDidMount() {
-        //this.connect();
-        this.bindConnectionEvents();
-
-
-        let editor = ace.edit("editor");
-        this.setEditorStyle(editor);
-
-        this.setState((prevState) => ({
-            editor: editor
-        }));
-
-    }
-
-    render() {
-        return (
-            <div id="editor" className="editor"></div>
-        );
-    }
-}
-
-class FileStructureDocument extends React.Component {
-    constructor(props) {
-        super(props);
-        this.handleOnClick = this.handleOnClick.bind(this);
-    }
-
-    handleOnClick() {
-        this.props.requestDocument(this.props.fileID);
-    }
-
-    render() {
-        return (
-            <li onClick={this.handleOnClick} className="document" key={this.props.fileID.toString()}>
-                {this.props.name}
-            </li>
-        );
-    }
-}
-
-class FileStructureFolder extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    createDocument(fileID, name) {
-        return (
-            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} requestDocument={this.props.requestDocument} />
-        );
-    }
-
-    createFolder(fileID, name, items) {
-        return (
-            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} requestDocument={this.props.requestDocument} />
-        );
-    }
-
-    createItem(file, name) {
-        if(file.type === "doc") {
-            return this.createDocument(file.ID, name);
-        }
-        else {
-            return this.createFolder(file.ID, name, file.items);
-        }
-    }
-
-
-    render() {
-        return (
-            <li key={this.props.fileID.toString()}>
-                <input type="checkbox" id={this.props.fileID} className="folder"/> 
-                <label htmlFor={this.props.fileID}>{this.props.name}</label>   
-                <ul>
-                    {this.props.items === null ? null : Object.entries(this.props.items).map((keyValuePair) => this.createItem(keyValuePair[1], keyValuePair[0]))}
-                </ul>
-            </li>
-        );
-    }
-}
-
-class FileStructure extends React.Component {
-    constructor(props) {
-        super(props);
-    }
-
-    render() {
-        return (
-            <div id="fileStructure">
-                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure} key="0" requestDocument={this.props.requestDocument} />
-            </div>
-        );
-    }
-
-}
-
 class Workspace extends React.Component {
     constructor(props) {
         super(props);
-        this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
         this.sendMessageToServer = this.sendMessageToServer.bind(this);
-        this.requestDocument = this.requestDocument.bind(this);
+        this.openDocument = this.openDocument.bind(this);
+        this.onOperation = this.onOperation.bind(this);
+        this.onInitDocument = this.onInitDocument.bind(this);
+        this.onInitWorkspace = this.onInitWorkspace.bind(this);
+        this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
+        this.onGC = this.onGC.bind(this);
         this.state = {
-            connectionWrapper: {},
+            connectionWrapper: {
+                onInitWorkspace: this.onInitWorkspace, 
+                onInitDocument: this.onInitDocument,
+                onGCMetadataRequest: this.onGCMetadataRequest,
+                onGC: this.onGC,
+                onOperation: this.onOperation,
+            },
             clientID: null,
             role: roles.none,
-            fileStructure: null
+            fileStructure: null,
+            editor: null,
+            aceTheme: "ace/theme/chaos",
+            aceMode: "ace/mode/javascript",
         };
+
+        this.requestedDocuments = new Set(); // contains fileIDs of documents requested from the server that did not arrive yet
+        this.openedDocuments = new Map(); // maps fileIDs of documents to ManagedSessions
+        this.savedCommitSerialNumbers = new Map(); // maps fileIDs of closed documents to their next commitSerialNumbers (they cannot start again from 0)
     }
 
     /**
@@ -464,22 +78,35 @@ class Workspace extends React.Component {
     }
 
     /**
+     * @brief Makes the target document the active editor tab. Will load from server if not loaded yet.
+     * @param {*} fileID The ID of the document.
+     */
+    openDocument(fileID) {
+        if(this.openedDocuments.has(fileID)) {
+            ///TODO: make that tab active
+        }
+        else if(this.requestedDocuments.has(fileID)) {
+            ///TODO: do nothing? mby show a dialog that the request is being processed
+        }
+        else {
+            this.requestDocument(fileID);
+            this.requestedDocuments.add(fileID);
+        }
+    }
+
+    /**
      * @brief Sends a request to the server to fetch a file.
      * 
      * @note Invoked after the user requests to view a file.
      * 
      * @param fileID The ID of a document.
      */
-     requestDocument(fileID) {
+    requestDocument(fileID) {
         const message = {
             msgType: msgTypes.client.getDocument,
             fileID: fileID
         };
         this.sendMessageToServer(JSON.stringify(message));
-    }
-
-    sendMessageToServer(messageString) {
-        this.state.connectionWrapper.connection.send(messageString);
     }
 
     serverMessageProcessor(message) {
@@ -493,13 +120,8 @@ class Workspace extends React.Component {
         else if (type === msgTypes.server.initialize && this.state.connectionWrapper.onInitialize !== undefined) {
             this.state.connectionWrapper.onInitialize(message);
         }
-        else if (type === msgTypes.server.initWorkspace) {
-            // this will rerender the FileStructure component
-            this.setState((prevState) => ({
-                clientID: message.clientID,
-                role: message.role,
-                fileStructure: message.fileStructure
-            }));
+        else if (type === msgTypes.server.initWorkspace && this.state.connectionWrapper.onInitWorkspace !== undefined) {
+            this.state.connectionWrapper.onInitWorkspace(message);
         }
         else if (type === msgTypes.server.initDocument && this.state.connectionWrapper.onInitDocument !== undefined) {
             this.state.connectionWrapper.onInitDocument(message);
@@ -530,21 +152,188 @@ class Workspace extends React.Component {
         }
     }
 
+    onInitWorkspace(message) {
+        // this will rerender the FileStructure component
+        this.setState({
+            clientID: message.clientID,
+            role: message.role,
+            fileStructure: message.fileStructure
+        });
+    }
+
+    sendMessageToServer(messageString) {
+        let that = this;
+        setTimeout(function () {
+            that.state.connectionWrapper.connection.send(messageString);
+        }, CSLatency); // latency testing
+    }
+
+    onInitDocument(message) {
+        if (!this.requestedDocuments.has(message.fileID)) {
+            console.log("The server sent an unrequested document, message: ", message);
+        }
+        else {
+            this.requestedDocuments.delete(message.fileID);
+            
+            ///TODO: the mode should be determined based on the document type
+            const session = new EditSession(message.serverDocument, this.state.aceMode);
+
+            let commitSerialNumber = 0;
+            if (this.savedCommitSerialNumbers.has(message.fileID)) {
+                commitSerialNumber = this.savedCommitSerialNumbers.get(message.fileID);
+            }
+            
+            const managedSession = new ManagedSession(session, this.state.clientID, message.fileID, commitSerialNumber, message.serverHB, message.serverOrdering, message.firstSOMessageNumber, this.sendMessageToServer);
+
+            this.openedDocuments.set(message.fileID, managedSession);
+
+            ///TODO: remove this
+            this.state.editor.setSession(session);
+        }
+    }
+
+    onGCMetadataRequest(message) {
+        if (!this.openedDocuments.has(message.fileID)) {
+            console.log("Invalid GCMetadataRequest fileID:", message.fileID);
+        }
+        else {
+            this.openedDocuments.get(message.fileID).sendGCMetadataResponse();
+        }
+    }
+
+    onGC(message) {
+        if (!this.openedDocuments.has(message.fileID)) {
+            console.log("Invalid GC fileID:", message.fileID);
+        }
+        else {
+            this.openedDocuments.get(message.fileID).GC(message);
+        }
+    }
+
+    /**
+     * @brief Processes incoming server messages. If it is an external operation, executes it
+       using the GOT control scheme.
+  
+     * @note Manages serverOrdering
+     * 
+     * @param message Operation send by the server
+     */
+    onOperation(message) {
+        let oldCursorPosition = this.state.editor.getCursorPosition();
+
+        if (!this.openedDocuments.has(message[2])) {
+            console.log("Invalid Operation fileID:", message[2]);
+        }
+        this.openedDocuments.get(message[2]).processOperation(message, oldCursorPosition);
+
+        //this.state.editor.moveCursorTo(oldCursorPosition.row, oldCursorPosition.column);
+    }
+
     componentDidMount() {
         this.connect();
+
+        const editor = ace.edit("editor");
+        editor.setTheme(this.state.aceTheme);
+        editor.setReadOnly(true);
+
+        this.setState({
+            editor: editor
+        });
     }
 
     render() {
+        // set readonly if neccessarry
+        if (this.state.editor !== null) {
+            if (!roles.canEdit(this.state.role)) {
+                this.state.editor.setReadOnly(true);
+            }
+            else {
+                this.state.editor.setReadOnly(false);
+            }
+        }
+
         return (
             <div className="main">
                 <div className="headerBar"></div>
                 <div id="leftBar">
-                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} requestDocument={this.requestDocument} />
+                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} openDocument={this.openDocument} />
                 </div>
 
                 <div className="content">
-                    <Editor connectionWrapper={this.state.connectionWrapper} clientID={this.state.clientID} role={this.state.role} />
+                    <div id="editor" className="editor"></div>
                 </div>
+            </div>
+        );
+    }
+}
+
+class FileStructureDocument extends React.Component {
+    constructor(props) {
+        super(props);
+        this.handleOnClick = this.handleOnClick.bind(this);
+    }
+
+    handleOnClick() {
+        this.props.openDocument(this.props.fileID);
+    }
+
+    render() {
+        return (
+            <li onClick={this.handleOnClick} className="document" key={this.props.fileID.toString()}>
+                {this.props.name}
+            </li>
+        );
+    }
+}
+
+class FileStructureFolder extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    createDocument(fileID, name) {
+        return (
+            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} openDocument={this.props.openDocument} />
+        );
+    }
+
+    createFolder(fileID, name, items) {
+        return (
+            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} openDocument={this.props.openDocument} />
+        );
+    }
+
+    createItem(file, name) {
+        if(file.type === "doc") {
+            return this.createDocument(file.ID, name);
+        }
+        else {
+            return this.createFolder(file.ID, name, file.items);
+        }
+    }
+
+    render() {
+        return (
+            <li key={this.props.fileID.toString()}>
+                <input type="checkbox" id={this.props.fileID} className="folder"/> 
+                <label htmlFor={this.props.fileID}>{this.props.name}</label>   
+                <ul>
+                    {this.props.items === null ? null : Object.entries(this.props.items).map((keyValuePair) => this.createItem(keyValuePair[1], keyValuePair[0]))}
+                </ul>
+            </li>
+        );
+    }
+}
+
+class FileStructure extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <div id="fileStructure">
+                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure} key="0" openDocument={this.props.openDocument} />
             </div>
         );
     }

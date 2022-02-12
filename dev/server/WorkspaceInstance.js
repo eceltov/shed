@@ -539,17 +539,17 @@ class WorkspaceInstance {
     /**
      * Starts a document instance.
      * 
-     * @param {*} documentID The fileID of the document.
+     * @param {*} fileID The fileID of the document.
      * @returns Returns the document if the instantiation succeeded, else returns false.
      */
-    startDocument(documentID) {
-        if (this.documents.get(documentID) !== undefined) return;
+    startDocument(fileID) {
+        if (this.documents.get(fileID) !== undefined) return;
 
-        const path = this.paths.get(documentID);
+        const path = this.paths.get(fileID);
         let document = new DocumentInstance();
-        document.initialize(path, this.workspaceHash, this.database);
+        document.initialize(path, fileID, this.workspaceHash, this.database);
         document.log = this.log;
-        this.documents.set(documentID, document);
+        this.documents.set(fileID, document);
         ///TODO: check if succeeded.
         return document
     }
