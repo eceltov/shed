@@ -14,11 +14,16 @@ class Workspace extends React.Component {
         super(props);
         this.sendMessageToServer = this.sendMessageToServer.bind(this);
         this.openDocument = this.openDocument.bind(this);
+        this.closeDocument = this.closeDocument.bind(this);
         this.onOperation = this.onOperation.bind(this);
         this.onInitDocument = this.onInitDocument.bind(this);
         this.onInitWorkspace = this.onInitWorkspace.bind(this);
         this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
         this.onGC = this.onGC.bind(this);
+        this.mapFileNames = this.mapFileNames.bind(this);
+        this.mountEditor = this.mountEditor.bind(this);
+        this.getTabBar = this.getTabBar.bind(this);
+        this.getWelcomeScreen = this.getWelcomeScreen.bind(this);
         this.state = {
             role: roles.none,
             fileStructure: null,
@@ -39,6 +44,7 @@ class Workspace extends React.Component {
         this.clientID = null;
         this.requestedDocuments = new Set(); // contains fileIDs of documents requested from the server that did not arrive yet
         this.openedDocuments = new Map(); // maps fileIDs of documents to ManagedSessions
+        this.fileNames = new Map(); // maps fileIDs to file names
         this.savedCommitSerialNumbers = new Map(); // maps fileIDs of closed documents to their next commitSerialNumbers (they cannot start again from 0)
     }
 
@@ -96,6 +102,47 @@ class Workspace extends React.Component {
         else {
             this.requestDocument(fileID);
             this.requestedDocuments.add(fileID);
+        }
+    }
+
+    closeDocument(fileID) {
+        if (!this.openedDocuments.has(fileID)) {
+            console.log("Attempted to close unopened document.");
+        }
+        else {
+            const message = {
+                msgType: msgTypes.client.closeDocument,
+                fileID: fileID
+            };
+            this.sendMessageToServer(JSON.stringify(message));
+
+            const managedSession = this.openedDocuments.get(fileID);
+
+            this.savedCommitSerialNumbers.set(fileID, managedSession.getNextCommitSerialNumber());
+            this.openedDocuments.delete(fileID);
+
+            let newTabs = to.prim.deepCopy(this.state.tabs);
+            const index = newTabs.indexOf(fileID);
+            if (index < 0) {
+                console.log("Tabs do not contain the fileID to be removed. FileID:", fileID, "tabs:", newTabs);
+                return;
+            }
+            newTabs.splice(index, 1);
+
+            let newActiveTab = this.state.activeTab;
+            if (this.state.activeTab === fileID) {
+                if (newTabs.length > 0) {
+                    newActiveTab = newTabs[0];
+                }
+                else {
+                    newActiveTab = null;
+                }
+            }
+
+            this.setState({
+                tabs: newTabs,
+                activeTab: newActiveTab
+            });
         }
     }
 
@@ -160,9 +207,23 @@ class Workspace extends React.Component {
     onInitWorkspace(message) {
         // this will rerender the FileStructure component
         this.clientID = message.clientID;
+        this.mapFileNames(message.fileStructure);
         this.setState({
             role: message.role,
             fileStructure: message.fileStructure
+        });
+    }
+
+    /**
+     * @brief Initializes the this.fileNames Map with file names from a fileStructure.
+     * @param {*} fileStructure A file structure received from the server.
+     */
+    mapFileNames(fileStructure) {
+        Object.entries(fileStructure).forEach((keyValuePair) => {
+            this.fileNames.set(keyValuePair[1].ID, keyValuePair[0]);
+            if (keyValuePair[1].type === "folder") {
+                this.mapFileNames(keyValuePair[1].items);
+            }
         });
     }
 
@@ -239,18 +300,41 @@ class Workspace extends React.Component {
         //this.state.editor.moveCursorTo(oldCursorPosition.row, oldCursorPosition.column);
     }
 
-    componentDidMount() {
-        this.connect();
+    getTabBar() {
+        return (
+            <TabBar
+                tabs={this.state.tabs}
+                activeTab={this.state.activeTab}
+                fileNames={this.fileNames}
+                openDocument={this.openDocument}
+                closeDocument={this.closeDocument}
+            />
+        );
+    }
 
+    getWelcomeScreen() {
+        return (
+            <WelcomeScreen />
+        )
+    }
+
+    mountEditor() {
         const editor = ace.edit("editor");
         editor.setTheme(this.state.aceTheme);
         editor.setReadOnly(true);
         this.editor = editor;
     }
 
+    componentDidMount() {
+        this.connect();
+        this.mountEditor();
+    }
+
     render() {
-        // set readonly if neccessarry
-        if (this.editor !== null) {
+        // set readonly if neccessarry and mount correct session
+        if (this.state.activeTab !== null && this.editor !== null) {
+            this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
+            
             if (!roles.canEdit(this.state.role)) {
                 this.editor.setReadOnly(true);
             }
@@ -259,22 +343,105 @@ class Workspace extends React.Component {
             }
         }
 
-        if (this.state.activeTab !== null && this.editor !== null) {
-            this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
-        }
-
         return (
             <div className="main">
                 <div className="headerBar"></div>
                 <div id="leftBar">
-                    <FileStructure role={this.state.role} fileStructure={this.state.fileStructure} openDocument={this.openDocument} />
+                    <FileStructure
+                        role={this.state.role}
+                        fileStructure={this.state.fileStructure}
+                        openDocument={this.openDocument}
+                    />
                 </div>
 
                 <div className="content">
-                    
-                    <div id="editor" className="editor"></div>
+                    {this.state.activeTab === null ? this.getWelcomeScreen() : this.getTabBar()}
+                    <div id="editor" hidden={this.state.activeTab === null}></div>
                 </div>
             </div>
+        );
+    }
+}
+
+class WelcomeScreen extends React.Component {
+    constructor(props) {
+        super(props);
+    }
+
+    render() {
+        return (
+            <div id="welcomeScreen">
+            </div>
+        );
+    }
+}
+
+class TabBar extends React.Component {
+    constructor(props) {
+        super(props);
+        this.createTab = this.createTab.bind(this);
+    }
+
+    createTab(fileID, index) {
+        return (
+            <Tab 
+                key={fileID + "T"}
+                fileID={fileID}
+                active={fileID === this.props.activeTab}
+                name={this.props.fileNames.get(fileID)}
+                openDocument={this.props.openDocument}
+                closeDocument={this.props.closeDocument}
+                rightmost={index === this.props.tabs.length - 1}
+            />
+        );
+    }
+
+    render() {
+        return (
+            <div className="tabBar">
+                {this.props.tabs.map((fileID, index) => this.createTab(fileID, index))}
+            </div>
+        );
+    }
+}
+
+class Tab extends React.Component {
+    constructor(props) {
+        super(props);
+        this.handleTabClick = this.handleTabClick.bind(this);
+        this.handleCrossClick = this.handleCrossClick.bind(this);
+        this.getClassName = this.getClassName.bind(this);
+    }
+
+    handleTabClick() {
+        this.props.openDocument(this.props.fileID);
+    }
+
+    handleCrossClick(e) {
+        e.preventDefault(); // stop propagating the click
+        this.props.closeDocument(this.props.fileID);
+    }
+
+    getClassName() {
+        let className = "tab";
+        if (this.props.active) {
+            className += " tabActive";
+        }
+        if (this.props.rightmost) {
+            className += " tabRightmost";
+        }
+        return className;
+    }
+
+    render() {
+        return (
+            <div className={this.getClassName()}>
+                <div className="tabContent" onClick={this.handleTabClick}>
+                    {this.props.name}
+                </div>
+                <div className="tabClose" onClick={this.handleCrossClick} />
+            </div>
+            
         );
     }
 }
@@ -291,7 +458,7 @@ class FileStructureDocument extends React.Component {
 
     render() {
         return (
-            <li onClick={this.handleOnClick} className="document" key={this.props.fileID.toString()}>
+            <li onClick={this.handleOnClick} className="document">
                 {this.props.name}
             </li>
         );
@@ -326,7 +493,7 @@ class FileStructureFolder extends React.Component {
 
     render() {
         return (
-            <li key={this.props.fileID.toString()}>
+            <li>
                 <input type="checkbox" id={this.props.fileID} className="folder"/> 
                 <label htmlFor={this.props.fileID}>{this.props.name}</label>   
                 <ul>

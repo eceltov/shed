@@ -127,6 +127,9 @@ class WorkspaceInstance {
         else if (message.msgType === msgTypes.client.renameFile) {
             this.handleRenameFile(message, clientID);
         }
+        else if(message.msgType === msgTypes.client.closeDocument) {
+            this.handleCloseDocument(message, clientID);
+        }
         // Operation, the client want to use the functionality of a document instance
         else {
             const client = this.clients.get(clientID);
@@ -138,6 +141,19 @@ class WorkspaceInstance {
                 const document = client.documents.get(fileID);
                 document.clientMessageProcessor(message, clientID);
             }
+        }
+    }
+
+    handleCloseDocument(message, clientID) {
+        const documents = this.clients.get(clientID).documents;
+        if (documents.has(message.fileID)) {
+            const document = documents.get(message.fileID);
+            document.removeConnection(clientID);
+            documents.delete(message.fileID);
+            console.log("Client closed a document");
+        }
+        else {
+            console.log("!!! Client wanted to close a unopened document. ClientID:", clientID, "FileID:", message.fileID);
         }
     }
 

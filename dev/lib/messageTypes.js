@@ -13,7 +13,8 @@ msgTypes.client.createDocument = 3; // sent to create a new document: {msgType, 
 msgTypes.client.createFolder = 4; // sent to create a new folder: {msgType, parentID, name}
 msgTypes.client.deleteDocument = 5; // sent to delete a document: {msgType, fileID}
 msgTypes.client.deleteFolder = 6; // sent to delete a folder: {msgType, fileID}
-msgTypes.client.renameFile = 7; // send to rename a file: {msgType, fileID, name}
+msgTypes.client.renameFile = 7; // sent to rename a file: {msgType, fileID, name}
+msgTypes.client.closeDocument = 8; // sent to stop receiving operations from that document: {msgType, fileID}
 
 // messages sent by server
 msgTypes.server.initialize = 51; // sent alongside necessary data to initialize the client workspace
