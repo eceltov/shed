@@ -1,5 +1,3 @@
-/// How to propagate the target server to the client?
-//const SERVER_URL = 'ws://dev.lan:8080/';
 const SERVER_URL = 'ws://localhost:8080/';
 var CSLatency = 0;
 var SCLatency = 0;
@@ -22,21 +20,23 @@ class Workspace extends React.Component {
         this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
         this.onGC = this.onGC.bind(this);
         this.state = {
-            connectionWrapper: {
-                onInitWorkspace: this.onInitWorkspace, 
-                onInitDocument: this.onInitDocument,
-                onGCMetadataRequest: this.onGCMetadataRequest,
-                onGC: this.onGC,
-                onOperation: this.onOperation,
-            },
-            clientID: null,
             role: roles.none,
             fileStructure: null,
-            editor: null,
+            activeTab: null, // fileID of active document
+            tabs: [], // fileIDs in the same order as the final tabs
             aceTheme: "ace/theme/chaos",
             aceMode: "ace/mode/javascript",
         };
 
+        this.connectionWrapper = {
+            onInitWorkspace: this.onInitWorkspace, 
+            onInitDocument: this.onInitDocument,
+            onGCMetadataRequest: this.onGCMetadataRequest,
+            onGC: this.onGC,
+            onOperation: this.onOperation,
+        };
+        this.editor = null;
+        this.clientID = null;
         this.requestedDocuments = new Set(); // contains fileIDs of documents requested from the server that did not arrive yet
         this.openedDocuments = new Map(); // maps fileIDs of documents to ManagedSessions
         this.savedCommitSerialNumbers = new Map(); // maps fileIDs of closed documents to their next commitSerialNumbers (they cannot start again from 0)
@@ -66,7 +66,7 @@ class Workspace extends React.Component {
             };
             connection.send(JSON.stringify(initMsg));
 
-            that.state.connectionWrapper.connection = connection;
+            that.connectionWrapper.connection = connection;
         };
 
         connection.onmessage = function (messageWrapper) {
@@ -82,12 +82,17 @@ class Workspace extends React.Component {
      * @param {*} fileID The ID of the document.
      */
     openDocument(fileID) {
+        // if the document is opened, make that tab active
         if(this.openedDocuments.has(fileID)) {
-            ///TODO: make that tab active
+            this.setState({
+                activeTab: fileID
+            });
         }
+        // if the document is already requested, do nothing (wait for it)
         else if(this.requestedDocuments.has(fileID)) {
             ///TODO: do nothing? mby show a dialog that the request is being processed
         }
+        // request the document from the server
         else {
             this.requestDocument(fileID);
             this.requestedDocuments.add(fileID);
@@ -114,38 +119,38 @@ class Workspace extends React.Component {
         const type = message.msgType;
 
         ///TODO: give operations a type or document their absence
-        if (type === undefined && this.state.connectionWrapper.onOperation !== undefined) {
-            this.state.connectionWrapper.onOperation(message);
+        if (type === undefined && this.connectionWrapper.onOperation !== undefined) {
+            this.connectionWrapper.onOperation(message);
         }
-        else if (type === msgTypes.server.initialize && this.state.connectionWrapper.onInitialize !== undefined) {
-            this.state.connectionWrapper.onInitialize(message);
+        else if (type === msgTypes.server.initialize && this.connectionWrapper.onInitialize !== undefined) {
+            this.connectionWrapper.onInitialize(message);
         }
-        else if (type === msgTypes.server.initWorkspace && this.state.connectionWrapper.onInitWorkspace !== undefined) {
-            this.state.connectionWrapper.onInitWorkspace(message);
+        else if (type === msgTypes.server.initWorkspace && this.connectionWrapper.onInitWorkspace !== undefined) {
+            this.connectionWrapper.onInitWorkspace(message);
         }
-        else if (type === msgTypes.server.initDocument && this.state.connectionWrapper.onInitDocument !== undefined) {
-            this.state.connectionWrapper.onInitDocument(message);
+        else if (type === msgTypes.server.initDocument && this.connectionWrapper.onInitDocument !== undefined) {
+            this.connectionWrapper.onInitDocument(message);
         }
-        else if (type === msgTypes.server.GCMetadataRequest && this.state.connectionWrapper.onGCMetadataRequest !== undefined) {
-            this.state.connectionWrapper.onGCMetadataRequest(message);
+        else if (type === msgTypes.server.GCMetadataRequest && this.connectionWrapper.onGCMetadataRequest !== undefined) {
+            this.connectionWrapper.onGCMetadataRequest(message);
         }
-        else if (type === msgTypes.server.GC && this.state.connectionWrapper.onGC !== undefined) {
-            this.state.connectionWrapper.onGC(message);
+        else if (type === msgTypes.server.GC && this.connectionWrapper.onGC !== undefined) {
+            this.connectionWrapper.onGC(message);
         }
-        else if (type === msgTypes.server.createDocument && this.state.connectionWrapper.onCreateDocument !== undefined) {
-            this.state.connectionWrapper.onCreateDocument(message);
+        else if (type === msgTypes.server.createDocument && this.connectionWrapper.onCreateDocument !== undefined) {
+            this.connectionWrapper.onCreateDocument(message);
         }
-        else if (type === msgTypes.server.createFolder && this.state.connectionWrapper.onCreateFolder !== undefined) {
-            this.state.connectionWrapper.onCreateFolder(message);
+        else if (type === msgTypes.server.createFolder && this.connectionWrapper.onCreateFolder !== undefined) {
+            this.connectionWrapper.onCreateFolder(message);
         }
-        else if (type === msgTypes.server.deleteDocument && this.state.connectionWrapper.onDeleteDocument !== undefined) {
-            this.state.connectionWrapper.onDeleteDocument(message);
+        else if (type === msgTypes.server.deleteDocument && this.connectionWrapper.onDeleteDocument !== undefined) {
+            this.connectionWrapper.onDeleteDocument(message);
         }
-        else if (type === msgTypes.server.deleteFolder && this.state.connectionWrapper.onDeleteFolder !== undefined) {
-            this.state.connectionWrapper.onDeleteFolder(message);
+        else if (type === msgTypes.server.deleteFolder && this.connectionWrapper.onDeleteFolder !== undefined) {
+            this.connectionWrapper.onDeleteFolder(message);
         }
-        else if (type === msgTypes.server.renameFile && this.state.connectionWrapper.onRenameFile !== undefined) {
-            this.state.connectionWrapper.onRenameFile(message);
+        else if (type === msgTypes.server.renameFile && this.connectionWrapper.onRenameFile !== undefined) {
+            this.connectionWrapper.onRenameFile(message);
         }
         else {
             console.log("Received unknown message type: " + JSON.stringify(message));
@@ -154,8 +159,8 @@ class Workspace extends React.Component {
 
     onInitWorkspace(message) {
         // this will rerender the FileStructure component
+        this.clientID = message.clientID;
         this.setState({
-            clientID: message.clientID,
             role: message.role,
             fileStructure: message.fileStructure
         });
@@ -164,7 +169,7 @@ class Workspace extends React.Component {
     sendMessageToServer(messageString) {
         let that = this;
         setTimeout(function () {
-            that.state.connectionWrapper.connection.send(messageString);
+            that.connectionWrapper.connection.send(messageString);
         }, CSLatency); // latency testing
     }
 
@@ -183,12 +188,17 @@ class Workspace extends React.Component {
                 commitSerialNumber = this.savedCommitSerialNumbers.get(message.fileID);
             }
             
-            const managedSession = new ManagedSession(session, this.state.clientID, message.fileID, commitSerialNumber, message.serverHB, message.serverOrdering, message.firstSOMessageNumber, this.sendMessageToServer);
+            const managedSession = new ManagedSession(session, this.clientID, message.fileID, commitSerialNumber, message.serverHB, message.serverOrdering, message.firstSOMessageNumber, this.sendMessageToServer);
 
             this.openedDocuments.set(message.fileID, managedSession);
+            console.log("Set fileID:", message.fileID);
+            this.setState((prevState) => ({
+                tabs: [message.fileID, ...prevState.tabs],
+                activeTab: message.fileID
+            }));
 
             ///TODO: remove this
-            this.state.editor.setSession(session);
+            //this.state.editor.setSession(session);
         }
     }
 
@@ -219,7 +229,7 @@ class Workspace extends React.Component {
      * @param message Operation send by the server
      */
     onOperation(message) {
-        let oldCursorPosition = this.state.editor.getCursorPosition();
+        let oldCursorPosition = this.editor.getCursorPosition();
 
         if (!this.openedDocuments.has(message[2])) {
             console.log("Invalid Operation fileID:", message[2]);
@@ -235,21 +245,22 @@ class Workspace extends React.Component {
         const editor = ace.edit("editor");
         editor.setTheme(this.state.aceTheme);
         editor.setReadOnly(true);
-
-        this.setState({
-            editor: editor
-        });
+        this.editor = editor;
     }
 
     render() {
         // set readonly if neccessarry
-        if (this.state.editor !== null) {
+        if (this.editor !== null) {
             if (!roles.canEdit(this.state.role)) {
-                this.state.editor.setReadOnly(true);
+                this.editor.setReadOnly(true);
             }
             else {
-                this.state.editor.setReadOnly(false);
+                this.editor.setReadOnly(false);
             }
+        }
+
+        if (this.state.activeTab !== null && this.editor !== null) {
+            this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
         }
 
         return (
@@ -260,6 +271,7 @@ class Workspace extends React.Component {
                 </div>
 
                 <div className="content">
+                    
                     <div id="editor" className="editor"></div>
                 </div>
             </div>

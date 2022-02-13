@@ -31,7 +31,7 @@ class WorkspaceInstance {
         this.database = null;
 
         // document management
-        this.documents = new Map(); // maps absolute paths to document instances ///TODO: make this from IDs to instances
+        this.documents = new Map(); // maps fileIDs to document instances
 
         // attributes for client management
         this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
@@ -61,7 +61,8 @@ class WorkspaceInstance {
     initializeClient(clientID, connection, role) {
         const clientMetadata = {
             connection: connection, // the WebSocket connection
-            documents: [],          // references to DocumentInstance objects with which the client interacts
+            documents: new Map(),          // maps fileIDs to document references, contains only those with which the client interacts
+            //documents: [],          // references to DocumentInstance objects with which the client interacts
             role: role              // the role of the client in the workspace
         };
         this.clients.set(clientID, clientMetadata);
@@ -126,11 +127,17 @@ class WorkspaceInstance {
         else if (message.msgType === msgTypes.client.renameFile) {
             this.handleRenameFile(message, clientID);
         }
-        // the client want to use the functionality of a document instance
+        // Operation, the client want to use the functionality of a document instance
         else {
-            ///TODO: this is only a mock implementation
-            const document = this.clients.get(clientID).documents[0];
-            document.clientMessageProcessor(message, clientID);
+            const client = this.clients.get(clientID);
+            const fileID = message[2];
+            if (!client.documents.has(fileID)) {
+                console.log("A client was sent an unwanted operation, fileID: ", fileID);
+            }
+            else {
+                const document = client.documents.get(fileID);
+                document.clientMessageProcessor(message, clientID);
+            }
         }
     }
 
@@ -503,9 +510,9 @@ class WorkspaceInstance {
      * @note It is assumed that the document exists.
      * 
      * @param {*} clientID The ID of the client.
-     * @param {*} documentID The fileID of the document.
+     * @param {*} fileID The fileID of the document.
      */
-    connectClientToDocument(clientID, documentID) {
+    connectClientToDocument(clientID, fileID) {
         const client = this.clients.get(clientID);
         if (!roles.canView(client.role)) {
             return;
@@ -513,8 +520,8 @@ class WorkspaceInstance {
 
         let document;
 
-        if (!this.documents.has(documentID)) {
-            document = this.startDocument(documentID);
+        if (!this.documents.has(fileID)) {
+            document = this.startDocument(fileID);
             if (document === null) {
                 // the document could not be instantiated
                 ///TODO: send an error message
@@ -522,7 +529,7 @@ class WorkspaceInstance {
             }
         }
         else {
-            document = this.documents.get(documentID);
+            document = this.documents.get(fileID);
         }
 
         // handle client already connected to the document
@@ -531,7 +538,7 @@ class WorkspaceInstance {
             return;
         }
 
-        client.documents.push(document);
+        client.documents.set(fileID, document);
         document.initializeClient(clientID, client.connection, client.role);
     }
 
