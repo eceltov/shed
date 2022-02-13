@@ -135,7 +135,7 @@ class WorkspaceInstance {
             const client = this.clients.get(clientID);
             const fileID = message[2];
             if (!client.documents.has(fileID)) {
-                console.log("A client was sent an unwanted operation, fileID: ", fileID);
+                console.log("!!! A client sent an operation to a document he does not have opened, fileID: ", fileID, "operation:", message);
             }
             else {
                 const document = client.documents.get(fileID);

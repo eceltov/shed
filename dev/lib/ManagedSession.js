@@ -1,5 +1,3 @@
-const LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
-
 class ManagedSession {
     constructor(session, clientID, fileID, commitSerialNumber, HB, serverOrdering, firstSOMessageNumber, sendMessageToServer) {
         this.processOperation = this.processOperation.bind(this);
@@ -22,6 +20,7 @@ class ManagedSession {
         this.firstSOMessageNumber = firstSOMessageNumber; // the total serial number of the first SO entry
         this.sendMessageToServer = sendMessageToServer;
         this.handlingChanges = true;
+        this.LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 
         this.session.on('change', this.handleChange);
     }
@@ -38,10 +37,15 @@ class ManagedSession {
         return this.commitSerialNumber;
     }
 
+    getListenInterval() {
+        return this.LISTEN_INTERVAL;
+    }
+
     intervalTimerStart() {
         if (!this.measuring) {
             this.measuring = true;
-            setTimeout(this.intervalTimerCallback, LISTEN_INTERVAL, this);
+            const listenInterval = this.LISTEN_INTERVAL;
+            setTimeout(this.intervalTimerCallback, listenInterval, this);
         }
     }
 

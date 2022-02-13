@@ -110,16 +110,7 @@ class Workspace extends React.Component {
             console.log("Attempted to close unopened document.");
         }
         else {
-            const message = {
-                msgType: msgTypes.client.closeDocument,
-                fileID: fileID
-            };
-            this.sendMessageToServer(JSON.stringify(message));
-
-            const managedSession = this.openedDocuments.get(fileID);
-
-            this.savedCommitSerialNumbers.set(fileID, managedSession.getNextCommitSerialNumber());
-            this.openedDocuments.delete(fileID);
+            this.destroyDocumentInstance(fileID);
 
             let newTabs = to.prim.deepCopy(this.state.tabs);
             const index = newTabs.indexOf(fileID);
@@ -144,6 +135,27 @@ class Workspace extends React.Component {
                 activeTab: newActiveTab
             });
         }
+    }
+
+    /**
+     * @brief Destroys a ManagedSession and sends the server a message to close the document connection.
+     * @note The message will be sent after a delay, so that all staged operations will be send to the server.
+     * @note Saves the commitSerialNumber.
+     * @param {*} fileID 
+     */
+    destroyDocumentInstance(fileID) {
+        const managedSession = this.openedDocuments.get(fileID);
+        this.savedCommitSerialNumbers.set(fileID, managedSession.getNextCommitSerialNumber());
+
+        let that = this;
+        setTimeout(function () {
+            const message = {
+                msgType: msgTypes.client.closeDocument,
+                fileID: fileID
+            };
+            that.sendMessageToServer(JSON.stringify(message));
+            that.openedDocuments.delete(fileID);
+        }, managedSession.getListenInterval() + 100);
     }
 
     /**
