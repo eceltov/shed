@@ -1,21 +1,45 @@
 {
-    "nextID": 4,
+    "nextID": 9,
     "type": "root",
     "ID": 0,
     "items": {
-        "document.txt": {
-            "type": "doc",
-            "ID": 1
-        },
         "folder1": {
             "type": "folder",
             "ID": 2,
             "items": {
-                "file1.txt": {
+                "New Folder With A Very Very Very Long Name": {
+                    "type": "folder",
+                    "ID": 4,
+                    "items": {
+                        "documentWithAVeryVeryVeryLongName.txt": {
+                            "type": "doc",
+                            "ID": 5
+                        }
+                    }
+                },
+                "doc1.txt": {
                     "type": "doc",
                     "ID": 3
                 }
             }
+        },
+        "folder2": {
+            "type": "folder",
+            "ID": 6,
+            "items": {
+                "doc2.txt": {
+                    "type": "doc",
+                    "ID": 7
+                },
+                "doc3.txt": {
+                    "type": "doc",
+                    "ID": 8
+                }
+            }
+        },
+        "document.txt": {
+            "type": "doc",
+            "ID": 1
         }
     }
 }
