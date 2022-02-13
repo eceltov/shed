@@ -24,7 +24,7 @@
 }
 
 #fileStructure {
-    font-size: 11px;
+    font-size: 15px;
 }
 
 #fileStructure ul {
@@ -35,7 +35,7 @@
 }
 #fileStructure ul li {
     color: var(--main-font-color);
-    margin-left: 7px; /* indentation of folder items */
+    margin-left: 8px; /* indentation of folder items */
     white-space: nowrap;
     overflow: hidden;
     text-overflow: ellipsis;
@@ -45,8 +45,8 @@
     /*display: inline-block;*/
     display: block;
     cursor:pointer;
-    height: 20px;
-    padding-left: 15px; /* TODO: placeholder - replace this with a document symbol (or doc type) */
+    height: 22px;
+    padding-left: 17px; /* TODO: placeholder - replace this with a document symbol (or doc type) */
 }
 #fileStructure ul .document:hover {
     background: var(--highlight-color);
@@ -57,7 +57,7 @@
 #fileStructure label {
     color: var(--main-font-color);
     display: block;
-    height: 20px;
+    height: 22px;
     padding: 0 5px 0 0;
     margin: 0px;
     cursor:pointer;
@@ -79,8 +79,8 @@
     content: "";
     border: solid var(--main-font-color);
     display: inline-block;
-    padding: 2.5px;
-    margin: 0px 4px 0px 4px;
+    padding: 3px;
+    margin: 0px 5px 0px 5px;
     border-width: 0 2px 2px 0;
     transform: rotate(-45deg);
 }
@@ -89,16 +89,16 @@
     content: "";
     border: solid var(--main-font-color);
     display: inline-block;
-    padding: 2.5px;
-    margin: 0px 4px 0px 4px;
+    padding: 3px;
+    margin: 0px 5px 0px 5px;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
 
 .tabBar {
     background: var(--top-bar-color);
-    height: 30px;
-    font-size: 13px;
+    height: 35px;
+    font-size: 17px;
     color: var(--main-font-color);
     user-select: none;
 }
@@ -114,13 +114,13 @@
 }
 
 .tabContent {
-    min-width: 100px;
-    max-width: 150px;
+    min-width: 110px;
+    max-width: 160px;
     height: 100%;
     text-align: left;
     overflow: hidden;
     text-overflow: ellipsis;
-    line-height: 27px;
+    line-height: 30px;
     display: inline-block;
     padding: 0 10px 0 10px;
 }
@@ -141,7 +141,7 @@
 
 .tabClose {
     display: inline-block;
-    padding: 0 20px 30px 0;
+    padding: 0 20px 35px 0;
 
 }
 
@@ -153,7 +153,7 @@
     content: "";
     border: solid var(--cross-color);
     position: absolute;
-    margin: 14px 0 0 2.5px;
+    margin: 16px 0 0 2.5px;
     width: 15px;
     border-width: 0 0 2px 0;
 }

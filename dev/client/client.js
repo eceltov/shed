@@ -334,6 +334,9 @@ class Workspace extends React.Component {
         const editor = ace.edit("editor");
         editor.setTheme(this.state.aceTheme);
         editor.setReadOnly(true);
+        editor.setOptions({
+            fontSize: "12pt"
+        });
         this.editor = editor;
     }
 
