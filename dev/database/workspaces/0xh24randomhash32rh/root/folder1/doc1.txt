@@ -1,1 +1,1 @@
-var a 
+some text
