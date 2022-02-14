@@ -46,11 +46,19 @@
     display: block;
     cursor:pointer;
     height: 24px;
-    padding-left: 17px; /* TODO: placeholder - replace this with a document symbol (or doc type) */
+    /*padding-left: 17px;*/ /* TODO: placeholder - replace this with a document symbol (or doc type) */
 }
 #fileStructure ul .document:hover {
     background: var(--highlight-color);
 }
+
+#fileStructure ul .document::before {
+    content: "≡";
+    color: var(--main-font-color);
+    display: inline-block;
+    margin: 0 2px 0 5px;
+}
+
 #fileStructure label:hover {
     background: var(--highlight-color);
 }
