@@ -45,7 +45,7 @@
     /*display: inline-block;*/
     display: block;
     cursor:pointer;
-    height: 22px;
+    height: 24px;
     padding-left: 17px; /* TODO: placeholder - replace this with a document symbol (or doc type) */
 }
 #fileStructure ul .document:hover {
@@ -57,7 +57,7 @@
 #fileStructure label {
     color: var(--main-font-color);
     display: block;
-    height: 22px;
+    height: 24px;
     padding: 0 5px 0 0;
     margin: 0px;
     cursor:pointer;
@@ -80,7 +80,7 @@
     border: solid var(--main-font-color);
     display: inline-block;
     padding: 3px;
-    margin: 0px 5px 0px 5px;
+    margin: 0px 5px 1.5px 5px;
     border-width: 0 2px 2px 0;
     transform: rotate(-45deg);
 }
@@ -90,7 +90,7 @@
     border: solid var(--main-font-color);
     display: inline-block;
     padding: 3px;
-    margin: 0px 5px 0px 5px;
+    margin: 0px 5px 1.5px 5px;
     border-width: 0 2px 2px 0;
     transform: rotate(45deg);
 }
@@ -141,7 +141,7 @@
 
 .tabClose {
     display: inline-block;
-    padding: 0 20px 35px 0;
+    padding: 0 30px 35px 0;
 
 }
 
@@ -153,7 +153,7 @@
     content: "";
     border: solid var(--cross-color);
     position: absolute;
-    margin: 16px 0 0 2.5px;
+    margin: 17px 0 0 7.5px;
     width: 15px;
     border-width: 0 0 2px 0;
 }
