@@ -26,6 +26,8 @@ class Workspace extends React.Component {
                     <script src="lib/dif.js" type="text/javascript"></script>
                     <script src="lib/roles.js" type="text/javascript"></script>
                     <script src="lib/messageTypes.js" type="text/javascript"></script>
+                    <script src="lib/clientMessageFactory.js" type="text/javascript"></script>
+                    <script src="lib/fileStructureOps.js" type="text/javascript"></script>
                     <script src="lib/ManagedSession.js" type="text/javascript"></script>
                     <script src="client/client.js" type="text/babel"></script>
 

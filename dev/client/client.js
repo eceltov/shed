@@ -13,6 +13,7 @@ class Workspace extends React.Component {
     constructor(props) {
         super(props);
         this.sendMessageToServer = this.sendMessageToServer.bind(this);
+        this.selectFile = this.selectFile.bind(this);
         this.openDocument = this.openDocument.bind(this);
         this.closeDocument = this.closeDocument.bind(this);
         this.onOperation = this.onOperation.bind(this);
@@ -20,7 +21,6 @@ class Workspace extends React.Component {
         this.onInitWorkspace = this.onInitWorkspace.bind(this);
         this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
         this.onGC = this.onGC.bind(this);
-        this.mapFileNames = this.mapFileNames.bind(this);
         this.mountEditor = this.mountEditor.bind(this);
         this.getTabBar = this.getTabBar.bind(this);
         this.getWelcomeScreen = this.getWelcomeScreen.bind(this);
@@ -28,6 +28,7 @@ class Workspace extends React.Component {
             role: roles.none,
             fileStructure: null,
             activeTab: null, // fileID of active document
+            activeFile: null,
             tabs: [], // fileIDs in the same order as the final tabs
             aceTheme: "ace/theme/chaos",
             aceMode: "ace/mode/javascript",
@@ -44,7 +45,7 @@ class Workspace extends React.Component {
         this.clientID = null;
         this.requestedDocuments = new Set(); // contains fileIDs of documents requested from the server that did not arrive yet
         this.openedDocuments = new Map(); // maps fileIDs of documents to ManagedSessions
-        this.fileNames = new Map(); // maps fileIDs to file names
+        this.pathMap = new Map(); // maps fileIDs to file paths
         this.savedCommitSerialNumbers = new Map(); // maps fileIDs of closed documents to their next commitSerialNumbers (they cannot start again from 0)
     }
 
@@ -81,6 +82,25 @@ class Workspace extends React.Component {
             //console.log("recv message", message.data);
             that.serverMessageProcessor(message);
         }
+    }
+
+    /**
+     * @brief Highlights the selected file in the fileStructure and makes it the active tab, if it is a document.
+     * @note Should be called after the user clicks on a file in the file structure.
+     * @param {*} fileID The ID of the file.
+     */
+    selectFile(fileID) {
+        if (this.state.activeFile === fileID) {
+            return;
+        }
+
+        if (this.pathMap.has(fileID) && fsOps.isDocument(this.state.fileStructure, this.pathMap, fileID)) {
+            this.openDocument(fileID);
+        }
+
+        this.setState({
+            activeFile: fileID
+        });
     }
 
     /**
@@ -219,23 +239,10 @@ class Workspace extends React.Component {
     onInitWorkspace(message) {
         // this will rerender the FileStructure component
         this.clientID = message.clientID;
-        this.mapFileNames(message.fileStructure);
+        this.pathMap = fsOps.getIDPathMap(message.fileStructure);
         this.setState({
             role: message.role,
             fileStructure: message.fileStructure
-        });
-    }
-
-    /**
-     * @brief Initializes the this.fileNames Map with file names from a fileStructure.
-     * @param {*} fileStructure A file structure received from the server.
-     */
-    mapFileNames(fileStructure) {
-        Object.entries(fileStructure).forEach((keyValuePair) => {
-            this.fileNames.set(keyValuePair[1].ID, keyValuePair[0]);
-            if (keyValuePair[1].type === "folder") {
-                this.mapFileNames(keyValuePair[1].items);
-            }
         });
     }
 
@@ -317,7 +324,7 @@ class Workspace extends React.Component {
             <TabBar
                 tabs={this.state.tabs}
                 activeTab={this.state.activeTab}
-                fileNames={this.fileNames}
+                pathMap={this.pathMap}
                 openDocument={this.openDocument}
                 closeDocument={this.closeDocument}
             />
@@ -328,6 +335,35 @@ class Workspace extends React.Component {
         return (
             <WelcomeScreen />
         )
+    }
+
+    createDocument(name) {
+        const message = msgFactory.createDocument(this.state.clientID, this.state.activeFile, name);
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    createFolder(name) {
+        const message = msgFactory.createFolder(this.state.clientID, this.state.activeFile, name);
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    deleteDocument() {
+        const message = msgFactory.deleteDocument(this.state.clientID, this.state.activeFile);
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    deleteFolder() {
+        const message = msgFactory.deleteFolder(this.state.clientID, this.state.activeFile);
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    renameFile(name) {
+        const message = msgFactory.renameFile(this.state.clientID, this.state.activeFile, name);
+        this.sendMessageToServer(JSON.stringify(message));
+    }
+
+    onCreateDocument(message) {
+
     }
 
     mountEditor() {
@@ -362,10 +398,13 @@ class Workspace extends React.Component {
             <div className="main">
                 <div className="headerBar"></div>
                 <div id="leftBar">
+                    <div id="fileOperations">
+                    </div>
                     <FileStructure
                         role={this.state.role}
                         fileStructure={this.state.fileStructure}
-                        openDocument={this.openDocument}
+                        activeFile={this.state.activeFile}
+                        selectFile={this.selectFile}
                     />
                 </div>
 
@@ -373,6 +412,26 @@ class Workspace extends React.Component {
                     {this.state.activeTab === null ? this.getWelcomeScreen() : this.getTabBar()}
                     <div id="editor" hidden={this.state.activeTab === null}></div>
                 </div>
+            </div>
+        );
+    }
+}
+
+class FileOperation extends React.Component {
+    constructor(props) {
+        super(props);
+        this.handleOnClick = this.handleOnClick.bind(this);
+    }
+
+    handleOnClick(e) {
+        e.preventDefault();
+        this.props.functionality();
+    }
+
+    render() {
+        return (
+            <div class="fileOperation" onClick={this.handleOnClick}>
+                {this.props.text}
             </div>
         );
     }
@@ -403,7 +462,7 @@ class TabBar extends React.Component {
                 key={fileID + "T"}
                 fileID={fileID}
                 active={fileID === this.props.activeTab}
-                name={this.props.fileNames.get(fileID)}
+                name={fsOps.getFileNameFromPath(this.props.pathMap.get(fileID))}
                 openDocument={this.props.openDocument}
                 closeDocument={this.props.closeDocument}
                 rightmost={index === this.props.tabs.length - 1}
@@ -428,7 +487,7 @@ class Tab extends React.Component {
         this.getClassName = this.getClassName.bind(this);
     }
 
-    handleTabClick() {
+    handleTabClick(e) {
         this.props.openDocument(this.props.fileID);
     }
 
@@ -467,13 +526,13 @@ class FileStructureDocument extends React.Component {
         this.handleOnClick = this.handleOnClick.bind(this);
     }
 
-    handleOnClick() {
-        this.props.openDocument(this.props.fileID);
+    handleOnClick(e) {
+        this.props.selectFile(this.props.fileID);
     }
 
     render() {
         return (
-            <li onClick={this.handleOnClick} className="document">
+            <li onClick={this.handleOnClick} className={"document" + (this.props.activeFile === this.props.fileID ? " active" : "")}>
                 {this.props.name}
             </li>
         );
@@ -483,22 +542,40 @@ class FileStructureDocument extends React.Component {
 class FileStructureFolder extends React.Component {
     constructor(props) {
         super(props);
+        this.handleOnClick = this.handleOnClick.bind(this);
+    }
+
+    handleOnClick(e) {
+        this.props.selectFile(this.props.fileID);
     }
 
     createDocument(fileID, name) {
         return (
-            <FileStructureDocument fileID={fileID} name={name} key={fileID + "a"} openDocument={this.props.openDocument} />
+            <FileStructureDocument
+                fileID={fileID} 
+                name={name} 
+                key={fileID + "a"}  
+                activeFile={this.props.activeFile}
+                selectFile={this.props.selectFile}
+            />
         );
     }
 
     createFolder(fileID, name, items) {
         return (
-            <FileStructureFolder fileID={fileID} name={name} items={items} key={fileID + "a"} openDocument={this.props.openDocument} />
+            <FileStructureFolder
+                fileID={fileID} 
+                name={name} 
+                items={items} 
+                key={fileID + "a"} 
+                activeFile={this.props.activeFile}
+                selectFile={this.props.selectFile}
+            />
         );
     }
 
     createItem(file, name) {
-        if(file.type === "doc") {
+        if(file.type === fsOps.types.document) {
             return this.createDocument(file.ID, name);
         }
         else {
@@ -509,8 +586,8 @@ class FileStructureFolder extends React.Component {
     render() {
         return (
             <li>
-                <input type="checkbox" id={this.props.fileID} className="folder"/> 
-                <label htmlFor={this.props.fileID}>{this.props.name}</label>   
+                <input type="checkbox" id={this.props.fileID} onClick={this.handleOnClick} className="folder"/> 
+                <label htmlFor={this.props.fileID} className={this.props.activeFile === this.props.fileID ? "active" : ""}>{this.props.name}</label>   
                 <ul>
                     {this.props.items === null ? null : Object.entries(this.props.items).map((keyValuePair) => this.createItem(keyValuePair[1], keyValuePair[0]))}
                 </ul>
@@ -527,7 +604,13 @@ class FileStructure extends React.Component {
     render() {
         return (
             <div id="fileStructure">
-                <FileStructureFolder fileID="0" name="Workspace Name" items={this.props.fileStructure} key="0" openDocument={this.props.openDocument} />
+                <FileStructureFolder
+                    fileID="0"
+                    name="Workspace Name" 
+                    items={this.props.fileStructure === null ? null : this.props.fileStructure.items} 
+                    activeFile={this.props.activeFile}
+                    selectFile={this.props.selectFile}
+                />
             </div>
         );
     }

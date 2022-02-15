@@ -1,9 +1,15 @@
+/*
+Notes: handle bigger and smaller resolutions
+*/
+
 :root {
     --top-bar-height: 60px;
     --top-bar-height2: 600px;
     --left-side-bar-width: 15vw;
     --highlight-color: rgba(20, 160, 130, 0.7);
-    --top-bar-color: rgb(40,40,40);
+    --active-tab-color: rgb(100, 100, 100);
+    --active-file-color: rgb(80, 80, 80);
+    --top-bar-color: rgb(40, 40, 40);
     --main-font-color: rgb(250, 235, 215);
 }
 
@@ -30,7 +36,6 @@
 #fileStructure ul {
     list-style:none;
     padding-left: 0px;
-    /*padding: 5vh 0vw 0vh 0vw;*/
     border-left: 1px solid rgb(190, 179, 164);
 }
 #fileStructure ul li {
@@ -42,14 +47,15 @@
 }
 #fileStructure ul .document {
     color: var(--main-font-color);
-    /*display: inline-block;*/
     display: block;
     cursor:pointer;
     height: 24px;
-    /*padding-left: 17px;*/ /* TODO: placeholder - replace this with a document symbol (or doc type) */
 }
 #fileStructure ul .document:hover {
     background: var(--highlight-color);
+}
+#fileStructure ul .document.active {
+    background: var(--active-file-color);
 }
 
 #fileStructure ul .document::before {
@@ -61,6 +67,9 @@
 
 #fileStructure label:hover {
     background: var(--highlight-color);
+}
+#fileStructure label.active {
+    background: var(--active-file-color);
 }
 #fileStructure label {
     color: var(--main-font-color);
@@ -134,7 +143,7 @@
 }
 
 .tabActive {
-    background: rgb(100,100,100);
+    background: var(--active-tab-color);
     --cross-color: var(--main-font-color);
 }
 
