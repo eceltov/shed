@@ -10,6 +10,7 @@ class FileStructure extends React.Component {
         this.renameFile = this.renameFile.bind(this);
         this.selectFile = this.selectFile.bind(this);
         this.clearState = this.clearState.bind(this);
+        this.getContent = this.getContent.bind(this);
         this.state = {
             toSpawnDocument: null, // file ID of a folder that shall spawn a EditableFile element
             toSpawnFolder: null, // file ID of a folder that shall spawn a EditableFile element
@@ -87,29 +88,46 @@ class FileStructure extends React.Component {
         this.clearState();
     }
 
+    getContent() {
+        if (this.props.fileStructure === null) {
+            return (
+                <div className="waitingMessage">
+                    {"Waiting on server..."}
+                </div>
+            );
+        }
+        else {
+            return (
+                <div>
+                    <div className="fileOperations">
+                        <FileOperation key="a" text="+doc" func={this.onCreateDocument} />
+                        <FileOperation key="b" text="+folder" func={this.onCreateFolder} />
+                        <FileOperation key="c" text="rename" func={this.onRenameFile} />
+                        <FileOperation key="d" text="delete" func={this.onDeleteFile} />
+                    </div>
+                    <FileStructureFolder
+                        fileID="0"
+                        name={this.props.fileStructure.name}
+                        items={this.props.fileStructure.items} 
+                        activeFile={this.props.activeFile}
+                        toSpawnDocument={this.state.toSpawnDocument}
+                        toSpawnFolder={this.state.toSpawnFolder}
+                        toBeRenamed={this.state.toBeRenamed}
+                        selectFile={this.selectFile}
+                        createDocument={this.createDocument}
+                        createFolder={this.createFolder}
+                        renameFile={this.renameFile}
+                        abortFileOp={this.clearState}
+                    />
+                </div>
+            );
+        }
+    }
+
     render() {
         return (
             <div id="fileStructure">
-                <div className="fileOperations">
-                    <FileOperation key="a" text="+doc" func={this.onCreateDocument} />
-                    <FileOperation key="b" text="+folder" func={this.onCreateFolder} />
-                    <FileOperation key="c" text="rename" func={this.onRenameFile} />
-                    <FileOperation key="d" text="delete" func={this.onDeleteFile} />
-                </div>
-                <FileStructureFolder
-                    fileID="0"
-                    name="Workspace Name" 
-                    items={this.props.fileStructure === null ? null : this.props.fileStructure.items} 
-                    activeFile={this.props.activeFile}
-                    toSpawnDocument={this.state.toSpawnDocument}
-                    toSpawnFolder={this.state.toSpawnFolder}
-                    toBeRenamed={this.state.toBeRenamed}
-                    selectFile={this.selectFile}
-                    createDocument={this.createDocument}
-                    createFolder={this.createFolder}
-                    renameFile={this.renameFile}
-                    abortFileOp={this.clearState}
-                />
+                {this.getContent()}
             </div>
         );
     }

@@ -34,6 +34,11 @@ Notes: handle bigger and smaller resolutions
     font-size: 15px;
 }
 
+.waitingMessage {
+    color: var(--main-font-color);
+    margin: 5px 0 0 5px;
+}
+
 .fileOperation {
     color: var(--main-font-color);
     display: inline-block;
