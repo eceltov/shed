@@ -101,7 +101,8 @@ class Workspace extends React.Component {
         // if the document is opened, make that tab active
         if(this.openedDocuments.has(fileID)) {
             this.setState({
-                activeTab: fileID
+                activeTab: fileID,
+                activeFile: fileID
             });
         }
         // if the document is already requested, do nothing (wait for it)
