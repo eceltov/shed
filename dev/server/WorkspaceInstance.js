@@ -6,7 +6,6 @@ const msgTypes = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const fs = require('fs');
 const fsOps = require('../lib/fileStructureOps');
-const { Console } = require('console');
 const roles = require('../lib/roles');
 
 ///TODO: save structure.json and pathMap.json regularly, else progress may be lost
@@ -37,7 +36,7 @@ class WorkspaceInstance {
         // attributes for client management
         this.clients = new Map(); // maps clientIDs to an object:  { connection, documents[] }
 
-        this.pathMap = null; // maps file IDs to file paths
+        this.pathMap = null; // maps file IDs to ID file paths
 
         this.fileStructure = null;
     }
@@ -50,7 +49,8 @@ class WorkspaceInstance {
         this.database = databaseGateway;
         this.workspaceHash = workspaceHash;
         this.fileStructure = this.database.getFileStructureJSON(this.workspaceHash);
-        this.pathMap = new Map(this.database.getPathMapJSON(this.workspaceHash));
+        this.pathMap = fsOps.getIDPathMap(this.fileStructure);
+        //this.pathMap = new Map(this.database.getPathMapJSON(this.workspaceHash));
 
         console.log("Workspace initialized.");
     }
@@ -75,6 +75,7 @@ class WorkspaceInstance {
         const documents = this.clients.get(clientID).documents;
         documents.forEach(document => document.removeConnection(clientID));
         this.clients.delete(clientID);
+        this.closeWorkspace(); ///TODO: this should not be here
     }
 
     closeConnection(clientID) {
@@ -98,7 +99,7 @@ class WorkspaceInstance {
     sendMessageToClients(messageString) {
         let clientIterator = this.clients.values();
         for (let i = 0; i < this.clients.size; i++) {
-            clientIterator.next().value.sendUTF(messageString);
+            clientIterator.next().value.connection.sendUTF(messageString);
         }
     }
 
@@ -291,9 +292,10 @@ class WorkspaceInstance {
             response.fileID = documentObj.ID;
         }*/
 
-        const documentObj = fsOps.getNewDocumentObj(this.fileStructure.nextID++)
-        if (fsOps.addFile(this.fileStructure, this.pathMap, parentID, name, documentObj)) {
-            const DBSuccess = this.database.createDocument(this.workspaceHash, this.pathMap.get(documentObj.ID));
+        const documentObj = fsOps.getNewDocumentObj(this.fileStructure.nextID++, name)
+        if (fsOps.addFile(this.fileStructure, this.pathMap, parentID, documentObj)) {
+            const absolutePath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(documentObj.ID));
+            const DBSuccess = this.database.createDocument(this.workspaceHash, absolutePath);
             if (!DBSuccess) {
                 fsOps.removeFile(this.fileStructure, this.pathMap, documentObj.ID);
             }
@@ -346,9 +348,10 @@ class WorkspaceInstance {
             response.fileID = folderObj.ID;
         }*/
 
-        const folderObj = fsOps.getNewFolderObj(this.fileStructure.nextID++)
-        if (fsOps.addFile(this.fileStructure, this.pathMap, parentID, name, folderObj)) {
-            const DBSuccess = this.database.createFolder(this.workspaceHash, this.pathMap.get(folderObj.ID));
+        const folderObj = fsOps.getNewFolderObj(this.fileStructure.nextID++, name);
+        if (fsOps.addFile(this.fileStructure, this.pathMap, parentID, folderObj)) {
+            const absolutePath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(folderObj.ID));
+            const DBSuccess = this.database.createFolder(this.workspaceHash, absolutePath);
             if (!DBSuccess) {
                 fsOps.removeFile(this.fileStructure, this.pathMap, folderObj.ID);
             }
@@ -390,7 +393,8 @@ class WorkspaceInstance {
         }*/
 
         if (fsOps.removeFile(this.fileStructure, this.pathMap, fileID)) {
-            const DBSuccess = this.database.deleteDocument(this.workspaceHash, this.pathMap.get(fileID));
+            const absolutePath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(fileID));
+            const DBSuccess = this.database.deleteDocument(this.workspaceHash, absolutePath);
             if (!DBSuccess) {
                 ///TODO: try it again later
             }
@@ -434,7 +438,8 @@ class WorkspaceInstance {
         return success;*/
 
         if (fsOps.removeFile(this.fileStructure, this.pathMap, fileID)) {
-            const DBSuccess = this.database.deleteFolder(this.workspaceHash, this.pathMap.get(fileID));
+            const absolutePath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(fileID));
+            const DBSuccess = this.database.deleteFolder(this.workspaceHash, absolutePath);
             if (!DBSuccess) {
                 ///TODO: try it again later
             }
@@ -474,9 +479,9 @@ class WorkspaceInstance {
             this.pathMap.set(fileID, newPath);
         }*/
 
-        const oldPath = this.pathMap.get(fileID);
+        const oldPath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(fileID));
         if (fsOps.renameFile(this.fileStructure, this.pathMap, fileID, newName)) {
-            const newPath = this.pathMap.get(fileID);
+            const newPath = fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(fileID));
             const DBSuccess = this.database.renameFile(this.workspaceHash, oldPath, newPath);
             if (!DBSuccess) {
                 ///TODO: try it again later
@@ -591,9 +596,8 @@ class WorkspaceInstance {
     startDocument(fileID) {
         if (this.documents.get(fileID) !== undefined) return;
 
-        const path = this.pathMap.get(fileID);
         let document = new DocumentInstance();
-        document.initialize(path, fileID, this.workspaceHash, this.database);
+        document.initialize(this.fileStructure, this.pathMap, fileID, this.workspaceHash, this.database);
         document.log = this.log;
         this.documents.set(fileID, document);
         ///TODO: check if succeeded.
@@ -604,13 +608,14 @@ class WorkspaceInstance {
      * @brief Closes the workspace and all document instances. Saves all opened documents and updates the file structure.
      */
     closeWorkspace() {
+        console.log("Closing Workspace");
         let documentIterator = this.documents.values();
         for (let i = 0; i < this.documents.size; i++) {
             documentIterator.next().value.closeInstance();
         }
 
         this.database.changeFileStructure(this.workspaceHash, JSON.stringify(this.fileStructure));
-        this.database.changePathMap(this.workspaceHash, JSON.stringify(Array.from(this.pathMap.entries())));
+        //this.database.changePathMap(this.workspaceHash, JSON.stringify(Array.from(this.pathMap.entries())));
     }
 }
 

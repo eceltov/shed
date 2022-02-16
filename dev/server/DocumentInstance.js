@@ -6,6 +6,7 @@ const roles = require('../lib/roles');
 const msgTypes = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const DatabaseGateway = require('../database/DatabaseGateway');
+const fsOps = require('../lib/fileStructureOps');
 const fs = require('fs');
 
 
@@ -17,13 +18,15 @@ class DocumentInstance {
         this.initializeClient = this.initializeClient.bind(this);
         this.clientPresent = this.clientPresent.bind(this);
 
+        this.fileStructure = null;
+        this.pathMap = null;
+
         // attributes for document maintenance
         this.HB = [];
         this.serverOrdering = [];
         this.firstSOMessageNumber = 0; // the total serial number of the first SO entry
         this.document = null;
         this.fileID = null; // the ID of the document
-        this.documentPath = null; // the document path will always be provided by the Controller
         this.database = null;
         this.workspaceHash = null;
 
@@ -46,10 +49,11 @@ class DocumentInstance {
      * @brief Initializes the document instance by loading the document from the database.
      * @param {*} path The absolute path to the document (inside the workspace folder).
      */
-    initialize(documentPath, fileID, workspaceHash, databaseGateway) {
+    initialize(fileStructure, pathMap, fileID, workspaceHash, databaseGateway) {
         this.workspaceHash = workspaceHash;
         this.database = databaseGateway;
-        this.documentPath = documentPath;
+        this.fileStructure = fileStructure;
+        this.pathMap = pathMap;
         this.fileID = fileID;
         this.document = this.getInitialDocument();
 
@@ -85,7 +89,7 @@ class DocumentInstance {
         let document;
 
         try {
-            const data = this.database.getDocumentData(this.workspaceHash, this.documentPath);
+            const data = this.database.getDocumentData(this.workspaceHash, fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(this.fileID)));
             document = data.split(/\r?\n/);
         }
         catch (err) {
@@ -102,7 +106,7 @@ class DocumentInstance {
     updateDocumentFile() {
         let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
         // erase file content and write first line
-        this.database.writeDocumentData(this.workspaceHash, this.documentPath, documentCopy);
+        this.database.writeDocumentData(this.workspaceHash, fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(this.fileID)), documentCopy);
         if (this.log) console.log("Updated file in database.");
     }
 

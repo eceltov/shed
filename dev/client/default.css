@@ -33,6 +33,14 @@ Notes: handle bigger and smaller resolutions
     font-size: 15px;
 }
 
+.fileOperation {
+    color: var(--main-font-color);
+    display: inline-block;
+    cursor: pointer;
+    margin-left: 10px;
+    background-color: rgb(60,60,60);
+}
+
 #fileStructure ul {
     list-style:none;
     padding-left: 0px;
@@ -48,7 +56,7 @@ Notes: handle bigger and smaller resolutions
 #fileStructure ul .document {
     color: var(--main-font-color);
     display: block;
-    cursor:pointer;
+    cursor: pointer;
     height: 24px;
 }
 #fileStructure ul .document:hover {

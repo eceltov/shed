@@ -29,6 +29,15 @@ class Workspace extends React.Component {
                     <script src="lib/clientMessageFactory.js" type="text/javascript"></script>
                     <script src="lib/fileStructureOps.js" type="text/javascript"></script>
                     <script src="lib/ManagedSession.js" type="text/javascript"></script>
+                    <script src="client/EditableFile.js" type="text/babel"></script>
+                    <script src="client/FileOperation.js" type="text/babel"></script>
+                    <script src="client/FileStructure.js" type="text/babel"></script>
+                    <script src="client/FileStructureDocument.js" type="text/babel"></script>
+                    <script src="client/FileStructureFolder.js" type="text/babel"></script>
+                    <script src="client/Tab.js" type="text/babel"></script>
+                    <script src="client/TabBar.js" type="text/babel"></script>
+                    <script src="client/WelcomeScreen.js" type="text/babel"></script>
+                    <script src="client/Workspace.js" type="text/babel"></script>
                     <script src="client/client.js" type="text/babel"></script>
 
                 </head>

@@ -7,17 +7,19 @@ if (typeof fsOps === 'undefined') {
 fsOps.types.document = 0;
 fsOps.types.folder = 1;
 
-fsOps.getNewDocumentObj = function(fileID) {
+fsOps.getNewDocumentObj = function(fileID, name) {
     return {
         type: fsOps.types.document,
-        ID: fileID
+        ID: fileID,
+        name: name
     };
 }
 
-fsOps.getNewFolderObj = function(fileID) {
+fsOps.getNewFolderObj = function(fileID, name) {
     return {
         type: fsOps.types.folder,
         ID: fileID,
+        name: name,
         items: {}
     };
 }
@@ -34,16 +36,14 @@ fsOps.getIDPathMap = function(fileStructure) {
 }
 
 fsOps._getIDPathMapRecursion = function(folderObj, parentPath, map) {
-    Object.entries(folderObj.items).forEach((keyValuePair) => {
-        const name = keyValuePair[0];
-        const fileObj = keyValuePair[1];
-        const currentPath = parentPath + name;
+    for (let fileObj of Object.values(folderObj.items)) {
+        const currentPath = parentPath + fileObj.ID.toString();
         map.set(fileObj.ID, currentPath);
         if (fileObj.type === fsOps.types.folder) {
             const folderPath = currentPath + "/";
             fsOps._getIDPathMapRecursion(fileObj, folderPath, map);
         }
-    });
+    }
 }
 
 fsOps.getFileObjectFromPath = function(fileStructure, path) {
@@ -89,17 +89,27 @@ fsOps.getParentFileObject = function(fileStructure, pathMap, fileID) {
 }
 
 /**
+ * @param {*} fileStructure The root of the file structure.
  * @param {*} path The path to a file that does not end with /
  * @returns Returns the name of a file based on its path.
  */
-fsOps.getFileNameFromPath = function(path) {
-    const parentFolderEndIndex = path.lastIndexOf('/');
-    if (parentFolderEndIndex === -1) {
-        return path;
+fsOps.getFileNameFromPath = function(fileStructure, path) {
+    const file = fsOps.getFileObjectFromPath(fileStructure, path);
+    if (file === null) {
+        return null;
     }
-    else {
-        return path.substring(parentFolderEndIndex + 1);
+    return file.name;
+}
+
+fsOps.checkIfFolderHasFileName = function(folderObj, name) {
+    let present = false;
+    for (let fileObj of Object.values(folderObj.items)) {
+        if (fileObj.name === name) {
+            present = true;
+            break;
+        }
     }
+    return present;
 }
 
 /**
@@ -107,22 +117,21 @@ fsOps.getFileNameFromPath = function(path) {
  * @param {*} fileStructure The root of the file structure.
  * @param {*} pathMap The map of fileIDs to filePaths.
  * @param {*} parentID The ID of the parent folder of the new file.
- * @param {*} fileName The name of the new file.
  * @param {*} fileObj The object of the new file.
  * @returns Returns true if successfull, else returns false.
  */
-fsOps.addFile = function(fileStructure, pathMap, parentID, fileName, fileObj) {
+fsOps.addFile = function(fileStructure, pathMap, parentID, fileObj) {
     if (!pathMap.has(parentID)) {
         return false;
     }
 
     const parent = fsOps.getFileObject(fileStructure, pathMap, parentID);
-    if (parent.type !== fsOps.types.folder || parent.items[fileName] !== undefined) {
+    if (parent.type !== fsOps.types.folder || parent.items[fileObj.ID] !== undefined || fsOps.checkIfFolderHasFileName(parent, fileObj.name)) {
         return false;
     }
 
-    parent.items[fileName] = fileObj;
-    const filePath = (parentID === 0 ? "" : pathMap.get(parentID) + "/") + fileName;
+    parent.items[fileObj.ID] = fileObj;
+    const filePath = (parentID === 0 ? "" : pathMap.get(parentID) + "/") + fileObj.ID;
     pathMap.set(fileObj.ID, filePath);
 
     return true;
@@ -141,17 +150,15 @@ fsOps.removeFile = function(fileStructure, pathMap, fileID) {
         return false;
     }
 
-    const parentFolder = fsOps.getParentFileObject(fileStructure, pathMap, fileID);
-    const fileName = fsOps.getFileNameFromPath(pathMap.get(fileID));
-    const file = parentFolder.items[fileName];
+    const parentFolderObj = fsOps.getParentFileObject(fileStructure, pathMap, fileID);
+    const fileObj = parentFolderObj[fileID];
 
-    // remove all nested files from pathMap
-    if (file.type === fsOps.types.folder) {
-        fsOps._removeFileRecursion(pathMap, file.items);
+    if (fileObj.type === fsOps.types.folder) {
+        fsOps._removeFileRecursion(pathMap, fileObj.items);
     }
 
     pathMap.delete(file.ID);
-    delete parentFolder.items[fileName];
+    delete parentFolder.items[fileID];
     return true;
 }
 
@@ -174,18 +181,14 @@ fsOps.renameFile = function(fileStructure, pathMap, fileID, newName) {
         return false;
     }
 
-    const parentFolder = fsOps.getParentFileObject(fileStructure, pathMap, fileID);
-
-    if (parentFolder.items[newName] !== undefined) {
+    const parentFolder = fsOps.getParentFileObject(fileStructure, pathMap, fileID)
+    if (fsOps.checkIfFolderHasFileName(parentFolder, newName)) {
         return false;
     }
 
-    const oldName = fsOps.getFileNameFromPath(pathMap.get(fileID));
-    parentFolder.items[newName] = parentFolder.items[oldName];
-    delete parentFolder.items[oldName];
-
-    const newPath = parentFolder.ID === 0 ? newName : pathMap.get(parentFolder.ID) + "/" + newName;
-    pathMap.set(fileID, newPath);
+    const fileObj = parentFolder.items[fileID];
+    fileObj.name = newName;
+    return true;
 }
 
 fsOps.isDocument = function(fileStructure, pathMap, fileID) {
@@ -196,11 +199,34 @@ fsOps.isDocument = function(fileStructure, pathMap, fileID) {
     }
 
     const documentObj = fsOps.getFileObjectFromPath(fileStructure, path);
+    if (documentObj === null) {
+        console.log("DocumentObj === null, path:", path);
+        return false;
+    }
     if (documentObj.type !== fsOps.types.document) {
         return false;
     }
 
     return true;
+}
+
+fsOps.getAbsolutePathFromIDPath = function(fileStructure, path) {
+    let absolutePath = "";
+    const tokens = path.split('/');
+
+    let obj = fileStructure;
+    for (let i = 0; i < tokens.length - 1; i++) {
+        obj = obj.items[tokens[i]];
+        if (obj === undefined || obj.type !== fsOps.types.folder) {
+            return null;
+        }
+        absolutePath += obj.name + '/';
+    }
+    obj = obj.items[tokens[tokens.length - 1]];
+    if (obj === undefined) {
+        return null;
+    }
+    return absolutePath + obj.name;
 }
 
 
