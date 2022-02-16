@@ -20,6 +20,7 @@ class DocumentInstance {
 
         this.fileStructure = null;
         this.pathMap = null;
+        this.toBeDeleted = false;
 
         // attributes for document maintenance
         this.HB = [];
@@ -104,10 +105,12 @@ class DocumentInstance {
      * @brief Writes the content of the local document to the output document path.
      */
     updateDocumentFile() {
-        let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
-        // erase file content and write first line
-        this.database.writeDocumentData(this.workspaceHash, fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(this.fileID)), documentCopy);
-        if (this.log) console.log("Updated file in database.");
+        if (!this.toBeDeleted) {
+            let documentCopy = JSON.parse(JSON.stringify(this.document)); // deep copy
+            // erase file content and write first line
+            this.database.writeDocumentData(this.workspaceHash, fsOps.getAbsolutePathFromIDPath(this.fileStructure, this.pathMap.get(this.fileID)), documentCopy);
+            if (this.log) console.log("Updated file in database.");
+        }
     }
 
     /**
@@ -273,6 +276,11 @@ class DocumentInstance {
         this.clients = new Map();
 
         this.updateDocumentFile();
+    }
+
+    delete() {
+        this.clients = new Map();
+        this.toBeDeleted = true;
     }
 }
 

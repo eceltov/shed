@@ -8,6 +8,8 @@ class FileStructure extends React.Component {
         this.createDocument = this.createDocument.bind(this);
         this.createFolder = this.createFolder.bind(this);
         this.renameFile = this.renameFile.bind(this);
+        this.selectFile = this.selectFile.bind(this);
+        this.clearState = this.clearState.bind(this);
         this.state = {
             toSpawnDocument: null, // file ID of a folder that shall spawn a EditableFile element
             toSpawnFolder: null, // file ID of a folder that shall spawn a EditableFile element
@@ -17,17 +19,44 @@ class FileStructure extends React.Component {
 
     // callbacks for FileOperation components
     onCreateDocument() {
-        this.setState({toSpawnDocument: this.props.activeFile});
+        if (this.state.toSpawnDocument === this.props.activeFile) {
+            this.clearState();
+        }
+        else {
+            this.setState({
+                toSpawnDocument: this.props.activeFile,
+                toSpawnFolder: null,
+                toBeRenamed: null
+            });
+        }
+        
     }
     onCreateFolder() {
-        this.setState({toSpawnFolder: this.props.activeFile});
+        if (this.state.toSpawnFolder === this.props.activeFile) {
+            this.clearState();
+        }
+        else {
+            this.setState({
+                toSpawnDocument: null,
+                toSpawnFolder: this.props.activeFile,
+                toBeRenamed: null
+            });
+        }
     }
     onDeleteFile() {
         this.props.deleteFile();
     }
     onRenameFile() {
-        console.log("rename FS");
-        this.setState({toBeRenamed: this.props.activeFile});
+        if (this.state.toBeRenamed === this.props.activeFile) {
+            this.clearState();
+        }
+        else {
+            this.setState({
+                toSpawnDocument: null,
+                toSpawnFolder: null,
+                toBeRenamed: this.props.activeFile
+            });
+        }
     }
 
     // callbacks for FileStructure components
@@ -43,6 +72,19 @@ class FileStructure extends React.Component {
     renameFile(newName) {
         this.setState({toBeRenamed: null});
         this.props.renameFile(newName);
+    }
+
+    clearState() {
+        this.setState({
+            toBeRenamed: null,
+            toSpawnDocument: null,
+            toSpawnFolder: null
+        });
+    }
+
+    selectFile(fileID) {
+        this.props.selectFile(fileID);
+        this.clearState();
     }
 
     render() {
@@ -62,10 +104,11 @@ class FileStructure extends React.Component {
                     toSpawnDocument={this.state.toSpawnDocument}
                     toSpawnFolder={this.state.toSpawnFolder}
                     toBeRenamed={this.state.toBeRenamed}
-                    selectFile={this.props.selectFile}
+                    selectFile={this.selectFile}
                     createDocument={this.createDocument}
                     createFolder={this.createFolder}
                     renameFile={this.renameFile}
+                    abortFileOp={this.clearState}
                 />
             </div>
         );

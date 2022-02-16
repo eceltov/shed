@@ -11,6 +11,7 @@ Notes: handle bigger and smaller resolutions
     --active-file-color: rgb(80, 80, 80);
     --top-bar-color: rgb(40, 40, 40);
     --main-font-color: rgb(250, 235, 215);
+    --file-structure-element-height: 24px;
 }
 
 #welcomeScreen {
@@ -38,7 +39,22 @@ Notes: handle bigger and smaller resolutions
     display: inline-block;
     cursor: pointer;
     margin-left: 10px;
-    background-color: rgb(60,60,60);
+    background: rgb(60,60,60);
+}
+
+#editableFile {
+    height: var(--file-structure-element-height);
+    color: var(--main-font-color);
+    background: var(--active-file-color);
+    width: 100%;
+    outline: none;
+    box-shadow: none;
+    border: none;
+}
+#editableFile:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
 }
 
 #fileStructure ul {
@@ -57,7 +73,7 @@ Notes: handle bigger and smaller resolutions
     color: var(--main-font-color);
     display: block;
     cursor: pointer;
-    height: 24px;
+    height: var(--file-structure-element-height);
 }
 #fileStructure ul .document:hover {
     background: var(--highlight-color);
@@ -82,7 +98,7 @@ Notes: handle bigger and smaller resolutions
 #fileStructure label {
     color: var(--main-font-color);
     display: block;
-    height: 24px;
+    height: var(--file-structure-element-height);
     padding: 0 5px 0 0;
     margin: 0px;
     cursor:pointer;
@@ -94,10 +110,14 @@ Notes: handle bigger and smaller resolutions
     visibility:hidden;
     position:absolute;
 }
-#fileStructure .folder:not(:checked) ~ ul li {
+.hidden {
     display:none;
     margin-top:0;
 }
+/*#fileStructure .folder:not(:checked) ~ ul li {
+    display:none;
+    margin-top:0;
+}*/
 
 /* Arrow before closed folder */
 #fileStructure .folder:not(:checked) ~ label::before {

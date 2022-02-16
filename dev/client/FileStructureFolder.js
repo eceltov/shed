@@ -1,11 +1,20 @@
 class FileStructureFolder extends React.Component {
     constructor(props) {
         super(props);
-        this.handleOnClick = this.handleOnClick.bind(this);
+        this.handleOnChange = this.handleOnChange.bind(this);
+        this.createEditableFile = this.createEditableFile.bind(this);
+        this.getULClassName = this.getULClassName.bind(this);
+        this.shouldBeChecked = this.shouldBeChecked.bind(this);
+        this.state = {
+            checked: false
+        }
     }
 
-    handleOnClick(e) {
+    handleOnChange(e) {
         this.props.selectFile(this.props.fileID);
+        this.setState({
+            checked: e.target.checked
+        });
     }
 
     createDocument(fileID, name, renamable=false) {
@@ -18,6 +27,7 @@ class FileStructureFolder extends React.Component {
                 activeFile={this.props.activeFile}
                 selectFile={this.props.selectFile}
                 renameFile={this.props.renameFile}
+                abortFileOp={this.props.abortFileOp}
             />
         );
     }
@@ -38,22 +48,36 @@ class FileStructureFolder extends React.Component {
                 createDocument={this.props.createDocument}
                 createFolder={this.props.createFolder}
                 renameFile={this.props.renameFile}
+                abortFileOp={this.props.abortFileOp}
             />
         );
     }
 
-    createEditableFile(callback) {
+    createEditableFile(callback, name) {
         return (
-            <EditableFile key={this.props.fileID + "b"} onFinalize={callback} />
+            <li>
+                <EditableFile key={this.props.fileID + "b"} abortFileOp={this.props.abortFileOp} onFinalize={callback} name={name} />
+            </li>
         );
+    }
+
+    shouldBeChecked() {
+        return this.state.checked || this.props.toSpawnDocument === this.props.fileID || this.props.toSpawnFolder === this.props.fileID;
+    }
+
+    getULClassName() {
+        if (this.shouldBeChecked()) {
+            return "";
+        }
+        return "hidden";
     }
 
     createStandardFolderContent() {
         return (
             <li>
-                <input type="checkbox" id={this.props.fileID} onClick={this.handleOnClick} className="folder"/> 
+                <input type="checkbox" id={this.props.fileID} onChange={this.handleOnChange} className="folder" checked={this.shouldBeChecked()} /> 
                 <label htmlFor={this.props.fileID} className={this.props.activeFile === this.props.fileID ? "active" : ""}>{this.props.name}</label>   
-                <ul>
+                <ul className={this.getULClassName()} >
                     {this.props.items === null ? null : Object.values(this.props.items).map(fileObj => this.createItem(fileObj))}
                     {this.props.fileID === this.props.toSpawnDocument ? this.createEditableFile(this.props.createDocument) : null}
                     {this.props.fileID === this.props.toSpawnFolder ? this.createEditableFile(this.props.createFolder) : null}
@@ -65,8 +89,8 @@ class FileStructureFolder extends React.Component {
     createRenamableFolderContent() {
         return (
             <li>
-                <EditableFile onFinalize={this.props.renameFile} /> 
-                <ul>
+                {this.createEditableFile(this.props.renameFile, this.props.name)}
+                <ul className={this.getULClassName()}>
                     {this.props.items === null ? null : Object.entries(this.props.items).map((keyValuePair) => this.createItem(keyValuePair[1], keyValuePair[0]))}
                 </ul>
             </li>

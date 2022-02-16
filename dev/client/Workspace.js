@@ -121,29 +121,53 @@ class Workspace extends React.Component {
         }
         else {
             this.destroyDocumentInstance(fileID);
+            this.closeTab(fileID);
+        }
+    }
 
-            let newTabs = to.prim.deepCopy(this.state.tabs);
-            const index = newTabs.indexOf(fileID);
-            if (index < 0) {
-                console.log("Tabs do not contain the fileID to be removed. FileID:", fileID, "tabs:", newTabs);
-                return;
+    /**
+     * @brief Closes the specified tab, selects a new tab and file to be active.
+     * @param {*} fileID The ID of the document to be closed.
+     * @param {*} stateSnapshot If specified, the function will not change the state but the one provided.
+     */
+    closeTab(fileID, stateSnapshot=null) {
+        let state = this.state;
+        if (stateSnapshot !== null) {
+            state = stateSnapshot;
+        }
+
+        let newTabs = to.prim.deepCopy(state.tabs);
+        const index = newTabs.indexOf(fileID);
+        if (index < 0) {
+            //console.log("Tabs do not contain the fileID to be removed. FileID:", fileID, "tabs:", newTabs);
+            return;
+        }
+        newTabs.splice(index, 1);
+
+        let newActiveTab = state.activeTab;
+        let newActiveFile = state.activeFile;
+        if (state.activeTab === fileID) {
+            if (newTabs.length > 0) {
+                newActiveTab = newTabs[0];
+                newActiveFile = newActiveTab;
             }
-            newTabs.splice(index, 1);
-
-            let newActiveTab = this.state.activeTab;
-            if (this.state.activeTab === fileID) {
-                if (newTabs.length > 0) {
-                    newActiveTab = newTabs[0];
-                }
-                else {
-                    newActiveTab = null;
-                }
+            else {
+                newActiveTab = null;
+                newActiveFile = null;
             }
+        }
 
+        if (stateSnapshot === null) {
             this.setState({
                 tabs: newTabs,
-                activeTab: newActiveTab
+                activeTab: newActiveTab,
+                activeFile: newActiveFile
             });
+        }
+        else {
+            stateSnapshot.tabs = newTabs;
+            stateSnapshot.activeTab = newActiveTab;
+            stateSnapshot.activeFile = newActiveFile;
         }
     }
 
@@ -155,9 +179,14 @@ class Workspace extends React.Component {
      */
     destroyDocumentInstance(fileID) {
         const managedSession = this.openedDocuments.get(fileID);
+        if (managedSession === undefined) {
+            return;
+        }
+
         this.savedCommitSerialNumbers.set(fileID, managedSession.getNextCommitSerialNumber());
 
         let that = this;
+        // wait for the messages in buffer to be sent
         setTimeout(function () {
             const message = {
                 msgType: msgTypes.client.closeDocument,
@@ -166,6 +195,14 @@ class Workspace extends React.Component {
             that.sendMessageToServer(JSON.stringify(message));
             that.openedDocuments.delete(fileID);
         }, managedSession.getListenInterval() + 100);
+    }
+
+    destroyDocumentInstanceSilentFast(fileID) {
+        const managedSession = this.openedDocuments.get(fileID);
+        if (managedSession !== undefined) {
+            this.savedCommitSerialNumbers.set(fileID, managedSession.getNextCommitSerialNumber());
+            this.openedDocuments.delete(fileID);
+        }
     }
 
     /**
@@ -208,15 +245,15 @@ class Workspace extends React.Component {
         else if (type === msgTypes.server.createDocument) {
             this.onCreateDocument(message);
         }
-        /*else if (type === msgTypes.server.createFolder) {
+        else if (type === msgTypes.server.createFolder) {
             this.onCreateFolder(message);
-        }*/
-        /*else if (type === msgTypes.server.deleteDocument) {
+        }
+        else if (type === msgTypes.server.deleteDocument) {
             this.onDeleteDocument(message);
-        }*/
-        /*else if (type === msgTypes.server.deleteFolder) {
+        }
+        else if (type === msgTypes.server.deleteFolder) {
             this.onDeleteFolder(message);
-        }*/
+        }
         else if (type === msgTypes.server.renameFile) {
             this.onRenameFile(message);
         }
@@ -260,7 +297,6 @@ class Workspace extends React.Component {
             const managedSession = new ManagedSession(session, this.clientID, message.fileID, commitSerialNumber, message.serverHB, message.serverOrdering, message.firstSOMessageNumber, this.sendMessageToServer);
 
             this.openedDocuments.set(message.fileID, managedSession);
-            console.log("Set fileID:", message.fileID);
             this.setState((prevState) => ({
                 tabs: [message.fileID, ...prevState.tabs],
                 activeTab: message.fileID
@@ -357,13 +393,70 @@ class Workspace extends React.Component {
         }
     }
 
-    renameFile(name) {
-        const message = msgFactory.renameFile(this.state.clientID, this.state.activeFile, name);
-        this.sendMessageToServer(JSON.stringify(message));
+    renameFile(newName) {
+        const name = fsOps.getFileNameFromID(this.state.fileStructure, this.pathMap, this.state.activeFile);
+        if (name !== newName) {
+            const message = msgFactory.renameFile(this.state.clientID, this.state.activeFile, newName);
+            this.sendMessageToServer(JSON.stringify(message));
+        }
     }
 
     onCreateDocument(message) {
+        let fileStructureCopy = to.prim.deepCopy(this.state.fileStructure);
+        const documentObj = fsOps.getNewDocumentObj(message.fileID, message.name);
+        fsOps.addFile(fileStructureCopy, this.pathMap, message.parentID, documentObj);
+        this.setState({fileStructure: fileStructureCopy});
+    }
 
+    onCreateFolder(message) {
+        let fileStructureCopy = to.prim.deepCopy(this.state.fileStructure);
+        const folderObj = fsOps.getNewFolderObj(message.fileID, message.name);
+        fsOps.addFile(fileStructureCopy, this.pathMap, message.parentID, folderObj);
+        this.setState({fileStructure: fileStructureCopy});
+    }
+
+    onDeleteDocument(message) {
+        let fileStructureCopy = to.prim.deepCopy(this.state.fileStructure);
+        fsOps.removeFile(fileStructureCopy, this.pathMap, message.fileID);
+        this.closeTab(message.fileID);
+        this.destroyDocumentInstanceSilentFast();
+        this.setState({fileStructure: fileStructureCopy});
+    }
+
+    onDeleteFolder(message) {
+        let fileStructureCopy = to.prim.deepCopy(this.state.fileStructure);
+
+        const folderObj = fsOps.getFileObject(fileStructureCopy, this.pathMap, message.fileID);
+        if (folderObj === null) {
+            return;
+        }
+        const stateSnapshot = {
+            tabs: to.prim.deepCopy(this.state.tabs),
+            activeFile: this.state.activeFile,
+            activeTab: this.state.activeTab
+        }
+        this._recursiveFileDelete(fileStructureCopy, folderObj, stateSnapshot);
+
+        this.setState({
+            fileStructure: fileStructureCopy,
+            tabs: stateSnapshot.tabs,
+            activeFile: stateSnapshot.activeFile,
+            activeTab: stateSnapshot.activeTab
+        });
+    }
+
+    _recursiveFileDelete(fileStructure, fileObj, stateSnapshot) {
+        if (fileObj.type === fsOps.types.document) {
+            fsOps.removeFile(fileStructure, this.pathMap, fileObj.ID);
+            this.closeTab(fileObj.ID, stateSnapshot);
+            this.destroyDocumentInstanceSilentFast();
+        }
+        else if (fileObj.type === fsOps.types.folder) {
+            for (const nestedFileObj of Object.values(fileObj.items)) {
+                this._recursiveFileDelete(fileStructure, nestedFileObj, stateSnapshot);
+            }
+            fsOps.removeFile(fileStructure, this.pathMap, fileObj.ID);
+        }
     }
 
     onRenameFile(message) {

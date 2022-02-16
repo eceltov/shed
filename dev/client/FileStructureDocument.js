@@ -11,7 +11,7 @@ class FileStructureDocument extends React.Component {
     createRenamableDocumentContent() {
         return (
             <li>
-                <EditableFile onFinalize={this.props.renameFile} /> 
+                <EditableFile onFinalize={this.props.renameFile} abortFileOp={this.props.abortFileOp} name={this.props.name} /> 
             </li>
         );
     }

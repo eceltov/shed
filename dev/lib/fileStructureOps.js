@@ -7,6 +7,12 @@ if (typeof fsOps === 'undefined') {
 fsOps.types.document = 0;
 fsOps.types.folder = 1;
 
+fsOps.fileNameRegex = /^[^\\\/\:\*\?\"\<\>\|]*$/;
+
+fsOps.validateFileName = function(name) {
+    return fsOps.fileNameRegex.test(name) && name !== "." && name !== "..";
+}
+
 fsOps.getNewDocumentObj = function(fileID, name) {
     return {
         type: fsOps.types.document,
@@ -47,6 +53,10 @@ fsOps._getIDPathMapRecursion = function(folderObj, parentPath, map) {
 }
 
 fsOps.getFileObjectFromPath = function(fileStructure, path) {
+    if (typeof path !== "string") {
+        console.log("Absolute path is null!");
+        return null;
+    }
     const tokens = path.split('/');
     let obj = fileStructure;
     for (let i = 0; i < tokens.length; i++) {
@@ -101,6 +111,17 @@ fsOps.getFileNameFromPath = function(fileStructure, path) {
     return file.name;
 }
 
+fsOps.getFileNameFromID = function(fileStructure, pathMap, fileID) {
+    if (!pathMap.has(fileID)) {
+        return null;
+    }
+    const fileObj = fsOps.getFileObject(fileStructure, pathMap, fileID);
+    if (fileObj === null) {
+        return null;
+    }
+    return fileObj.name;
+}
+
 fsOps.checkIfFolderHasFileName = function(folderObj, name) {
     let present = false;
     for (let fileObj of Object.values(folderObj.items)) {
@@ -151,14 +172,14 @@ fsOps.removeFile = function(fileStructure, pathMap, fileID) {
     }
 
     const parentFolderObj = fsOps.getParentFileObject(fileStructure, pathMap, fileID);
-    const fileObj = parentFolderObj[fileID];
+    const fileObj = parentFolderObj.items[fileID];
 
     if (fileObj.type === fsOps.types.folder) {
-        fsOps._removeFileRecursion(pathMap, fileObj.items);
+        fsOps._removeFileRecursion(pathMap, fileObj);
     }
 
-    pathMap.delete(file.ID);
-    delete parentFolder.items[fileID];
+    pathMap.delete(fileID);
+    delete parentFolderObj.items[fileID];
     return true;
 }
 
@@ -168,9 +189,9 @@ fsOps.removeFile = function(fileStructure, pathMap, fileID) {
  * @param {*} folderObj A fileStructure object representing a folder.
  */
 fsOps._removeFileRecursion = function(pathMap, folderObj) {
-    for (let item of folderObj.items) {
+    for (let item of Object.values(folderObj.items)) {
         if (item.type === fsOps.types.folder) {
-            fsOps.recursivePathDelete(pathMap, item);
+            fsOps._removeFileRecursion(pathMap, item);
         }
         pathMap.delete(item.ID);
     }
@@ -211,6 +232,10 @@ fsOps.isDocument = function(fileStructure, pathMap, fileID) {
 }
 
 fsOps.getAbsolutePathFromIDPath = function(fileStructure, path) {
+    if (typeof path !== "string") {
+        console.log("Absolute path is null!");
+        return null;
+    }
     let absolutePath = "";
     const tokens = path.split('/');
 
