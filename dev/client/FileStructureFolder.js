@@ -6,7 +6,7 @@ class FileStructureFolder extends React.Component {
         this.getULClassName = this.getULClassName.bind(this);
         this.shouldBeChecked = this.shouldBeChecked.bind(this);
         this.state = {
-            checked: false
+            checked: this.props.fileID == 0
         }
     }
 
