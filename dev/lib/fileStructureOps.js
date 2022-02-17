@@ -37,6 +37,7 @@ fsOps.getNewFolderObj = function(fileID, name) {
 fsOps.getIDPathMap = function(fileStructure) {
     const map = new Map();
     const path = "";
+    map.set(fileStructure.ID, path); // path to root
     fsOps._getIDPathMapRecursion(fileStructure, path, map);
     return map;
 }
@@ -57,6 +58,10 @@ fsOps.getFileObjectFromPath = function(fileStructure, path) {
         console.log("Absolute path is null!");
         return null;
     }
+    if (path === "") {
+        return fileStructure;
+    }
+
     const tokens = path.split('/');
     let obj = fileStructure;
     for (let i = 0; i < tokens.length; i++) {

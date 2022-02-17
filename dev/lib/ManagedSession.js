@@ -124,6 +124,7 @@ class ManagedSession {
         const response = {
             msgType: msgTypes.client.GCMetadataResponse,
             clientID: this.clientID,
+            fileID: this.fileID,
             dependancy: dependancy
         };
         this.sendMessageToServer(JSON.stringify(response));

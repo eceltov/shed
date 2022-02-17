@@ -7,6 +7,7 @@ const msgFactory = require('../lib/serverMessageFactory');
 const fs = require('fs');
 const fsOps = require('../lib/fileStructureOps');
 const roles = require('../lib/roles');
+const { type } = require('express/lib/response');
 
 ///TODO: save structure.json and pathMap.json regularly, else progress may be lost
 
@@ -119,6 +120,13 @@ class WorkspaceInstance {
             return;
         }
 
+        if (message.fileID !== undefined) {
+            message.fileID = parseInt(message.fileID);
+        }
+        if (message.parentID !== undefined) {
+            message.parentID = parseInt(message.parentID);
+        }
+
         if (message.msgType === msgTypes.client.getDocument) {
             this.handleDocumentRequest(message, clientID);
         }
@@ -142,7 +150,7 @@ class WorkspaceInstance {
         }
         // Operation, the client want to use the functionality of a document instance
         else {
-            const fileID = message[2];
+            const fileID = (message.msgType === undefined) ? message[2] : message.fileID;
             if (!client.documents.has(fileID)) {
                 console.log("!!! A client sent an operation to a document he does not have opened, fileID: ", fileID, "operation:", message);
             }
@@ -273,6 +281,9 @@ class WorkspaceInstance {
                 response.success = true;
                 response.fileID = documentObj.ID;
             }
+        }
+        else {
+            console.log("Document creation failed!");
         }
 
         return response;
