@@ -1,4 +1,4 @@
-const Controller = require("./controller/Controller");
+const Controller = require('./controller/Controller');
 
-var controller = new Controller();
+const controller = new Controller();
 controller.initialize();

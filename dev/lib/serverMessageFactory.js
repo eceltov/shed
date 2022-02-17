@@ -1,89 +1,90 @@
-var msgTypes = require('./messageTypes');
+const msgTypes = require('./messageTypes');
 
-var msgFactory = {};
+const msgFactory = {};
 
-msgFactory.initialize = function() {
+msgFactory.initialize = function initialize() {
 
-}
+};
 
 /**
  * @param {*} fileStructureItems The fileStructure.items property.
  * @param {*} role The role of the client.
  */
-msgFactory.initWorkspace = function(clientID, fileStructureItems, role) {
-    return {
-        msgType: msgTypes.server.initWorkspace,
-        clientID: clientID,
-        fileStructure: fileStructureItems,
-        role: role
-    };
-}
+msgFactory.initWorkspace = function initWorkspace(clientID, fileStructureItems, role) {
+  return {
+    msgType: msgTypes.server.initWorkspace,
+    clientID,
+    fileStructure: fileStructureItems,
+    role,
+  };
+};
 
-msgFactory.initDocument = function(serverDocument, fileID, serverHB, serverOrdering, firstSOMessageNumber) {
-    return {
-        msgType: msgTypes.server.initDocument,
-        serverDocument: serverDocument,
-        fileID: fileID,
-        serverHB: serverHB,
-        serverOrdering: serverOrdering,
-        firstSOMessageNumber: firstSOMessageNumber,
-    };
-}
+msgFactory.initDocument = function initDocument(
+  serverDocument, fileID, serverHB, serverOrdering, firstSOMessageNumber,
+) {
+  return {
+    msgType: msgTypes.server.initDocument,
+    serverDocument,
+    fileID,
+    serverHB,
+    serverOrdering,
+    firstSOMessageNumber,
+  };
+};
 
-msgFactory.GCMetadataRequest = function(fileID) {
-    return { 
-        msgType: msgTypes.server.GCMetadataRequest,
-        fileID: fileID
-    };
-}
+msgFactory.GCMetadataRequest = function GCMetadataRequest(fileID) {
+  return {
+    msgType: msgTypes.server.GCMetadataRequest,
+    fileID,
+  };
+};
 
-msgFactory.GC = function(fileID, GCOldestMessageNumber) {
-    return {
-        msgType: msgTypes.server.GC,
-        fileID: fileID,
-        GCOldestMessageNumber: GCOldestMessageNumber
-    };
-}
+msgFactory.GC = function GC(fileID, GCOldestMessageNumber) {
+  return {
+    msgType: msgTypes.server.GC,
+    fileID,
+    GCOldestMessageNumber,
+  };
+};
 
-msgFactory.createDocument = function(parentID, fileID, name) {
-    return {
-        msgType: msgTypes.server.createDocument,
-        parentID: parentID,
-        fileID: fileID,
-        name: name
-    };
-}
+msgFactory.createDocument = function createDocument(parentID, fileID, name) {
+  return {
+    msgType: msgTypes.server.createDocument,
+    parentID,
+    fileID,
+    name,
+  };
+};
 
-msgFactory.createFolder = function(parentID, fileID, name) {
-    return {
-        msgType: msgTypes.server.createFolder,
-        parentID: parentID,
-        fileID: fileID,
-        name: name
-    };
-}
+msgFactory.createFolder = function createFolder(parentID, fileID, name) {
+  return {
+    msgType: msgTypes.server.createFolder,
+    parentID,
+    fileID,
+    name,
+  };
+};
 
-msgFactory.deleteDocument = function(fileID) {
-    return {
-        msgType: msgTypes.server.deleteDocument,
-        fileID: fileID
-    };
-}
+msgFactory.deleteDocument = function deleteDocument(fileID) {
+  return {
+    msgType: msgTypes.server.deleteDocument,
+    fileID,
+  };
+};
 
-msgFactory.deleteFolder = function(fileID) {
-    return {
-        msgType: msgTypes.server.deleteFolder,
-        fileID: fileID,
-    };
-}
+msgFactory.deleteFolder = function deleteFolder(fileID) {
+  return {
+    msgType: msgTypes.server.deleteFolder,
+    fileID,
+  };
+};
 
-msgFactory.renameFile = function(fileID, name) {
-    return {
-        msgType: msgTypes.server.renameFile,
-        fileID: fileID,
-        name: name
-    };
-}
-
+msgFactory.renameFile = function renameFile(fileID, name) {
+  return {
+    msgType: msgTypes.server.renameFile,
+    fileID,
+    name,
+  };
+};
 
 module.exports = msgFactory;
