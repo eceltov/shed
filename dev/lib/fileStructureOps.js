@@ -182,6 +182,9 @@ fsOps.removeFile = function removeFile(fileStructure, pathMap, fileID) {
   }
 
   const parentFolderObj = fsOps.getParentFileObject(fileStructure, pathMap, fileID);
+
+  // it is safe to index into items of the parent folder, because fileID !== parentID
+  //    due to fileID !== 0 and the root folder being the only folder with it as its parent
   const fileObj = parentFolderObj.items[fileID];
 
   if (fileObj.type === fsOps.types.folder) {
@@ -217,6 +220,8 @@ fsOps.renameFile = function renameFile(fileStructure, pathMap, fileID, newName) 
     return false;
   }
 
+  // it is safe to index into items of the parent folder, because fileID !== parentID
+  //    due to fileID !== 0 and the root folder being the only folder with it as its parent
   const fileObj = parentFolder.items[fileID];
   fileObj.name = newName;
   return true;
