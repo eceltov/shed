@@ -404,7 +404,7 @@ class Workspace extends React.Component {
     if (fileObj !== null && fileObj.type === fsOps.types.document) {
       this.deleteDocument();
     }
-    if (fileObj !== null && fileObj.type === fsOps.types.folder) {
+    else if (fileObj !== null && fileObj.type === fsOps.types.folder) {
       this.deleteFolder();
     }
     else {
