@@ -13,7 +13,8 @@ class FileStructureFolder extends React.Component {
   }
 
   handleOnChange(e) {
-    this.props.selectFile(this.props.fileID);
+    const fileID = this.props.fileID;
+    this.props.selectFile(fileID);
     this.setState({
       checked: e.target.checked,
     });
@@ -58,7 +59,12 @@ class FileStructureFolder extends React.Component {
   createEditableFile(callback, name) {
     return (
       <li>
-        <EditableFile key={`${this.props.fileID}b`} abortFileOp={this.props.abortFileOp} onFinalize={callback} name={name} />
+        <EditableFile
+          key={`${this.props.fileID}b`}
+          abortFileOp={this.props.abortFileOp}
+          onFinalize={callback}
+          name={name}
+        />
       </li>
     );
   }
@@ -85,9 +91,11 @@ class FileStructureFolder extends React.Component {
           {this.props.items === null
             ? null
             : Object.values(this.props.items).map((fileObj) => this.createItem(fileObj))}
+
           {this.props.fileID === this.props.toSpawnDocument
             ? this.createEditableFile(this.props.createDocument)
             : null}
+
           {this.props.fileID === this.props.toSpawnFolder
             ? this.createEditableFile(this.props.createFolder)
             : null}

@@ -5,7 +5,8 @@ class FileStructureDocument extends React.Component {
   }
 
   handleOnClick(e) {
-    this.props.selectFile(this.props.fileID);
+    const fileID = this.props.fileID;
+    this.props.selectFile(fileID);
   }
 
   createRenamableDocumentContent() {

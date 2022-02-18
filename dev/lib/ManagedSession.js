@@ -37,6 +37,10 @@ class ManagedSession {
     this.session.on('change', this.handleChange);
   }
 
+  setMode(mode) {
+    this.session.setMode(mode);
+  }
+
   getSession() {
     return this.session;
   }

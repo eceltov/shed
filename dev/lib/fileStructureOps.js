@@ -89,6 +89,11 @@ fsOps.getParentFileObject = function getParentFileObject(fileStructure, pathMap,
     return null;
   }
 
+  // the parent of the root is the root
+  if (fileID === 0) {
+    return fileStructure;
+  }
+
   const path = pathMap.get(fileID);
 
   const parentFolderEndIndex = path.lastIndexOf('/');
@@ -257,6 +262,26 @@ fsOps.getAbsolutePathFromIDPath = function getAbsolutePathFromIDPath(fileStructu
     return null;
   }
   return absolutePath + obj.name;
+};
+
+/**
+ * @param {*} fileStructure The root of the file structure.
+ * @param {*} pathMap The map of fileIDs to filePaths.
+ * @param {*} fileID An ID of a document or folder.
+ * @returns Returns fileID if it points to a folder, else returns the ID of its parent.
+ */
+fsOps.getSpawnParentID = function getSpawnParentID(fileStructure, pathMap, fileID) {
+  const parentFolderObj = fsOps.getParentFileObject(
+    fileStructure, pathMap, fileID,
+  );
+  const fileObj = fsOps.getFileObject(
+    fileStructure, pathMap, fileID,
+  );
+
+  if (fileObj.type !== fsOps.types.folder) {
+    return parentFolderObj.ID;
+  }
+  return fileObj.ID;
 };
 
 module.exports = fsOps;

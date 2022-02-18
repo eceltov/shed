@@ -26,7 +26,6 @@ class Workspace extends React.Component {
       activeFile: null,
       tabs: [], // fileIDs in the same order as the final tabs
       aceTheme: 'ace/theme/chaos',
-      aceMode: 'ace/mode/javascript',
     };
 
     // eslint-disable-next-line react/no-unused-class-component-methods
@@ -282,6 +281,7 @@ class Workspace extends React.Component {
     this.setState({
       role: message.role,
       fileStructure: message.fileStructure,
+      activeFile: message.fileStructure.ID,
     });
   }
 
@@ -299,9 +299,11 @@ class Workspace extends React.Component {
     else {
       this.requestedDocuments.delete(message.fileID);
 
-      /// TODO: the mode should be determined based on the document type
-      const session = new EditSession(message.serverDocument, this.state.aceMode);
+      const name = fsOps.getFileNameFromID(this.state.fileStructure, this.pathMap, message.fileID);
+      const mode = modelist.getModeForPath(name).mode;
+      const session = new EditSession(message.serverDocument, mode);
 
+      // check if a commitSerialNumber exists for this document
       let commitSerialNumber = 0;
       if (this.savedCommitSerialNumbers.has(message.fileID)) {
         commitSerialNumber = this.savedCommitSerialNumbers.get(message.fileID);
@@ -370,12 +372,18 @@ class Workspace extends React.Component {
   }
 
   createDocument(name) {
-    const message = msgFactory.createDocument(this.state.clientID, this.state.activeFile, name);
+    const parentID = fsOps.getSpawnParentID(
+      this.state.fileStructure, this.pathMap, this.state.activeFile,
+    );
+    const message = msgFactory.createDocument(this.state.clientID, parentID, name);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
   createFolder(name) {
-    const message = msgFactory.createFolder(this.state.clientID, this.state.activeFile, name);
+    const parentID = fsOps.getSpawnParentID(
+      this.state.fileStructure, this.pathMap, this.state.activeFile,
+    );
+    const message = msgFactory.createFolder(this.state.clientID, parentID, name);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
@@ -440,52 +448,54 @@ class Workspace extends React.Component {
 
   onDeleteDocument(message) {
     this.setState((prevState) => {
-      const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
-      fsOps.removeFile(fileStructureCopy, this.pathMap, message.fileID);
-      this.closeTab(message.fileID);
+      const stateSnapshot = {
+        tabs: to.prim.deepCopy(prevState.tabs),
+        activeFile: prevState.activeFile,
+        activeTab: prevState.activeTab,
+        fileStructure: to.prim.deepCopy(prevState.fileStructure),
+      };
+
+      fsOps.removeFile(stateSnapshot.fileStructure, this.pathMap, message.fileID);
+      this.closeTab(message.fileID, stateSnapshot);
       this.destroyDocumentInstanceSilentFast();
 
-      return {
-        fileStructure: fileStructureCopy,
-      };
+      return stateSnapshot;
     });
   }
 
   onDeleteFolder(message) {
     this.setState((prevState) => {
-      const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
-
-      const folderObj = fsOps.getFileObject(fileStructureCopy, this.pathMap, message.fileID);
-      if (folderObj === null) {
-        return {};
-      }
       const stateSnapshot = {
         tabs: to.prim.deepCopy(prevState.tabs),
         activeFile: prevState.activeFile,
         activeTab: prevState.activeTab,
+        fileStructure: to.prim.deepCopy(prevState.fileStructure),
       };
-      this.recursiveFileDelete(fileStructureCopy, folderObj, stateSnapshot);
 
-      return {
-        fileStructure: fileStructureCopy,
-        tabs: stateSnapshot.tabs,
-        activeFile: stateSnapshot.activeFile,
-        activeTab: stateSnapshot.activeTab,
-      };
+      const folderObj = fsOps.getFileObject(
+        stateSnapshot.fileStructure, this.pathMap, message.fileID,
+      );
+      if (folderObj === null) {
+        return {};
+      }
+
+      this.recursiveFileDelete(folderObj, stateSnapshot);
+
+      return stateSnapshot;
     });
   }
 
-  recursiveFileDelete(fileStructure, fileObj, stateSnapshot) {
+  recursiveFileDelete(fileObj, stateSnapshot) {
     if (fileObj.type === fsOps.types.document) {
-      fsOps.removeFile(fileStructure, this.pathMap, fileObj.ID);
+      fsOps.removeFile(stateSnapshot.fileStructure, this.pathMap, fileObj.ID);
       this.closeTab(fileObj.ID, stateSnapshot);
       this.destroyDocumentInstanceSilentFast();
     }
     else if (fileObj.type === fsOps.types.folder) {
       Object.values(fileObj.items).forEach((nestedFileObj) => {
-        this.recursiveFileDelete(fileStructure, nestedFileObj, stateSnapshot);
+        this.recursiveFileDelete(nestedFileObj, stateSnapshot);
       });
-      fsOps.removeFile(fileStructure, this.pathMap, fileObj.ID);
+      fsOps.removeFile(stateSnapshot.fileStructure, this.pathMap, fileObj.ID);
     }
   }
 
@@ -493,6 +503,13 @@ class Workspace extends React.Component {
     this.setState((prevState) => {
       const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
       fsOps.renameFile(fileStructureCopy, this.pathMap, message.fileID, message.name);
+
+      // change the file ace mode if the extension changed
+      if (this.openedDocuments.has(message.fileID)) {
+        const newMode = modelist.getModeForPath(message.name).mode;
+        const managedSession = this.openedDocuments.get(message.fileID);
+        managedSession.setMode(newMode);
+      }
 
       return {
         fileStructure: fileStructureCopy,
@@ -506,6 +523,7 @@ class Workspace extends React.Component {
     editor.setReadOnly(true);
     editor.setOptions({
       fontSize: '12pt',
+      printMarginColumn: 100,
     });
     this.editor = editor;
   }
@@ -534,6 +552,7 @@ class Workspace extends React.Component {
         <div id="leftBar">
           <FileStructure
             fileStructure={this.state.fileStructure}
+            pathMap={this.pathMap}
             activeFile={this.state.activeFile}
             selectFile={this.selectFile}
             createDocument={this.createDocument}

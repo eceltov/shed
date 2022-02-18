@@ -20,26 +20,41 @@ class FileStructure extends React.Component {
 
   // callbacks for FileOperation components
   onCreateDocument() {
-    if (this.state.toSpawnDocument === this.props.activeFile) {
+    const parentID = fsOps.getSpawnParentID(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile,
+    );
+    this.setSpawnDocument(parentID);
+  }
+
+  setSpawnDocument(fileID) {
+    if (this.state.toSpawnDocument === fileID) {
       this.clearState();
     }
     else {
       this.setState({
-        toSpawnDocument: this.props.activeFile,
+        toSpawnDocument: fileID,
         toSpawnFolder: null,
         toBeRenamed: null,
       });
     }
   }
 
+  /// TODO: this is a copypasta of onCreateDocument
   onCreateFolder() {
-    if (this.state.toSpawnFolder === this.props.activeFile) {
+    const parentID = fsOps.getSpawnParentID(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile,
+    );
+    this.setSpawnFolder(parentID);
+  }
+
+  setSpawnFolder(fileID) {
+    if (this.state.toSpawnFolder === fileID) {
       this.clearState();
     }
     else {
       this.setState({
         toSpawnDocument: null,
-        toSpawnFolder: this.props.activeFile,
+        toSpawnFolder: fileID,
         toBeRenamed: null,
       });
     }
@@ -109,7 +124,7 @@ class FileStructure extends React.Component {
           <FileOperation key="d" text="delete" func={this.onDeleteFile} />
         </div>
         <FileStructureFolder
-          fileID="0"
+          fileID={this.props.fileStructure.ID}
           name={this.props.fileStructure.name}
           items={this.props.fileStructure.items}
           activeFile={this.props.activeFile}
