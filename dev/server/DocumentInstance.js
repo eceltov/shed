@@ -78,6 +78,21 @@ class DocumentInstance {
     }
   }
 
+  /**
+   * @brief Resets all variables necessary for the UDR algorithm and garbage collection.
+   * @note Should be called after all clients leave and the final document state is saved.
+   */
+  resetAlgorithmVariables() {
+    this.HB = [];
+    this.serverOrdering = [];
+    this.firstSOMessageNumber = 0;
+    this.garbageCount = 0;
+    this.GCInProgress = false;
+    this.garbageRoster = [];
+    this.garbageRosterChecker = null;
+    this.GCOldestMessageNumber = null;
+  }
+
   clientPresent(clientID) {
     return this.clients.has(clientID);
   }
@@ -225,9 +240,13 @@ class DocumentInstance {
 
   removeConnection(clientID) {
     this.clients.delete(clientID);
-    // write to file if all clients left
+    // write to file and reset variables if all clients left
     if (this.clients.size === 0) {
       this.updateDocumentFile();
+
+      /// TODO: removing a connection does not mean that the same client will not attempt to
+      /// connect again, this should not be here, or at least used in this context
+      // this.resetAlgorithmVariables();
     }
   }
 
@@ -291,6 +310,7 @@ class DocumentInstance {
     this.clients = new Map();
 
     this.updateDocumentFile();
+    // this.resetAlgorithmVariables();
   }
 
   delete() {
