@@ -7,7 +7,10 @@ fsOps.types.folder = 1;
 fsOps.fileNameRegex = /^[^\\/:*?"<>|]*$/;
 
 fsOps.validateFileName = function validateFileName(name) {
-  return fsOps.fileNameRegex.test(name) && name !== '.' && name !== '..';
+  return fsOps.fileNameRegex.test(name)
+    && name !== '.'
+    && name !== '..'
+    && name !== '';
 };
 
 fsOps.getNewDocumentObj = function getNewDocumentObj(fileID, name) {
