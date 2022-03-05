@@ -28,11 +28,16 @@ class ManagedSession {
     //   where the information is taken from incoming operations
     this.serverOrdering = initObj.serverOrdering;
 
+    // clientID and commitSerialNumber on which the difs in interval buffer depend on
+    this.currentDependency = this.getCurrentDependency();
+
     // the total serial number of the first SO entry
     this.firstSOMessageNumber = initObj.firstSOMessageNumber;
     this.sendMessageToServer = sendMessageToServer;
     this.handlingChanges = true;
     this.LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
+
+    this.DEBUG = false;
 
     this.session.on('change', this.handleChange);
   }
@@ -53,6 +58,10 @@ class ManagedSession {
     return this.commitSerialNumber;
   }
 
+  setListenInterval(newInterval) {
+    this.LISTEN_INTERVAL = newInterval;
+  }
+
   getListenInterval() {
     return this.LISTEN_INTERVAL;
   }
@@ -61,18 +70,28 @@ class ManagedSession {
     if (!this.measuring) {
       this.measuring = true;
       const listenInterval = this.LISTEN_INTERVAL;
-      setTimeout(this.intervalTimerCallback, listenInterval, this);
+      setTimeout(this.intervalTimerCallback, listenInterval, this, to.prim.deepCopy(
+        this.currentDependency,
+      ));
     }
   }
 
-  intervalTimerCallback(that) {
-    that.measuring = false;
-    that.processIntervalBuffer();
+  intervalTimerCallback(that, currentDependency) {
+    // if the dependency changed, the interval buffer had to already be flushed
+    if (to.prim.deepEqual(that.currentDependency, currentDependency)) {
+      that.measuring = false;
+      that.processIntervalBuffer();
+    }
   }
 
   intervalBufAddDif(dif) {
-    this.intervalTimerStart(); // starts the timer
     this.intervalBuf = [...this.intervalBuf, ...dif];
+
+    // in debug mode, the interval buffer needs to be flushed manually
+    if (this.DEBUG) {
+      return;
+    }
+    this.intervalTimerStart(); // starts the timer
   }
 
   intervalBufClear() {
@@ -84,7 +103,14 @@ class ManagedSession {
      *   Clears the interval buffer.
      */
   processIntervalBuffer() {
-    const dif = to.compress(this.intervalBuf); // organise the dif
+    if (this.intervalBuf.length === 0) {
+      return;
+    }
+
+    let dif = this.intervalBuf;
+    if (!this.DEBUG) {
+      dif = to.compress(this.intervalBuf); // organise the dif
+    }
     this.intervalBufClear(); // clear the buffer for a new listening interval
 
     const operation = this.makeOperation(dif);
@@ -99,6 +125,7 @@ class ManagedSession {
      */
   sendOperationToServer(operation) {
     const message = JSON.stringify(operation);
+    // console.log(this.clientID, 'sending operation:', message);
     this.sendMessageToServer(message);
   }
 
@@ -112,18 +139,27 @@ class ManagedSession {
     this.HB.push(wOperation);
   }
 
-  /**
-     * @brief Makes an operation from a dif.
-     */
-  makeOperation(dif) {
+  getCurrentDependency() {
     const prevClientID = (this.serverOrdering.length === 0)
       ? -1
       : this.serverOrdering[this.serverOrdering.length - 1][0];
     const prevCommitSerialNumber = (this.serverOrdering.length === 0)
       ? -1
       : this.serverOrdering[this.serverOrdering.length - 1][1];
+    return [prevClientID, prevCommitSerialNumber];
+  }
+
+  /**
+     * @brief Makes an operation from a dif.
+     */
+  makeOperation(dif) {
     return [
-      [this.clientID, this.commitSerialNumber++, prevClientID, prevCommitSerialNumber],
+      [
+        this.clientID,
+        this.commitSerialNumber++,
+        this.currentDependency[0],
+        this.currentDependency[1],
+      ],
       dif,
       this.fileID,
     ];
@@ -196,9 +232,6 @@ class ManagedSession {
      * @param operation Operation send by the server
      */
   processOperation(operation, oldCursorPosition) {
-    console.log('incoming operation:');
-    log(operation);
-
     const authorID = operation[0][0];
 
     // own operation
@@ -225,6 +258,11 @@ class ManagedSession {
       ]); // append serverOrdering
       this.HB = finalState.HB;
     }
+
+    // flush the interval buffer, because it contains changes dependent on the previous state
+    this.processIntervalBuffer();
+    // update the dependency for new local chnages
+    this.currentDependency = this.getCurrentDependency();
   }
 
   handleChange(e) {
@@ -232,7 +270,6 @@ class ManagedSession {
       return;
     }
     // console.log(e);
-    console.log('handleChange');
     let dif = [];
 
     if (e.action === 'insert') {
@@ -289,3 +326,5 @@ class ManagedSession {
     this.intervalBufAddDif(dif);
   }
 }
+
+module.exports = ManagedSession;
