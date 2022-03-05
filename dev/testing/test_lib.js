@@ -1,9 +1,17 @@
-var Client = require('./client_class');
+//var Client = require('./client_class');
+var Client = require('./TestClient');
 var to = require('../lib/dif');
-const { client } = require('websocket');
+var DatabaseGateway = require('../database/DatabaseGateway');
+const fsOps = require('../lib/fileStructureOps');
+const { getAbsolutePathFromIDPath } = require('../lib/fileStructureOps');
 
 
 var test = {};
+test.workspaceHash = 'testworkspace';
+test.database = new DatabaseGateway();
+test.database.initialize();
+test.fileStructure = test.database.getFileStructureJSON(test.workspaceHash);
+test.pathMap = fsOps.getIDPathMap(test.fileStructure);
 
 /**
  * @brief Returns a new promise linked to a StatusChecker, that will resolve after all the
@@ -34,8 +42,12 @@ test.getDelayPromise = function(delay) {
     });
 }
 
+test.cleanFile = function(fileID) {
+    test.database.writeDocumentData(test.workspaceHash, getAbsolutePathFromIDPath(test.fileStructure, test.pathMap.get(fileID)), ['']);
+}
+
 /**
- * @brief Creates a single client, that will automatically attempt connect.
+ * @brief Creates a single client.
  * @param serverURL The URL to which the client will connect.
  * @param connectionChecker A StatusChecker linked to the client's connection status.
  * @param msgReceivedChecker A StatusChecker linked to the client's message received status.
@@ -43,12 +55,12 @@ test.getDelayPromise = function(delay) {
  */
 test.createClient = function(serverURL, connectionChecker, msgReceivedChecker) {
     let client = new Client(serverURL);
-    client.onMessageReceived(msgReceivedChecker.check, 0).onConnection(connectionChecker.check, 0).connect();
+    client.onMessageReceived(msgReceivedChecker.check, 0).onConnection(connectionChecker.check, 0);
     return client;
 }
 
 /**
- * @brief Creates an array of clients, that will automatically attempt connect.
+ * @brief Creates an array of clients.
  * @param count The amount of clients to be created.
  * @param serverURL The URL to which the clients will connect.
  * @param connectionChecker A StatusChecker linked to the clients' connection status.
@@ -59,10 +71,23 @@ test.createClients = function(count, serverURL, connectionChecker, msgReceivedCh
     let clients = [];
     for (i = 0; i < count; i++) {
         let client = new Client(serverURL);
-        client.onMessageReceived(msgReceivedChecker.check, i).onConnection(connectionChecker.check, i).connect();
+        client.onMessageReceived(msgReceivedChecker.check, i).onConnection(connectionChecker.check, i);
         clients.push(client);
     }
     return clients;
+}
+
+/// TODO: this solution is not pretty, do not connect clients on creation etc.
+test.setActiveDocument = function(clients, fileID) {
+    clients.forEach((client) => {
+        client.testFileID = fileID;
+    });
+}
+
+test.connectClients = function(clients) {
+    clients.forEach((client) => {
+        client.connect();
+    });
 }
 
 test.reorderClients = function(clients) {
@@ -73,16 +98,26 @@ test.reorderClients = function(clients) {
     return reorderedClients;
 }
 
+test.setOrdering = function(server, fileID, serverOrdering) {
+    server.workspaces.get(test.workspaceHash).documents.get(fileID).debugSetOrdering(serverOrdering);
+}
+
+test.disableDifBuffering = function(clients) {
+    clients.forEach((client) => {
+        client.disableBuffering(fileID);
+    });
+}
+
 /**
  * @returns Returns true if all clients have the same document state.
  */
-test.sameDocumentState = function(clients) {
-    let document = JSON.stringify(clients[0].document);
+test.sameDocumentState = function(clients, fileID) {
+    let document = JSON.stringify(clients[0].getDocument(fileID));
     for (let i = 1; i < clients.length; i++) {
-        if (document !== JSON.stringify(clients[i].document)) {
+        if (document !== JSON.stringify(clients[i].getDocument(fileID))) {
             console.log("Document mismatch!");
             console.log("client 0 document:", document);
-            console.log("client " + i + " document:", JSON.stringify(clients[i].document));
+            console.log("client " + i + " document:", JSON.stringify(clients[i].getDocument(fileID)));
             return false;
         }
     }
@@ -92,11 +127,11 @@ test.sameDocumentState = function(clients) {
 /**
  * @returns Returns true if all clients have the specified document state.
  */
-test.checkSameDocumentState = function(clients, document) {
-    if (!test.sameDocumentState(clients)) return false;
-    if (!to.prim.deepEqual(clients[0].document, document)) {
+test.checkSameDocumentState = function(clients, document, fileID) {
+    if (!test.sameDocumentState(clients, fileID)) return false;
+    if (!to.prim.deepEqual(clients[0].getDocument(fileID), document)) {
         console.log("Clients have the same document, but a different one than the one provided!")
-        console.log("Client document:", JSON.stringify(clients[0].document));
+        console.log("Client document:", JSON.stringify(clients[0].getDocument(fileID)));
         console.log("Provided document:", JSON.stringify(document));
         return false;
     }

@@ -11,6 +11,11 @@
             "id": "xyr39randomhash68rh",
             "name": "My Workspace 3",
             "role": 1
+        },
+        {
+            "id": "testworkspace",
+            "name": "TestWorkspace",
+            "role": 5
         }
     ]
 }

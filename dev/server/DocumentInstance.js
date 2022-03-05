@@ -42,7 +42,10 @@ class DocumentInstance {
     this.GCOldestMessageNumber = null;
 
     // attributes for testing
-    this.log = false;
+    this.enableLogging = false;
+    this.messageLog = [];
+    this.ordering = { on: false };
+    this.GCStartDelay = 0;
   }
 
   /**
@@ -57,7 +60,7 @@ class DocumentInstance {
     this.fileID = fileID;
     this.document = this.getInitialDocument();
 
-    console.log('Document initialized.');
+    if (this.loggingEnabled) console.log('Document initialized.');
   }
 
   initializeClient(clientID, connection, role) {
@@ -131,7 +134,7 @@ class DocumentInstance {
         this.fileStructure, this.pathMap.get(this.fileID),
       );
       this.database.writeDocumentData(this.workspaceHash, absolutePath, documentCopy);
-      if (this.log) console.log('Updated file in database.');
+      if (this.loggingEnabled) console.log('Updated file in database.');
     }
   }
 
@@ -176,7 +179,7 @@ class DocumentInstance {
         this.garbageRoster.forEach((clientID) => this.sendMessageToClient(clientID, messageString));
       }
 
-      console.log('Sent GCMetadataRequest');
+      if (this.loggingEnabled) console.log('Sent GCMetadataRequest');
 
       // reset the counter
       this.garbageCount = 0;
@@ -196,7 +199,7 @@ class DocumentInstance {
 
   GC() {
     // if (this.log) console.log("-------------------------------");
-    if (this.log) console.log('GC');
+    if (this.loggingEnabled) console.log('GC');
     // if (this.log) console.log("-------------------------------");
 
     // some client has no garbage
@@ -262,7 +265,7 @@ class DocumentInstance {
   }
 
   enableLogging() {
-    this.log = true;
+    this.loggingEnabled = true;
   }
 
   clientMessageProcessor(message, clientID) {
@@ -276,13 +279,18 @@ class DocumentInstance {
     // message is an operation
     else {
       const { role } = this.clients.get(clientID);
-      if (roles.canEdit(role)) {
+      if (roles.canEdit(role) && !this.ordering.on) {
         this.sendMessageToClients(messageString);
         this.processOperation(message);
         this.startGC();
       }
+      // debug only
+      else if (roles.canEdit(role) && this.ordering.on) {
+        this.debugHandleOperation(message);
+      }
       else {
-        console.log('Unauthorized edit request');
+        // eslint-disable-next-line no-lonely-if
+        if (this.loggingEnabled) console.log('Unauthorized edit request');
         /// TODO: handle unauthorized edit request
       }
     }
@@ -316,6 +324,46 @@ class DocumentInstance {
   delete() {
     this.clients = new Map();
     this.toBeDeleted = true;
+  }
+
+  // Debug only
+  debugSetOrdering(orders) {
+    this.ordering.orders = orders;
+    this.ordering.currentPackage = 0;
+    this.ordering.on = true;
+    this.ordering.buffer = [];
+  }
+
+  debugHandleOperation(message) {
+    this.ordering.buffer.push(message);
+    if (this.ordering.buffer.length === this.ordering.orders[this.ordering.currentPackage].length) {
+      let userCount = -1;
+      const userMessages = [];
+      this.ordering.buffer.forEach((bufferedMessage) => {
+        userCount = (bufferedMessage[0][0] > userCount) ? bufferedMessage[0][0] : userCount;
+      });
+      userCount++;
+      // create a list of lists of messages so that the outer list can be indexed with clientID
+      for (let i = 0; i < userCount; i++) {
+        userMessages.push([]);
+        this.ordering.buffer.forEach((bufferedMessage) => {
+          if (bufferedMessage[0][0] === i) {
+            userMessages[i].push(bufferedMessage);
+          }
+        });
+      }
+      const order = this.ordering.orders[this.ordering.currentPackage];
+      order.forEach((clientID) => {
+        const storedMessage = userMessages[clientID].shift();
+        const messageString = JSON.stringify(storedMessage);
+        if (this.log) console.log('Received Message: ' + messageString);
+        this.sendMessageToClients(messageString);
+        this.processOperation(storedMessage);
+        this.startGC();
+      });
+      this.ordering.buffer = [];
+      this.ordering.currentPackage++;
+    }
   }
 }
 

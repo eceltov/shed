@@ -13,6 +13,7 @@ class Server {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
     this.initializeClient = this.initializeClient.bind(this);
+    this.close = this.close.bind(this);
     // workspace management
     this.workspaces = new Map(); // maps workspace hashes to workspaces
 
@@ -21,6 +22,7 @@ class Server {
     // attributes for client management
     this.nextclientID = 0;
     this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
+    this.loggingEnabled = false;
   }
 
   /**
@@ -30,9 +32,13 @@ class Server {
     this.database = new DatabaseGateway();
     this.database.initialize();
 
+    const that = this;
     this.server = http.createServer((request, response) => {
-      console.log(`${new Date()} Received request for ${request.url}`);
-      console.log(request);
+      if (that.loggingEnabled) {
+        console.log(`${new Date()} Received request for ${request.url}`);
+        console.log(request);
+      }
+
       response.writeHead(404);
       response.end();
     });
@@ -42,26 +48,28 @@ class Server {
       autoAcceptConnections: false,
     });
 
-    const that = this;
     this.wsServer.on('request', that.initializeClient);
 
-    console.log('WorkspaceServer initialized.');
+    if (this.loggingEnabled) {
+      console.log('WorkspaceServer initialized.');
+    }
   }
 
   initializeClient(request) {
+    const that = this;
     /// TODO: always true
     if (!this.originIsAllowed(request.origin)) {
       // Make sure to only accept requests from an allowed origin
       request.reject();
-      console.log(`${new Date()} Connection from origin ${request.origin} rejected.`);
+      if (that.loggingEnabled) {
+        console.log(`${new Date()} Connection from origin ${request.origin} rejected.`);
+      }
       return;
     }
 
     const connection = request.accept('', request.origin); /// TODO: protocol
     const clientID = this.addConnection(connection);
-    if (this.log) console.log(`${new Date()} Connection accepted.`);
-
-    const that = this;
+    if (this.loggingEnabled) console.log(`${new Date()} Connection accepted.`);
 
     // the callback function adds the clientID to the clientMessageProcessor
     connection.on('message', (messageWrapper) => {
@@ -71,7 +79,9 @@ class Server {
     });
 
     connection.on('close', (reasonCode, description) => {
-      console.log(`${new Date()} Peer ${connection.remoteAddress} disconnected.`);
+      if (that.loggingEnabled) {
+        console.log(`${new Date()} Peer ${connection.remoteAddress} disconnected.`);
+      }
       that.removeConnection(clientID); // can clientID be used, or is it not in the scope?
     });
   }
@@ -122,9 +132,9 @@ class Server {
 
   /// TODO: not implemented
   /**
-     * @param {*} origin The origin of a WebSocket connection.
-     * @returns Returns true if the origin is from a suitable source, else returns false.
-     */
+   * @param {*} origin The origin of a WebSocket connection.
+   * @returns Returns true if the origin is from a suitable source, else returns false.
+   */
   originIsAllowed(origin) {
     return true;
   }
@@ -132,31 +142,33 @@ class Server {
   listen(port) {
     const that = this;
     this.server.listen(port, () => {
-      if (that.log) console.log(`${new Date()} Server is listening on port ${port}`);
+      if (that.loggingEnabled) console.log(`${new Date()} Server is listening on port ${port}`);
     });
   }
 
-  /// TODO: not implemented
   /**
-     * @brief Closes the WebSocket server and forces all the instantiated workspaces to be saved
-     *        to the database.
-     */
+   * @brief Closes the WebSocket server and forces all the instantiated workspaces to be saved
+   *        to the database.
+   */
   close() {
     this.wsServer.shutDown();
     this.server.close();
-    /// TODO: save workspaces
+    const workspaceIterator = this.workspaces.values();
+    for (let i = 0; i < this.workspaces.size; i++) {
+      workspaceIterator.next().value.closeWorkspace();
+    }
   }
 
   enableLogging() {
-    this.log = true;
+    this.loggingEnabled = true;
   }
 
   clientMessageProcessor(message, clientID) {
-    if (this.log) console.log(`Received Message: ${JSON.stringify(message)}`);
+    if (this.loggingEnabled) console.log(`Received Message: ${JSON.stringify(message)}`);
 
     // the client wants to connect to a workspace
     if (message.msgType === msgTypes.client.connect) {
-      console.log('Received connect metadata');
+      if (this.loggingEnabled) console.log('Received connect metadata');
       const userHash = this.getUserHash(message.token);
       if (userHash === null) {
         /// TODO: close the connection somehow
@@ -168,6 +180,10 @@ class Server {
         }
         else {
           /// TODO: send error message
+          // eslint-disable-next-line no-lonely-if
+          if (this.loggingEnabled) {
+            console.log('Client tried to connect with insufficient rights!');
+          }
         }
       }
     }
@@ -235,7 +251,7 @@ class Server {
     const workspace = new WorkspaceInstance();
     /// TODO: check if succeeded
     workspace.initialize(workspaceHash, this.database);
-    workspace.log = this.log;
+    workspace.loggingEnabled = this.loggingEnabled;
     this.workspaces.set(workspaceHash, workspace);
     return workspace;
   }

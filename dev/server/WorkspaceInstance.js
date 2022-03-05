@@ -35,6 +35,8 @@ class WorkspaceInstance {
     this.pathMap = null; // maps file IDs to ID file paths
 
     this.fileStructure = null;
+
+    this.loggingEnabled = false;
   }
 
   /// TODO: not implemented
@@ -48,7 +50,7 @@ class WorkspaceInstance {
     this.pathMap = fsOps.getIDPathMap(this.fileStructure);
     // this.pathMap = new Map(this.database.getPathMapJSON(this.workspaceHash));
 
-    console.log('Workspace initialized.');
+    if (this.loggingEnabled) console.log('Workspace initialized.');
   }
 
   /**
@@ -67,10 +69,14 @@ class WorkspaceInstance {
     };
     this.clients.set(clientID, clientMetadata);
     this.sendWorkspaceData(clientID, role);
-    console.log('WorkspaceInstance: initialized client and sent file structure');
+    if (this.loggingEnabled) console.log('WorkspaceInstance: initialized client and sent file structure');
   }
 
   removeConnection(clientID) {
+    if (!this.clients.has(clientID)) {
+      /// TODO: handle missing clientID
+      return;
+    }
     const { documents } = this.clients.get(clientID);
     documents.forEach((document) => document.removeConnection(clientID));
     this.clients.delete(clientID);
@@ -105,14 +111,14 @@ class WorkspaceInstance {
   }
 
   enableLogging() {
-    this.log = true;
+    this.loggingEnabled = true;
   }
 
   /// TODO: not fully implemented
   clientMessageProcessor(message, clientID) {
     const client = this.clients.get(clientID);
     if (client === undefined) {
-      console.log('!!! ClientID undefined');
+      if (this.loggingEnabled) console.log('!!! ClientID undefined');
       return;
     }
 
@@ -148,7 +154,7 @@ class WorkspaceInstance {
     else {
       const fileID = (message.msgType === undefined) ? message[2] : message.fileID;
       if (!client.documents.has(fileID)) {
-        console.log('!!! A client sent an operation to a document he does not have opened, fileID: ', fileID, 'operation:', message);
+        if (this.loggingEnabled) console.log('!!! A client sent an operation to a document he does not have opened, fileID: ', fileID, 'operation:', message);
       }
       else {
         const document = client.documents.get(fileID);
@@ -163,15 +169,16 @@ class WorkspaceInstance {
       const document = documents.get(message.fileID);
       document.removeConnection(clientID);
       documents.delete(message.fileID);
-      console.log('Client closed a document');
+      if (this.loggingEnabled) console.log('Client closed a document');
     }
     else {
-      console.log('!!! Client wanted to close a unopened document. ClientID:', clientID, 'FileID:', message.fileID);
+      // eslint-disable-next-line no-lonely-if
+      if (this.loggingEnabled) console.log('!!! Client wanted to close a unopened document. ClientID:', clientID, 'FileID:', message.fileID);
     }
   }
 
   handleDocumentRequest(message, clientID) {
-    console.log('WorkspaceInstance: received file request');
+    if (this.loggingEnabled) console.log('WorkspaceInstance: received file request');
     if (fsOps.isDocument(this.fileStructure, this.pathMap, message.fileID)) {
       this.connectClientToDocument(clientID, message.fileID);
     }
@@ -282,7 +289,8 @@ class WorkspaceInstance {
       }
     }
     else {
-      console.log('Document creation failed!');
+      // eslint-disable-next-line no-lonely-if
+      if (this.loggingEnabled) console.log('Document creation failed!');
     }
 
     return response;
@@ -471,7 +479,7 @@ class WorkspaceInstance {
      */
   startDocument(fileID) {
     if (this.documents.get(fileID) !== undefined) {
-      console.log('Attempt to start nonexistent document!');
+      if (this.loggingEnabled) console.log('Attempt to start nonexistent document!');
       return false;
     }
 
@@ -479,7 +487,7 @@ class WorkspaceInstance {
     document.initialize(
       this.fileStructure, this.pathMap, fileID, this.workspaceHash, this.database,
     );
-    document.log = this.log;
+    document.loggingEnabled = this.loggingEnabled;
     this.documents.set(fileID, document);
     /// TODO: check if succeeded.
     return document;
@@ -494,7 +502,7 @@ class WorkspaceInstance {
      *   documents and updates the file structure.
      */
   closeWorkspace() {
-    console.log('Closing Workspace');
+    if (this.loggingEnabled) console.log('Closing Workspace');
     const documentIterator = this.documents.values();
     for (let i = 0; i < this.documents.size; i++) {
       documentIterator.next().value.closeInstance();

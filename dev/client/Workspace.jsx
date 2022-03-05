@@ -233,7 +233,7 @@ class Workspace extends React.Component {
 
   // eslint-disable-next-line react/no-unused-class-component-methods
   serverMessageProcessor(message) {
-    console.log(JSON.stringify(message));
+    console.log('Received message:', JSON.stringify(message));
     const type = message.msgType;
 
     if (type === undefined) {
@@ -286,6 +286,7 @@ class Workspace extends React.Component {
   }
 
   sendMessageToServer(messageString) {
+    console.log('Sending message to server:', messageString);
     const that = this;
     setTimeout(() => {
       that.connection.send(messageString);

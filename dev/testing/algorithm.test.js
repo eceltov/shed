@@ -1,11 +1,9 @@
 var to = require('../lib/dif');
 var lib = require('./test_lib');
-var Server = require('./server_class');
-var Client = require('./client_class');
 var StatusChecker = require('../lib/status_checker');
+const Server = require('../server/WorkspaceServer');
 
 jest.setTimeout(90 * 1000);
-
 
 
 var serverURL = 'ws://localhost:8080/';
@@ -14,23 +12,28 @@ var clients;
 var clientCount;
 var connectionChecker;
 var msgReceivedChecker;
+const testFileID = 3;
 
 function initializeClients(count) {
     clientCount = count;
     connectionChecker = new StatusChecker(clientCount);
     msgReceivedChecker = new StatusChecker(clientCount);
     clients = lib.createClients(clientCount, serverURL, connectionChecker, msgReceivedChecker);
+    lib.setActiveDocument(clients, testFileID);
+    lib.connectClients(clients);
 }
 
 
 beforeEach(() => {
     server = new Server();
     server.initialize();
+    //server.enableLogging();
     server.listen(8080);
 });
 
 afterEach(() => {
     server.close();
+    lib.cleanFile(testFileID);
 });
 
 test('Clients can connect to the server', () => {
@@ -79,8 +82,7 @@ test('Add convergence test 1SpD (one user adds "a" and the second one "b").', ()
         return lib.getStatusPromise(msgReceivedChecker, 2);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
-        expect(clients[0].document).toEqual(['ba']);
+        expect(lib.checkSameDocumentState(clients, ['ba'], testFileID)).toBe(true);
     })
     .catch(() => {
         expect(false).toBe(true);
@@ -100,13 +102,13 @@ test('Add convergence test 1SpD (all users add random strings).', () => {
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
     })
     .catch(() => {
         expect(false).toBe(true);
     });
 });
-
+/*
 test('Add convergence test 2SpD (all users add random strings).', () => {
     initializeClients(5);
     return lib.getStatusPromise(connectionChecker)
@@ -560,3 +562,4 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
     });
 });
 
+*/
