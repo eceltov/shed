@@ -20,6 +20,7 @@ function initializeClients(count) {
     msgReceivedChecker = new StatusChecker(clientCount);
     clients = lib.createClients(clientCount, serverURL, connectionChecker, msgReceivedChecker);
     lib.setActiveDocument(clients, testFileID);
+    lib.disableDifBuffering(clients);
     lib.connectClients(clients);
 }
 
@@ -42,9 +43,6 @@ test('Clients can connect to the server', () => {
     .then(() => {
         expect(true).toBe(true);
     })
-    .catch(() => {
-        expect(false).toBe(true);
-    });
 });
 
 test('Clients can send and receive messages.', () => {
@@ -62,9 +60,6 @@ test('Clients can send and receive messages.', () => {
     })
     .then(() => {
         expect(true).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
 
@@ -83,9 +78,6 @@ test('Add convergence test 1SpD (one user adds "a" and the second one "b").', ()
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, ['ba'], testFileID)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
 
@@ -103,12 +95,9 @@ test('Add convergence test 1SpD (all users add random strings).', () => {
     })
     .then(() => {
         expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
-/*
+
 test('Add convergence test 2SpD (all users add random strings).', () => {
     initializeClients(5);
     return lib.getStatusPromise(connectionChecker)
@@ -122,10 +111,7 @@ test('Add convergence test 2SpD (all users add random strings).', () => {
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
     });
 });
 
@@ -143,10 +129,7 @@ test('Add convergence test 5SpD (all users add random strings).', () => {
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
     });
 });
 
@@ -168,10 +151,7 @@ test('Add Del Convergence test 1SpD (two characters are added and one deleted).'
         return lib.getStatusPromise(msgReceivedChecker, 1);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
     });
 });
 
@@ -190,8 +170,7 @@ test('Add Del Intention test 1SpD (two users attempt to delete the same characte
     })
     .then(() => {
         // expected document state: 210543
-        expect(lib.sameDocumentState(clients)).toBe(true);
-        expect(clients[0].document[0]).toBe('210543');
+        expect(lib.checkSameDocumentState(clients, [ '210543' ], testFileID)).toBe(true);
         // client0 => 1543 (delete 2 and 0)
         // client1 => 2153 (delete 0 and 4)
         // expected output: 153
@@ -204,142 +183,137 @@ test('Add Del Intention test 1SpD (two users attempt to delete the same characte
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
-        expect(clients[0].document[0]).toBe('153');
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '153' ], testFileID)).toBe(true);
     });
 });
 
 test('Add 2SpD Del 1SpD 2C intention test (two users attempt to delete the same character).', () => {
     initializeClients(2);
-    server.setOrdering([
+    const serverOrdering = [
         [0, 1, 0, 1],
         [0, 1, 0, 1],
         [0, 1, 0, 1],
         [0, 1, 0, 1]
-    ]);
+    ];
 
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
+        lib.setOrdering(server, testFileID, serverOrdering);
         let clientMsgCount = 2;
         lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, ['11003322'])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, ['11003322'], testFileID)).toBe(true);
         let clientMsgCount = 2;
         lib.sendDels(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, ['10322'])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, ['10322'], testFileID)).toBe(true);
         let clientMsgCount = 2;
         lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, ['1100332210322'])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, ['1100332210322'], testFileID)).toBe(true);
         let clientMsgCount = 2;
         lib.sendDels(clientMsgCount, 1, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '1032210322' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '1032210322' ], testFileID)).toBe(true);
     });
 });
 
 test('Add 2SpD Del 2SpD 2C intention test (two users attempt to delete the same character multiple times).', () => {
     initializeClients(2);
-    server.setOrdering([
+    const serverOrdering = [
         [0, 1, 0, 1, 0, 1, 0, 1],
         [0, 0, 1, 0, 1, 1],
         [0, 1, 0, 1, 1, 0, 1, 0],
         [0, 0, 1, 0, 1, 1]
-    ]);
+    ];
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
+        lib.setOrdering(server, testFileID, serverOrdering);
         let clientMsgCount = 4;
         lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 3;
         lib.sendDels(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 4;
         lib.sendAdds(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 3;
         lib.sendDels(clientMsgCount, 2, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '3106554431065544' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '3106554431065544' ], testFileID)).toBe(true);
     });
 });
 
 test('Add 6SpD Del 4SpD 5C intention test (multiple users attempt to delete the same character multiple times).', () => {
     initializeClients(5);
-    server.setOrdering([
+    const serverOrdering = [
         [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0, 0, 1, 2, 3, 4, 4, 3, 2, 1, 0], 
         [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
         [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
         [0, 1, 2, 3, 4, 4, 3, 2, 1, 0, 4, 3, 2, 1, 0],
-    ]);
+    ];
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
+        lib.setOrdering(server, testFileID, serverOrdering);
         let clientMsgCount = 5;
         lib.sendAdds(clientMsgCount, 6, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 3;
         lib.sendDels(clientMsgCount, 4, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 3;
         lib.sendAdds(clientMsgCount, 6, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.sameDocumentState(clients)).toBe(true);
+        expect(lib.sameDocumentState(clients, testFileID)).toBe(true);
         let clientMsgCount = 3;
         lib.sendDels(clientMsgCount, 4, clients);
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients,
-            [ '244333333888888777777666666111111111111111111000000999999111111444444111111333333111111222222400999999888888777777666666555555111111444444111111333333111111222222111111111111111111000000111111999999111111888888111111777777111111666666111111555555222222444444222222333333222222222222222222111111222222000000' ]
-            )).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        clients.forEach(client => {
+            console.log(JSON.stringify(client.getDocument(testFileID)));
+        });
+        expect(lib.checkSameDocumentState(
+            clients,
+            [ '244333333888888777777666666111111111111111111000000999999111111444444111111333333111111222222400999999888888777777666666555555111111444444111111333333111111222222111111111111111111000000111111999999111111888888111111777777111111666666111111555555222222444444222222333333222222222222222222111111222222000000' ],
+            testFileID
+        )).toBe(true);
     });
 });
-
+/*
 test('Newline 1SpD 5C simple convergence test.', () => {
     initializeClients(5);
     
@@ -349,10 +323,7 @@ test('Newline 1SpD 5C simple convergence test.', () => {
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', ''])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '', ''], testFileID)).toBe(true);
     });
 });
 
@@ -381,10 +352,7 @@ test('Newline 3SpD 5C convergence test.', () => {
     .then(() => {
         let document = [];
         for (let i = 0; i < 61; i++) document.push('');
-        expect(lib.checkSameDocumentState(clients, document)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, document, testFileID)).toBe(true);
     });
 });
 
@@ -401,13 +369,10 @@ test('Newline Add 1SpD 5C convergence test.', () => {
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', 'Sample text with several words.' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '', 'Sample text with several words.' ], testFileID)).toBe(true);
     });
 });
-
+/*
 test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
     initializeClients(5);
     
@@ -452,9 +417,6 @@ test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
         let document = [];
         for (let i = 0; i < 11; i++) document.push('');
         expect(lib.checkSameDocumentState(clients, document)).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
 
@@ -472,41 +434,34 @@ test('Move 5C simple convergence test.', () => {
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
-
+*/
 test('Move 5C convergence test.', () => {
     initializeClients(5);
-    let messageOrdering = [
+    const serverOrdering = [
         [0],
         [3, 2, 1, 0]
     ];
     
-    server.setOrdering(messageOrdering);
-    
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
+        lib.setOrdering(server, testFileID, serverOrdering);
         clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
-        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[0].length);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
     })
     .then(() => {
-        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], 0, 6));
+        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], testFileID, 0, 6));
         clients[1].propagateLocalDif([to.add(0, 0, "Some ")]);
         clients[2].propagateLocalDif([to.add(0, 6, "s")]);
         clients[3].propagateLocalDif([to.add(0, 11, "s")]);
-        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[1].length);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ], testFileID)).toBe(true);
     });
 });
-
+/*
 test('Newline Remline Add 5C message chain test (adding text to a new line and deleting it while not empty).', () => {
     initializeClients(5);
     server.setOrdering([
@@ -526,9 +481,6 @@ test('Newline Remline Add 5C message chain test (adding text to a new line and d
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ '', 'text' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
 
@@ -556,9 +508,6 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
     })
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ])).toBe(true);
-    })
-    .catch(() => {
-        expect(false).toBe(true);
     });
 });
 

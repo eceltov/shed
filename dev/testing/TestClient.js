@@ -54,7 +54,12 @@ class Client {
     return this.openedDocuments.get(fileID).getSession().getDocument().getAllLines();
   }
 
+  getServerOrdering() {
+    return this.openedDocuments.get(this.testFileID).serverOrdering;
+  }
+
   sendMessageToServer(messageString) {
+    console.log(this.clientID, 'Sending message:', messageString);
     const that = this;
     setTimeout(() => {
       that.connection.send(messageString);
@@ -69,7 +74,7 @@ class Client {
   }
 
   propagateLocalDif(dif) {
-    // console.log(this.clientID, 'propagating local dif');
+    console.log(this.clientID, 'propagating local dif:', JSON.stringify(dif));
     if (!this.openedDocuments.has(this.testFileID)) {
       if (this.loggingEnabled) console.log(this.clientID, "Test document missing!");
     }
@@ -86,7 +91,7 @@ class Client {
   }
 
   serverMessageProcessor(message) {
-    if (this.loggingEnabled) console.log(this.clientID, 'received message');
+    // if (this.loggingEnabled) console.log(this.clientID, 'received message');
     const that = this;
     setTimeout(function () {
       that.serverMessageProcessorImpl(message);

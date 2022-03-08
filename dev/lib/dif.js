@@ -93,11 +93,19 @@ function dlog(name, obj, mode = 'default') {
     console.log();
   }
   else if (mode === 'wHB') {
-    console.log(`${name}:`);
+    console.log(`${name} (${obj.length}):`);
     obj.forEach((operation) => {
       console.log(JSON.stringify(operation[0]));
       const wDif = operation[1];
       wDif.forEach((wrap) => console.log(JSON.stringify(wrap)));
+      console.log('-----------------------------');
+    });
+    console.log();
+  }
+  else if (mode === 'SO') {
+    console.log(`${name} (${obj.length}):`);
+    obj.forEach((metadata) => {
+      console.log(JSON.stringify(metadata));
       console.log('-----------------------------');
     });
     console.log();
@@ -188,9 +196,16 @@ to.applyDifAce = function applyDifAce(wDif, document) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2]);
     }
     else if (to.isMove(subdif)) {
-      const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
-      document.insert({ row: subdif[2], column: subdif[3] }, movedText);
-      document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
+      // the move is a simple newline in the middle of a line
+      if (subdif[0] === subdif[2] - 1 && subdif[3] === 0) {
+        document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
+      }
+      /// TODO: this does not translate to a move instruction in ManagedSession.handleChange
+      else {
+        const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
+        document.insert({ row: subdif[2], column: subdif[3] }, movedText);
+        document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
+      }
     }
     else if (to.isNewline(subdif)) {
       document.insertNewLine({ row: subdif, column: 0 });
@@ -239,7 +254,9 @@ to.undoDifAce = function undoDifAce(wDif, document) {
 
 to.applyDifTest = function applyDifTest(wDif, document) {
   wDif.forEach((wrap) => {
+    //console.log('applyDifTest:', JSON.stringify(document));
     const subdif = to.prim.unwrapSubdif(wrap);
+    //console.log('applyDifTestSubdif:', JSON.stringify(subdif));
     if (to.isAdd(subdif)) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
@@ -337,6 +354,7 @@ to.UDR = function UDR(
 
   if (log) console.log('undoIndex:', undoIndex);
   if (log) dlog('wdHB', wdHB, 'wHB');
+  if (log) dlog('SO', SO, 'SO');
 
   const wdMessage = [dMessage[0], to.prim.wrapDif(dMessage[1])];
 

@@ -104,7 +104,7 @@ test.setOrdering = function(server, fileID, serverOrdering) {
 
 test.disableDifBuffering = function(clients) {
     clients.forEach((client) => {
-        client.disableBuffering(fileID);
+        client.disableBuffering();
     });
 }
 
@@ -142,12 +142,13 @@ test.checkSameDocumentState = function(clients, document, fileID) {
  * @returns Returns true if all clients have the same serverOrdering.
  */
 test.sameServerOrdering = function(clients) {
-    let serverOrderingString = JSON.stringify(clients[0].serverOrdering);
+    let serverOrderingString = JSON.stringify(clients[0].getServerOrdering());
     for (let i = 1; i < clients.length; i++) {
-        if (serverOrderingString !== JSON.stringify(clients[i].serverOrdering)) {
+        const differentServerOrderingString = JSON.stringify(clients[i].getServerOrdering());
+        if (serverOrderingString !== differentServerOrderingString) {
             console.log("serverOrdering mismatch!");
             console.log("client 0 serverOrdering:", serverOrderingString);
-            console.log("client " + i + " serverOrdering:", JSON.stringify(clients[i].serverOrdering));
+            console.log("client " + i + " serverOrdering:", differentServerOrderingString);
             return false;
         }
     }
@@ -281,15 +282,16 @@ test.sendDels = function(clientMsgCount, subdifCount, clients) {
 /**
  * @brief Returns a dif simulating an Enter keypress on a specific row and position
  */
-test.getRowSplitDif = function(client, row, position) {
+test.getRowSplitDif = function(client, fileID, row, position) {
     let dif = [];
-    if (row >= client.document.length || position >= client.document[row].length) {
+    const document = client.getDocument(fileID);
+    if (row >= document.length || position >= document[row].length) {
         console.log("getRowSplitDif incorrect parameters!");
         return dif;
     }
     dif.push(row + 1);
     if (position > 0) {
-        let trailingRowText = client.document[row].substr(position);
+        let trailingRowText = document[row].substr(position);
         dif.push(to.move(row, position, row + 1, 0, trailingRowText.length));
     }
     return dif;
