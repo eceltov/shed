@@ -74,7 +74,7 @@
  * @param {*} obj Object to be logged.
  * @param {*} mode What kind of object it is. Supported: wDif, wDifs, wHB.
  */
-function dlog(name, obj, mode = 'default') {
+ function dlog(name, obj, mode = 'default') {
   if (mode === 'default') {
     console.log(`${name}:`, JSON.stringify(obj));
     console.log();
@@ -196,16 +196,16 @@ to.applyDifAce = function applyDifAce(wDif, document) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2]);
     }
     else if (to.isMove(subdif)) {
-      // the move is a simple newline in the middle of a line
+      /* // the move is a simple newline in the middle of a line
       if (subdif[0] === subdif[2] - 1 && subdif[3] === 0) {
         document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
-      }
+      } */
       /// TODO: this does not translate to a move instruction in ManagedSession.handleChange
-      else {
-        const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
-        document.insert({ row: subdif[2], column: subdif[3] }, movedText);
-        document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
-      }
+      // else {
+      const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
+      document.insert({ row: subdif[2], column: subdif[3] }, movedText);
+      document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
+      // }
     }
     else if (to.isNewline(subdif)) {
       document.insertNewLine({ row: subdif, column: 0 });
@@ -254,9 +254,9 @@ to.undoDifAce = function undoDifAce(wDif, document) {
 
 to.applyDifTest = function applyDifTest(wDif, document) {
   wDif.forEach((wrap) => {
-    //console.log('applyDifTest:', JSON.stringify(document));
+    // console.log('applyDifTest:', JSON.stringify(document));
     const subdif = to.prim.unwrapSubdif(wrap);
-    //console.log('applyDifTestSubdif:', JSON.stringify(subdif));
+    // console.log('applyDifTestSubdif:', JSON.stringify(subdif));
     if (to.isAdd(subdif)) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
@@ -1232,16 +1232,15 @@ to.prim.makeDependant = function makeDependant(wDif) {
 to.prim.LIT = function LIT(wDif, wTransformationDif, log = false) {
   if (wDif.length === 0) return [];
   if (wTransformationDif.length === 0) return wDif;
-  if (log && wDif.length === 1 && (wDif[0].meta.ID === 13 || wDif[0].meta.ID === 11)) console.log('wDif', JSON.stringify(wDif));
   const wTransformedSubdifs1 = to.prim.LIT1(wDif[0], wTransformationDif, log);
   const wTransformedSubdifs2 = to.prim.LIT(
     wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1],
   );
   return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
 };
-to.prim.LIT1 = function LIT1(wrap, wTransformationDif, log = false) {
-  const logCondition = log && wrap.meta.ID === 45; /// TODO: test only
+to.prim.LIT1 = function LIT1(wrapOriginal, wTransformationDif, log = false) {
   let wTransformedSubdifs = [];
+  const wrap = to.prim.deepCopy(wrapOriginal);
   if (wTransformationDif.length === 0) {
     wTransformedSubdifs = [wrap];
   }
@@ -1268,8 +1267,9 @@ to.prim.LET = function LET(wDif, wTransformationDif, log) {
   const wTransformedSubdifs2 = to.prim.LET(wDif.slice(1), wTransformationDif, log);
   return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
 };
-to.prim.LET1 = function LET1(wrap, wTransformationDif, log) {
+to.prim.LET1 = function LET1(wrapOriginal, wTransformationDif, log) {
   let wTransformedSubdifs = [];
+  const wrap = to.prim.deepCopy(wrapOriginal);
   if (wTransformationDif.length === 0) {
     wTransformedSubdifs = [wrap];
   }
