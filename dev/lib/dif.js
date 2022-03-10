@@ -74,7 +74,7 @@
  * @param {*} obj Object to be logged.
  * @param {*} mode What kind of object it is. Supported: wDif, wDifs, wHB.
  */
- function dlog(name, obj, mode = 'default') {
+function dlog(name, obj, mode = 'default') {
   if (mode === 'default') {
     console.log(`${name}:`, JSON.stringify(obj));
     console.log();
@@ -1046,10 +1046,11 @@ to.prim.unwrapSubdif = function unwrapSubdif(wrap) {
 };
 
 to.prim.wrapDif = function wrapDif(dif) {
-  for (let i = 0; i < dif.length; i++) {
-    dif[i] = to.prim.wrapSubdif(dif[i]);
-  }
-  return dif;
+  const wDif = [];
+  dif.forEach((subdif) => {
+    wDif.push(to.prim.wrapSubdif(subdif));
+  });
+  return wDif;
 };
 
 to.prim.unwrapDif = function unwrapDif(dif) {
