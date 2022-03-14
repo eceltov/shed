@@ -330,3 +330,27 @@ Client Refactoring:
         The messages sent by the client to the server with the goal of manipulating files will have the following format:
             [msgType, fileID, arguments...], where fileID is the ID specified in the file structure, msgType is one of the enums specified in lib/communication.js and arguments are new names for the file if neccessarry.
             fileID is the target file for delete and rename operations, or the parent folder for create operations.
+
+4 subdif model vs 5 subdif model:
+    Situation: The local client pressed enter in the middle of a line, but after that, an external operation arrives, where the other client
+    Did the same but moved only a smaller part of the line away.
+        Original line: Some longer text
+        Move behaviour:
+            Local client's dif would look like: [1, [0, 5, 1, 0, 11]], external client's would look like: [1, [0, 12, 1, 0, 4]].
+            After LIT, the local client's dif would be: [2, [0, 5, 2, 0, 7]].
+
+            Document state:
+                Some 
+                text
+                longer 
+        Merged move/newline behaviour:
+            Local client's dif would look like: [0, 5], external client's would look like: [0, 12].
+            Some longer 
+            text
+
+            Some 
+            longer text
+
+            Some 
+            longer 
+            text

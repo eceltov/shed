@@ -356,7 +356,7 @@ class DocumentInstance {
       order.forEach((clientID) => {
         const storedMessage = userMessages[clientID].shift();
         const messageString = JSON.stringify(storedMessage);
-        if (this.log) console.log('Received Message: ' + messageString);
+        if (this.log) console.log('Received Message: ', messageString);
         this.sendMessageToClients(messageString);
         this.processOperation(storedMessage);
         this.startGC();
