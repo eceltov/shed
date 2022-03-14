@@ -1538,7 +1538,7 @@ to.prim.IT_DD = function IT_DD(wrap, wTransformer) {
     }
     else if (
       transformer[1] > wrap.sub[1]
-      && wrap.sub[1] + wrap.sub[2] >= transformer[1] + transformer[2]
+      && transformer[1] + transformer[2] >= wrap.sub[1] + wrap.sub[2]
     ) {
       wrap.sub = to.del(wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1]);
     }

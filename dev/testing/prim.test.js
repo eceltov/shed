@@ -307,7 +307,7 @@ test('Including [del] to [del] 3.', () => {
   const dif = [to.del(0, 3, 3)];
   const transformer = [to.del(0, 4, 1)];
   const transformed = compositeLIT(dif, transformer);
-  const expected = [to.del(0, 3, 1), to.del(0, 5, 1)];
+  const expected = [to.del(0, 3, 2)];
   expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
 });
 
