@@ -650,43 +650,47 @@ to.compress = function compress(inputDif) {
     }
   }
 
-  // join adjacent Adds
   for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
-    if (to.isAdd(dif[i])) {
-      const endPos = dif[i][1] + dif[i][2].length;
-      if (dif[i][0] === dif[i + 1][0] // they are on the same row
-                && endPos === dif[i + 1][1] // they are adjacent
-                && to.isAdd(dif[i + 1]) // the next entry is of type Add
-      ) {
-        dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i + 1][2]];
-        dif.splice(i + 1, 1);
-        i--; // decrement i so that the compressed subdif will be compared with the next one
-      }
-    }
-  }
+    const first = dif[i];
+    const second = dif[i + 1];
 
-  // join adjacent Dels
-  for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
-    if (to.isDel(dif[i])) {
-      if (dif[i][0] === dif[i + 1][0] // they are on the same row
-                && to.isDel(dif[i + 1]) // the next entry is of type Del
-      ) {
-        if (
-          // they are adjacent (the next one is on a higher position)
-          dif[i][1] + dif[i][2] === dif[i + 1][1]) {
-          dif[i] = [dif[i][0], dif[i][1], dif[i][2] + dif[i + 1][2]];
-          dif.splice(i + 1, 1);
-          i--;
-        }
-        else if (
-          // they are adjacent (the next one is on a lower position)
-          dif[i + 1][1] + dif[i + 1][2] === dif[i][1]) {
-          dif[i] = [dif[i][0], dif[i + 1][1], dif[i][2] + dif[i + 1][2]];
-          dif.splice(i + 1, 1);
-          i--;
-        }
+    // merge adds together
+    if (to.isAdd(first)
+      && to.isAdd(second)
+      && to.prim.subdifsTouchOrIntersect(
+        first[0], first[1], first[2].length, second[0], second[1], second[2].length,
+      )
+    ) {
+      const minPosition = first[1] < second[1] ? first[1] : second[1];
+      let newString;
+      if (first[1] >= second[1]) {
+        // the second string will get put before the first one
+        newString = second[2] + first[2];
       }
+      else {
+        // the second string will be inserted into the first one
+        const firstSegmentLength = second[1] - first[1];
+        newString = first[2].substring(0, firstSegmentLength);
+        newString += second[2];
+        newString += first[2].substring(firstSegmentLength);
+      }
+      dif[i] = to.add(first[0], minPosition, newString);
+      dif.splice(i + 1, 1);
+      i--; // decrement i so that the compressed subdif will be compared with the next one
     }
+    // merge dels together
+    else if (to.isDel(first)
+      && to.isDel(second)
+      && to.prim.subdifsTouchOrIntersect(
+        first[0], first[1], first[2], second[0], second[1], second[2],
+      )
+    ) {
+      const minPosition = first[1] < second[1] ? first[1] : second[1];
+      dif[i] = to.del(first[0], minPosition, first[2] + second[2]);
+      dif.splice(i + 1, 1);
+      i--;
+    }
+    /// TODO: reduce adds and dels next to each other
   }
 
   // line deletion right propagation
@@ -768,6 +772,14 @@ to.compress = function compress(inputDif) {
 };
 
 to.prim.wrapID = 0; // id for wrapped difs (used in relative addressing)
+
+to.prim.subdifsTouchOrIntersect = function subdifsTouchOrIntersect(
+  row1, position1, length1, row2, position2, length2,
+) {
+  if (row1 !== row2) return false;
+  return ((position1 >= position2 && position1 <= position2 + length2)
+    || (position2 >= position1 && position2 <= position1 + length1));
+};
 
 to.prim.changeCursorPosition = function changeCursorPosition(cursorPosition, wOperation) {
   if (cursorPosition === null) return;
@@ -996,18 +1008,19 @@ to.prim.mockupString = function mockupString(length) {
   };
 };
 
-to.prim.wrapSubdif = function wrapSubdif(subdif) {
+to.prim.wrapSubdif = function wrapSubdif(subdif, ID = null) {
   if (!to.isMove(subdif)) {
     return {
       sub: to.prim.deepCopy(subdif),
       meta: {
-        ID: to.prim.wrapID++,
+        ID: ID === null ? to.prim.wrapID++ : ID, // each wrap has its ID
         informationLost: false, // whether the context had to be saved
         relative: false, // whether relative addresing is in place
         context: {
           original: null,
           transformers: null,
           addresser: null,
+          siblings: [], // the wrap IDs of right siblings if fragmented
         },
       },
     };
@@ -1114,6 +1127,83 @@ to.prim.saveRA = function saveRA(wrap, addresser) {
   wrap.meta.relative = true;
   wrap.meta.context.addresser = addresser;
   return wrap;
+};
+
+to.prim.saveSibling = function saveSibling(first, second) {
+  first.meta.context.siblings.push(second.meta.ID);
+};
+
+to.prim.joinSiblings = function joinSiblings(wDif) {
+  const wNewDif = [];
+  wDif.forEach((wrap, i) => {
+    if (!to.isMove(wrap)) {
+      const siblings = wrap.meta.context.siblings;
+      // consumed siblings will have their siblings prop set to null
+      if (siblings !== null) {
+        if (siblings.length > 0) {
+          // join siblings
+          // wrap = ...
+          wrap = to.prim.internalJoinSiblings(wDif.slice(i));
+        }
+        wNewDif.push(wrap);
+      }
+    }
+    else {
+      wNewDif.push(wrap);
+    }
+  });
+  return wNewDif;
+};
+
+/**
+ * @brief Recursively joins all siblings of the first element, sets consumed siblings'
+ *  sibling prop to null.
+ * @param {*} wSlice A wDif slice, where the first element has siblings.
+ * @returns Returns a joined wDif.
+ */
+to.prim.internalJoinSiblings = function internalJoinSiblings(wSlice) {
+  const wMain = wSlice[0];
+  const wSiblings = [];
+  const siblingIDs = wMain.meta.context.siblings;
+  let i = 1;
+  while (siblingIDs.length > 0) {
+    const wrap = wSlice[i];
+    /// TODO: implement move
+    if (to.isMove(wrap)) {
+      continue;
+    }
+    // check if wrap is sibling
+    if (siblingIDs.includes(wrap.meta.ID)) {
+      // siblings will be defined, because this sibling could not be consumed yet
+      if (wrap.meta.context.siblings.length > 0) {
+        const wNewSlice = wSlice.slice(i);
+        // join any nested siblings, making this have no more siblings
+        to.prim.internalJoinSiblings(wNewSlice);
+      }
+      wSiblings.push(wrap);
+      siblingIDs.splice(siblingIDs.indexOf(wrap.meta.ID), 1);
+    }
+    i++;
+  }
+
+  const dif = [];
+  dif.push(wMain.sub);
+  wSiblings.forEach((wSibling) => {
+    dif.push(wSibling.sub);
+    wSibling.meta.context.siblings = null;
+
+    // siblings should not have lost information or be relative, because they will be deleted
+    if (wSibling.meta.informationLost || wSibling.meta.relative) {
+      console.log('A sibling lost information or is relative!');
+    }
+  });
+
+  const compressed = to.compress(dif);
+  if (compressed.length !== 1) {
+    console.log('The length of joined siblings is not 1!');
+  }
+  wMain.sub = compressed[0];
+  return wMain;
 };
 
 /// TODO: what if the transformer is move?
@@ -1506,12 +1596,19 @@ to.prim.IT_DA = function IT_DA(wrap, wTransformer) {
     return wrap;
   }
 
-  return [to.prim.wrapSubdif(to.del(wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1])),
+  const wraps = [
+    to.prim.wrapSubdif(to.del(
+      wrap.sub[0],
+      wrap.sub[1],
+      transformer[1] - wrap.sub[1],
+    ), wrap.meta.ID),
     to.prim.wrapSubdif(to.del(
       wrap.sub[0],
       transformer[1] + transformer[2].length,
       wrap.sub[2] - (transformer[1] - wrap.sub[1]),
     ))];
+  to.prim.saveSibling(wraps[0], wraps[1]);
+  return wraps;
 };
 to.prim.IT_DD = function IT_DD(wrap, wTransformer) {
   const transformer = wTransformer.sub;
@@ -1598,9 +1695,13 @@ to.prim.IT_MA = function IT_MA(wrap, wTransformer) {
       wrap.sub[1] = delWrap.sub[1];
     }
     else {
-      return [
+      const wraps = [
         to.prim.wrapSubdif(to.move(
-          wrap.sub[0], delWrap[0].sub[1], wrap.sub[2], wrap.sub[3], delWrap[0].sub[2],
+          wrap.sub[0],
+          delWrap[0].sub[1],
+          wrap.sub[2],
+          wrap.sub[3],
+          delWrap[0].sub[2],
         )),
         to.prim.wrapSubdif(to.move(
           wrap.sub[0],
@@ -1610,6 +1711,8 @@ to.prim.IT_MA = function IT_MA(wrap, wTransformer) {
           delWrap[1].sub[2],
         )),
       ];
+      to.prim.saveSibling(wraps[0], wraps[1]);
+      return wraps;
     }
   }
   else if (wrap.sub[2] === transformer[0]) {
@@ -1675,6 +1778,7 @@ to.prim.IT_MM = function IT_MM(wrap, wTransformer) {
         wrap.sub[3] + delWrap[0].sub[2],
         delWrap[1].sub[2],
       ));
+      /// TODO: add sibling
       /// TODO: implement this
       /* if (wrap.sub[2] === transformer[0]) {
                 let addWrap = to.prim.IT_AD(
@@ -1894,34 +1998,39 @@ to.prim.ET_DA = function ET_DA(wrap, wTransformer) {
       wrap.sub[0],
       wrap.sub[1] - transformer[1],
       transformer[1] + transformer[2].length - wrap.sub[1],
-    ));
+    ), wrap.meta.ID);
     const delWrap2 = to.prim.wrapSubdif(to.del(
       wrap.sub[0],
       transformer[1],
       wrap.sub[1] + wrap.sub[2] - transformer[1] - transformer[2].length,
     ));
     to.prim.saveRA(delWrap1, wTransformer);
+    to.prim.saveSibling(delWrap1, delWrap2);
     return [delWrap1, delWrap2];
   }
   else if (
     transformer[1] > wrap.sub[1]
     && transformer[1] + transformer[2].length <= wrap.sub[1] + wrap.sub[2]
   ) {
-    const delWrap1 = to.prim.wrapSubdif(to.del(wrap.sub[0], 0, transformer[2].length));
+    const delWrap1 = to.prim.wrapSubdif(to.del(
+      wrap.sub[0], 0, transformer[2].length,
+    ), wrap.meta.ID);
     const delWrap2 = to.prim.wrapSubdif(to.del(
       wrap.sub[0], wrap.sub[1], wrap.sub[2] - transformer[2].length,
     ));
     to.prim.saveRA(delWrap1, wTransformer);
+    to.prim.saveSibling(delWrap1, delWrap2);
     return [delWrap1, delWrap2];
   }
   else {
     const delWrap1 = to.prim.wrapSubdif(to.del(
       wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1],
-    ));
+    ), wrap.meta.ID);
     const delWrap2 = to.prim.wrapSubdif(to.del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
     ));
     to.prim.saveRA(delWrap1, wTransformer);
+    to.prim.saveSibling(delWrap1, delWrap2);
     return [delWrap1, delWrap2];
   }
   return wrap;
@@ -1940,10 +2049,11 @@ to.prim.ET_DD = function ET_DD(wrap, wTransformer) {
   else {
     const delWrap1 = to.prim.wrapSubdif(to.del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
-    ));
+    ), wrap.meta.ID);
     const delWrap2 = to.prim.wrapSubdif(to.del(
       wrap.sub[0], transformer[1] + transformer[2], wrap.sub[1] + wrap.sub[2] - transformer[1],
     ));
+    to.prim.saveSibling(delWrap1, delWrap2);
     return [delWrap1, delWrap2];
   }
   return wrap;
@@ -2017,6 +2127,7 @@ to.prim.ET_MA = function ET_MA(wrap, wTransformer) {
         wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2],
       ));
       moveWrap2.metaDel = delWrap2.meta;
+      to.prim.saveSibling(moveWrap1, moveWrap2);
       return [moveWrap1, moveWrap2];
     }
   }
@@ -2050,6 +2161,7 @@ to.prim.ET_MD = function ET_MD(wrap, wTransformer) {
       const moveWrap2 = to.prim.wrapSubdif(to.move(
         wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2],
       ));
+      to.prim.saveSibling(moveWrap1, moveWrap2);
       return [moveWrap1, moveWrap2];
     }
   }
