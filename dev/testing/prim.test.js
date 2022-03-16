@@ -41,6 +41,18 @@ function compositeLET(dif, transformer) {
   return transformed;
 }
 
+test('Sibling joining 1.', () => {
+  const subdif1 = to.del(0, 1, 1);
+  const subdif2 = to.del(0, 1, 2);
+  const wrap1 = to.prim.wrapSubdif(subdif1);
+  const wrap2 = to.prim.wrapSubdif(subdif2);
+  const wDif = [wrap1, wrap2];
+  to.prim.saveSibling(wrap1, wrap2);
+  const wJoinedDif = to.prim.joinSiblings(wDif);
+  expect(wJoinedDif.length).toBe(1);
+  expect(JSON.stringify(wJoinedDif[0].sub)).toBe(JSON.stringify([to.del(0, 1, 3)]));
+});
+
 test('LIT does not change its parameters.', () => {
   const dif = [to.del(1, 1, 1)];
   const transformer = [to.newline(0)];
