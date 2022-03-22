@@ -354,3 +354,21 @@ Client Refactoring:
             Some 
             longer 
             text
+
+
+ID inheritance in wrapSubdif does not work for move wraps
+saveSibling does not work for move wraps
+
+Fixing del on del compression:
+    The issue with the old compression is that the dif [[0, 0, 1], [0, 1, 1]] got compressed to [[0, 0, 2]].
+    It should not be compressed at all, because the two subdifs are dependant and thus do not aim to delete a continuous segment.
+    Two dels should be compressed in the following situations:
+        [a, b, c], [x, y, z], where a == x and:
+            1) b == y => [a, b, c + z]
+                graphical: nnnnnn[00000][11111]nnnnn (n is text, [000...] is the deletion range of the first subdif, [111...] of the second)
+            2) b > y && y + z >= b => [a, y, c + z]
+                graphical: nnnnnn[111][00000][11111]nnnnnn (y + z > b)
+                graphical: nnnnnn[1111111111][00000]nnnnnn (y + z = b)
+            These are all the options, because:
+                The deletion effect of subdif 0 has to be continuous, because it is the first subdif,
+                and because the above examples handle all possible positions of the deletion effect of subdif 1.

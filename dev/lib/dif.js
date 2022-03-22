@@ -650,47 +650,58 @@ to.compress = function compress(inputDif) {
     }
   }
 
-  for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
-    const first = dif[i];
-    const second = dif[i + 1];
+  let changeOccured = true;
+  while (changeOccured) {
+    changeOccured = false;
+    for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
+      const first = dif[i];
+      const second = dif[i + 1];
 
-    // merge adds together
-    if (to.isAdd(first)
-      && to.isAdd(second)
-      && to.prim.subdifsTouchOrIntersect(
-        first[0], first[1], first[2].length, second[0], second[1], second[2].length,
-      )
-    ) {
-      const minPosition = first[1] < second[1] ? first[1] : second[1];
-      let newString;
-      if (first[1] >= second[1]) {
-        // the second string will get put before the first one
-        newString = second[2] + first[2];
+      // merge adds together
+      if (to.isAdd(first)
+        && to.isAdd(second)
+        && to.prim.subdifsTouchOrIntersect(
+          first[0], first[1], first[2].length, second[0], second[1], second[2].length,
+        )
+      ) {
+        const minPosition = first[1] < second[1] ? first[1] : second[1];
+        let newString;
+        if (first[1] >= second[1]) {
+          // the second string will get put before the first one
+          newString = second[2] + first[2];
+        }
+        else {
+          // the second string will be inserted into the first one
+          const firstSegmentLength = second[1] - first[1];
+          newString = first[2].substring(0, firstSegmentLength);
+          newString += second[2];
+          newString += first[2].substring(firstSegmentLength);
+        }
+        dif[i] = to.add(first[0], minPosition, newString);
+        dif.splice(i + 1, 1);
+        i--; // decrement i so that the compressed subdif will be compared with the next one
+        changeOccured = true;
       }
-      else {
-        // the second string will be inserted into the first one
-        const firstSegmentLength = second[1] - first[1];
-        newString = first[2].substring(0, firstSegmentLength);
-        newString += second[2];
-        newString += first[2].substring(firstSegmentLength);
+      // merge dels together
+      else if (to.isDel(first)
+        && to.isDel(second)
+        && first[0] === second[0]
+      ) {
+        if (first[1] === second[1]) {
+          dif[i] = to.del(first[0], first[1], first[2] + second[2]);
+          dif.splice(i + 1, 1);
+          i--;
+          changeOccured = true;
+        }
+        else if (first[1] > second[1] && second[1] + second[2] >= first[1]) {
+          dif[i] = to.del(first[0], second[1], first[2] + second[2]);
+          dif.splice(i + 1, 1);
+          i--;
+          changeOccured = true;
+        }
       }
-      dif[i] = to.add(first[0], minPosition, newString);
-      dif.splice(i + 1, 1);
-      i--; // decrement i so that the compressed subdif will be compared with the next one
+      /// TODO: reduce adds and dels next to each other
     }
-    // merge dels together
-    else if (to.isDel(first)
-      && to.isDel(second)
-      && to.prim.subdifsTouchOrIntersect(
-        first[0], first[1], first[2], second[0], second[1], second[2],
-      )
-    ) {
-      const minPosition = first[1] < second[1] ? first[1] : second[1];
-      dif[i] = to.del(first[0], minPosition, first[2] + second[2]);
-      dif.splice(i + 1, 1);
-      i--;
-    }
-    /// TODO: reduce adds and dels next to each other
   }
 
   // line deletion right propagation
