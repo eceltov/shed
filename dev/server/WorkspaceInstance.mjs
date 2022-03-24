@@ -1,8 +1,8 @@
-const DocumentInstance = require('./DocumentInstance');
-const msgTypes = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const fsOps = require('../lib/fileStructureOps');
-const roles = require('../lib/roles');
+import DocumentInstance from './DocumentInstance.mjs';
+import msgTypes from '../lib/messageTypes.mjs';
+import * as msgFactory from '../lib/serverMessageFactory.mjs';
+import * as fsOps from '../lib/fileStructureOps.mjs';
+import { canManageFiles, canView } from '../lib/roles.mjs';
 
 /// TODO: save structure.json and pathMap.json regularly, else progress may be lost
 
@@ -17,7 +17,7 @@ const roles = require('../lib/roles');
  *       in each operation
  */
 
-class WorkspaceInstance {
+export default class WorkspaceInstance {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
 
@@ -270,7 +270,7 @@ class WorkspaceInstance {
       return response;
     }
 
-    if (!roles.canManageFiles(this.getClientRole(clientID))) {
+    if (!canManageFiles(this.getClientRole(clientID))) {
       return response;
     }
 
@@ -313,7 +313,7 @@ class WorkspaceInstance {
       return response;
     }
 
-    if (!roles.canManageFiles(this.getClientRole(clientID))) {
+    if (!canManageFiles(this.getClientRole(clientID))) {
       return response;
     }
 
@@ -341,7 +341,7 @@ class WorkspaceInstance {
      * @returns Returns whether the operation was successfull.
      */
   deleteDocument(clientID, fileID) {
-    if (!roles.canManageFiles(this.getClientRole(clientID))) {
+    if (!canManageFiles(this.getClientRole(clientID))) {
       return false;
     }
 
@@ -378,7 +378,7 @@ class WorkspaceInstance {
      * @returns Returns whether the operation was successfull.
      */
   deleteFolder(clientID, fileID) {
-    if (!roles.canManageFiles(this.getClientRole(clientID))) {
+    if (!canManageFiles(this.getClientRole(clientID))) {
       return false;
     }
 
@@ -411,7 +411,7 @@ class WorkspaceInstance {
   }
 
   renameFile(clientID, fileID, newName) {
-    if (!roles.canManageFiles(this.getClientRole(clientID))) {
+    if (!canManageFiles(this.getClientRole(clientID))) {
       return false;
     }
 
@@ -442,7 +442,7 @@ class WorkspaceInstance {
      */
   connectClientToDocument(clientID, fileID) {
     const client = this.clients.get(clientID);
-    if (!roles.canView(client.role)) {
+    if (!canView(client.role)) {
       return;
     }
 
@@ -514,5 +514,3 @@ class WorkspaceInstance {
     this.saveMetadata();
   }
 }
-
-module.exports = WorkspaceInstance;

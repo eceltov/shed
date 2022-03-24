@@ -1,7 +1,7 @@
-const React = require('react');
-const roles = require('../../lib/roles');
+import React from 'react';
+import { getRoleName } from '../../lib/roles.mjs';
 
-class WorkspaceList extends React.Component {
+export default class WorkspaceList extends React.Component {
   constructor(props) {
     super(props);
     this.createItem = this.createItem.bind(this);
@@ -11,7 +11,7 @@ class WorkspaceList extends React.Component {
     return (
       <li key={index}>
         <a href={`/workspaces?hash=${workspace.id}&token=${this.props.token}`}>
-          {`${workspace.name} (${roles.getRoleName(workspace.role)})`}
+          {`${workspace.name} (${getRoleName(workspace.role)})`}
         </a>
       </li>
     );
@@ -26,5 +26,3 @@ class WorkspaceList extends React.Component {
     );
   }
 }
-
-module.exports = WorkspaceList;

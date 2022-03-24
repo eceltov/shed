@@ -41,5 +41,6 @@ module.exports = {
     'no-param-reassign': 'off',
     'no-plusplus': 'off',
     'no-continue': 'off',
+    'no-lonely-if': 'off',
   },
 };

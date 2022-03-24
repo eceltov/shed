@@ -1,6 +1,6 @@
-dev/testing/playground.js
-dev/testing/playground2.js
-dev/testing/playground3.js
+dev/testing/playground.mjs
+dev/testing/playground2.mjs
+dev/testing/playground3.mjs
 dev/testing/document_states/docLive.txt
 dev/testing/document_states/docPlayground.txt
 dev/testing/aceTesting.js

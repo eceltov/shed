@@ -1,7 +1,8 @@
-var to = require('../lib/dif');
-var lib = require('./test_lib');
-var StatusChecker = require('../lib/status_checker');
-const Server = require('../server/WorkspaceServer');
+import { jest } from '@jest/globals';
+import * as to from '../lib/dif.mjs';
+import * as lib from './test_lib.mjs';
+import StatusChecker from '../lib/status_checker.mjs';
+import Server from '../server/WorkspaceServer.mjs';
 
 jest.setTimeout(90 * 1000);
 

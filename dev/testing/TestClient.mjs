@@ -1,15 +1,16 @@
-var to = require('../lib/dif');
-var msgTypes = require('../lib/messageTypes.js');
-var fsOps = require('../lib/fileStructureOps');
-var roles = require('../lib/roles');
-const ManagedSession = require('../lib/ManagedSession');
-var WebSocketClient = require('websocket').client;
-
-const ace = require('./aceTesting');
+import * as to from '../lib/dif.mjs';
+import msgTypes from '../lib/messageTypes.mjs';
+import { wrapDif } from '../lib/subdifOps.mjs';
+import * as fsOps from '../lib/fileStructureOps.mjs';
+import { roles } from '../lib/roles.mjs';
+import ManagedSession from '../lib/ManagedSession.mjs';
+import websocketPkg from 'websocket';
+const { client: WebSocketClient } = websocketPkg;
+import ace from './aceTesting.js';
 const EditSession = ace.require('ace/edit_session').EditSession;
 
 
-class Client {
+export default class Client {
   constructor(serverURL) {
     this.sendMessageToServer = this.sendMessageToServer.bind(this);
     this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
@@ -78,7 +79,7 @@ class Client {
     if (!this.openedDocuments.has(this.testFileID)) {
       if (this.loggingEnabled) console.log(this.clientID, "Test document missing!");
     }
-    const wDif = to.prim.wrapDif(dif);
+    const wDif = wrapDif(dif);
     const managedSession = this.openedDocuments.get(this.testFileID);
     const document = managedSession.getSession().getDocument();
 
@@ -278,9 +279,3 @@ class Client {
   }
 
 }
-
-
-
-
-module.exports = Client;
-  

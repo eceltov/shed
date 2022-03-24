@@ -1,14 +1,17 @@
-const express = require('express');
-const path = require('path');
-const fs = require('fs');
-const reactViews = require('express-react-views');
-const LoadBalancer = require('./LoadBalancer');
-const DatabaseGateway = require('../database/DatabaseGateway');
+/* eslint-disable no-underscore-dangle */
+import express from 'express';
+import path from 'path';
+import { fileURLToPath } from 'url';
+import fs from 'fs';
+import reactViews from 'express-react-views';
+import DatabaseGateway from '../database/DatabaseGateway.mjs';
 
-class Controller {
+const __filename = fileURLToPath(import.meta.url);
+const __dirname = path.dirname(__filename);
+
+export default class Controller {
   constructor() {
     this.app = null;
-    this.loadBalancer = null;
     this.database = null;
     this.port = null;
     this.configPath = 'controller/config.json';
@@ -18,8 +21,6 @@ class Controller {
     const configString = fs.readFileSync(this.configPath);
     const config = JSON.parse(configString);
     this.port = config.controllerPort;
-    this.loadBalancer = new LoadBalancer();
-    this.loadBalancer.initialize(config);
     this.database = new DatabaseGateway();
     this.database.initialize();
     this.initializeHttpServer();
@@ -68,5 +69,3 @@ class Controller {
     });
   }
 }
-
-module.exports = Controller;

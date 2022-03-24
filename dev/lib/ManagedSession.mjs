@@ -1,5 +1,10 @@
 /* eslint-disable class-methods-use-this */
-class ManagedSession {
+import { del, move, remline, wrapDif } from './subdifOps.mjs';
+import { deepCopy, deepEqual } from './utils.mjs';
+import * as to from './dif.mjs';
+import compress from './compress.mjs';
+
+export default class ManagedSession {
   constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj) {
     this.processOperation = this.processOperation.bind(this);
     this.processIntervalBuffer = this.processIntervalBuffer.bind(this);
@@ -70,7 +75,7 @@ class ManagedSession {
     if (!this.measuring) {
       this.measuring = true;
       const listenInterval = this.LISTEN_INTERVAL;
-      setTimeout(this.intervalTimerCallback, listenInterval, this, to.prim.deepCopy(
+      setTimeout(this.intervalTimerCallback, listenInterval, this, deepCopy(
         this.currentDependency,
       ));
     }
@@ -78,7 +83,7 @@ class ManagedSession {
 
   intervalTimerCallback(that, currentDependency) {
     // if the dependency changed, the interval buffer had to already be flushed
-    if (to.prim.deepEqual(that.currentDependency, currentDependency)) {
+    if (deepEqual(that.currentDependency, currentDependency)) {
       that.measuring = false;
       that.processIntervalBuffer();
     }
@@ -109,7 +114,7 @@ class ManagedSession {
 
     let dif = this.intervalBuf;
     if (!this.DEBUG) {
-      dif = to.compress(this.intervalBuf); // organise the dif
+      dif = compress(this.intervalBuf); // organise the dif
     }
     this.intervalBufClear(); // clear the buffer for a new listening interval
 
@@ -135,7 +140,7 @@ class ManagedSession {
      */
   pushOperationToHB(operation) {
     const wOperation = operation;
-    wOperation[1] = to.prim.wrapDif(operation[1]);
+    wOperation[1] = wrapDif(operation[1]);
     this.HB.push(wOperation);
   }
 
@@ -283,7 +288,7 @@ class ManagedSession {
         const trailingText = this.session.getLine(e.end.row);
         dif.push(e.end.row); // add new row
         if (trailingText.length > 0) {
-          dif.push(to.move(e.start.row, e.start.column, e.end.row, 0, trailingText.length));
+          dif.push(move(e.start.row, e.start.column, e.end.row, 0, trailingText.length));
         }
       }
 
@@ -303,22 +308,22 @@ class ManagedSession {
       else if (e.lines.length === 2 && e.lines[0] === '' && e.lines[1] === '') {
         const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
         if (trailingText.length > 0) {
-          dif.push(to.move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
+          dif.push(move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
         }
         dif.push(-e.end.row);
       }
 
       // multiline delete
       else {
-        dif.push(to.del(e.start.row, e.start.column, e.lines[0].length));
+        dif.push(del(e.start.row, e.start.column, e.lines[0].length));
         for (let i = 1; i < e.lines.length - 1; i++) {
-          dif.push(to.del(e.start.row + i, 0, e.lines[i].length));
+          dif.push(del(e.start.row + i, 0, e.lines[i].length));
         }
-        dif.push(to.del(e.end.row, 0, e.lines[e.lines.length - 1].length));
+        dif.push(del(e.end.row, 0, e.lines[e.lines.length - 1].length));
         const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
-        dif.push(to.move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
+        dif.push(move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
         for (let i = e.end.row; i > e.start.row; i--) {
-          dif.push(to.remline(i));
+          dif.push(remline(i));
         }
       }
     }
@@ -326,5 +331,3 @@ class ManagedSession {
     this.intervalBufAddDif(dif);
   }
 }
-
-module.exports = ManagedSession;

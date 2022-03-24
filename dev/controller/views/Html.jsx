@@ -1,7 +1,7 @@
-const React = require('react');
-const WorkspacesPage = require('./WorkspacesPage');
+import React from 'react';
+import WorkspacesPage from './WorkspacesPage';
 
-class Html extends React.Component {
+export default class Html extends React.Component {
   render() {
     const { workspaces, token } = this.props.data;
 
@@ -15,5 +15,3 @@ class Html extends React.Component {
     );
   }
 }
-
-module.exports = Html;

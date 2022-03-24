@@ -1,15 +1,11 @@
-const WebSocketServer = require('websocket').server;
-const http = require('http');
-const fs = require('fs');
-const StatusChecker = require('../lib/status_checker');
-const to = require('../lib/dif');
-const roles = require('../lib/roles');
-const msgTypes = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const DatabaseGateway = require('../database/DatabaseGateway');
-const fsOps = require('../lib/fileStructureOps');
+import * as to from '../lib/dif.mjs';
+import StatusChecker from '../lib/status_checker.mjs';
+import { canEdit } from '../lib/roles.mjs';
+import msgTypes from '../lib/messageTypes.mjs';
+import * as msgFactory from '../lib/serverMessageFactory.mjs';
+import * as fsOps from '../lib/fileStructureOps.mjs';
 
-class DocumentInstance {
+export default class DocumentInstance {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
     this.processOperation = this.processOperation.bind(this);
@@ -279,13 +275,13 @@ class DocumentInstance {
     // message is an operation
     else {
       const { role } = this.clients.get(clientID);
-      if (roles.canEdit(role) && !this.ordering.on) {
+      if (canEdit(role) && !this.ordering.on) {
         this.sendMessageToClients(messageString);
         this.processOperation(message);
         this.startGC();
       }
       // debug only
-      else if (roles.canEdit(role) && this.ordering.on) {
+      else if (canEdit(role) && this.ordering.on) {
         this.debugHandleOperation(message);
       }
       else {
@@ -366,5 +362,3 @@ class DocumentInstance {
     }
   }
 }
-
-module.exports = DocumentInstance;

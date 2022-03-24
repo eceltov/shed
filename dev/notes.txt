@@ -368,7 +368,28 @@ Fixing del on del compression:
                 graphical: nnnnnn[00000][11111]nnnnn (n is text, [000...] is the deletion range of the first subdif, [111...] of the second)
             2) b > y && y + z >= b => [a, y, c + z]
                 graphical: nnnnnn[111][00000][11111]nnnnnn (y + z > b)
-                graphical: nnnnnn[1111111111][00000]nnnnnn (y + z = b)
+                graphical: nnnnnn[1111111111][00000]nnnnnn (y + z == b)
             These are all the options, because:
                 The deletion effect of subdif 0 has to be continuous, because it is the first subdif,
                 and because the above examples handle all possible positions of the deletion effect of subdif 1.
+
+Implementing add on del compression:
+    This is added for the common scenario when a user types something and then erases it using backspace.
+    Possible scenarios:
+        [a, b, text], [x, y, z], where a == x and:
+            1) Deleting whole add: y <= b && y + z >= b + text.length
+                a) y == b:
+                    I) y + z == b + text.length => both add and del get deleted
+                    II) y + z > b + text.length => [x, y, z - b - text.length] the position is y because th del is no longer dependant on the add
+                b) y < b:
+                    I) y + z == b + text.length => [x, y, z - b - text.length]
+                    II) y + z > b + text.length => [x, y, z - b - text.length]
+            2) Deleting from the middle (not deleting bounds): b + text.length > y + z && b < y
+                => [a, b, text'] where text' is shortened by z characters somewhere in the middle
+            3) Deleting from the left: y <= b && y + z > b
+                a) b == y => [a, b + z, text'] where text' is shortened by z characters from the beginning
+                b) b > y => [a, y + z, text'], [x, y, b - y] where text' is shortened by y + z - b characters from the beginning
+            4) Deleting from the right: y > b && y < b + text.length
+                b + text.length == y + z => [a, b, text'] where text' is shortened by z characters from the back
+                b + text.length < y + z => [a, b, text'], [x, b + text'.length, z + y - b - text.length] where text' is shortened by b + text.length - y characters from the back
+            
