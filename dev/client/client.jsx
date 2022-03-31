@@ -1,14 +1,15 @@
-const SERVER_URL = 'ws://localhost:8080/';
-const CSLatency = 0;
-const SCLatency = 0;
-const modelist = ace.require('ace/ext/modelist');
-const Range = ace.require('ace/range').Range;
-const EditSession = ace.require('ace/edit_session').EditSession;
-const Document = ace.require('ace/document').Document;
-function log(content) {
-  console.log(JSON.parse(JSON.stringify(content)));
-}
+const React = require('react');
+const ReactDOM = require('react-dom');
+const fsOps = require('../lib/fileStructureOps');
+const ManagedSession = require('../lib/ManagedSession');
+const msgFactory = require('../lib/clientMessageFactory');
+const msgTypes = require('../lib/messageTypes');
+const roles = require('../lib/roles');
+const utils = require('../lib/utils');
+const Workspace = require('./Workspace.jsx');
 
-ReactDOM.render(
-  <Workspace />, document.getElementById('reactContainer'),
-);
+window.addEventListener('DOMContentLoaded', () => {
+  ReactDOM.render(
+    <Workspace />, document.getElementById('reactContainer'),
+  );
+});

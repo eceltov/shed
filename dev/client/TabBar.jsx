@@ -1,3 +1,6 @@
+const Tab = require('./Tab.jsx');
+const fsOps = require('../lib/fileStructureOps');
+
 class TabBar extends React.Component {
   constructor(props) {
     super(props);
@@ -26,3 +29,5 @@ class TabBar extends React.Component {
     );
   }
 }
+
+module.exports = TabBar;

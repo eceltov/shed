@@ -14,7 +14,6 @@ class Workspace extends React.Component {
           <script src="https://unpkg.com/react@17/umd/react.development.js" />
           <script src="https://unpkg.com/react-dom@17/umd/react-dom.development.js" />
           <script src="https://unpkg.com/react-bootstrap@next/dist/react-bootstrap.min.js" />
-
           <script src="https://unpkg.com/redux/dist/redux.js" />
           <script src="https://unpkg.com/react-redux@5.0.6/dist/react-redux.js" />
 
@@ -24,23 +23,7 @@ class Workspace extends React.Component {
           <link rel="stylesheet" href="client/default.css" />
           <script src="editor/ace-builds/src-noconflict/ace.js" type="text/javascript" charSet="utf-8" />
           <script src="editor/ace-builds/src-noconflict/ext-modelist.js" type="text/javascript" charSet="utf-8" />
-          <script src="lib/dif.js" type="text/javascript" />
-          <script src="lib/roles.js" type="text/javascript" />
-          <script src="lib/messageTypes.js" type="text/javascript" />
-          <script src="lib/clientMessageFactory.js" type="text/javascript" />
-          <script src="lib/fileStructureOps.js" type="text/javascript" />
-          <script src="lib/ManagedSession.js" type="text/javascript" />
-          <script src="client/EditableFile.jsx" type="text/babel" />
-          <script src="client/FileOperation.jsx" type="text/babel" />
-          <script src="client/FileStructure.jsx" type="text/babel" />
-          <script src="client/FileStructureDocument.jsx" type="text/babel" />
-          <script src="client/FileStructureFolder.jsx" type="text/babel" />
-          <script src="client/Tab.jsx" type="text/babel" />
-          <script src="client/TabBar.jsx" type="text/babel" />
-          <script src="client/WelcomeScreen.jsx" type="text/babel" />
-          <script src="client/Workspace.jsx" type="text/babel" />
-          <script src="client/client.jsx" type="text/babel" />
-
+          <script src="client/bundle.js" type="text/javascript" />
         </head>
         <body>
           <div id="reactContainer" />
@@ -51,3 +34,16 @@ class Workspace extends React.Component {
 }
 
 module.exports = Workspace;
+
+/*
+<script src="client/EditableFile.jsx" type="text/babel" />
+<script src="client/FileOperation.jsx" type="text/babel" />
+<script src="client/FileStructure.jsx" type="text/babel" />
+<script src="client/FileStructureDocument.jsx" type="text/babel" />
+<script src="client/FileStructureFolder.jsx" type="text/babel" />
+<script src="client/Tab.jsx" type="text/babel" />
+<script src="client/TabBar.jsx" type="text/babel" />
+<script src="client/WelcomeScreen.jsx" type="text/babel" />
+<script src="client/Workspace.jsx" type="text/babel" />
+<script src="client/client.jsx" type="text/babel" />
+*/

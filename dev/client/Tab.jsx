@@ -38,3 +38,5 @@ class Tab extends React.Component {
     );
   }
 }
+
+module.exports = Tab;

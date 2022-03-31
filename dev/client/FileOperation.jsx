@@ -16,3 +16,5 @@ class FileOperation extends React.Component {
     );
   }
 }
+
+module.exports = FileOperation;

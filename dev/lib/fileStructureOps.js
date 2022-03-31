@@ -293,7 +293,7 @@ function getSpawnParentID(fileStructure, pathMap, fileID) {
 }
 
 module.exports = {
-  validateFileName, getNewDocumentObj, getNewFolderObj, getIDPathMap, getFileObjectFromPath,
+  types, validateFileName, getNewDocumentObj, getNewFolderObj, getIDPathMap, getFileObjectFromPath,
   getFileObject, getParentFileObject, getFileNameFromPath, getFileNameFromID,
   checkIfFolderHasFileName, addFile, removeFile, renameFile, isDocument, getAbsolutePathFromIDPath,
   getSpawnParentID,

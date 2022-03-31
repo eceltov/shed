@@ -1,3 +1,5 @@
+const fsOps = require('../lib/fileStructureOps');
+
 class EditableFile extends React.Component {
   constructor(props) {
     super(props);
@@ -33,3 +35,5 @@ class EditableFile extends React.Component {
     );
   }
 }
+
+module.exports = EditableFile;

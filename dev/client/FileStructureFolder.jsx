@@ -1,3 +1,7 @@
+const EditableFile = require('./EditableFile.jsx');
+const FileStructureDocument = require('./FileStructureDocument.jsx');
+const fsOps = require('../lib/fileStructureOps');
+
 class FileStructureFolder extends React.Component {
   constructor(props) {
     super(props);
@@ -138,3 +142,5 @@ class FileStructureFolder extends React.Component {
       : this.createStandardFolderContent();
   }
 }
+
+module.exports = FileStructureFolder;

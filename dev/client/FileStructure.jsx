@@ -1,3 +1,7 @@
+const FileStructureFolder = require('./FileStructureFolder.jsx');
+const FileOperation = require('./FileOperation.jsx');
+const fsOps = require('../lib/fileStructureOps');
+
 class FileStructure extends React.Component {
   constructor(props) {
     super(props);
@@ -149,3 +153,5 @@ class FileStructure extends React.Component {
     );
   }
 }
+
+module.exports = FileStructure;

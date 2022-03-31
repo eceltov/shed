@@ -1,3 +1,22 @@
+const FileStructure = require('./FileStructure.jsx');
+const WelcomeScreen = require('./WelcomeScreen.jsx');
+const TabBar = require('./TabBar.jsx');
+
+const fsOps = require('../lib/fileStructureOps');
+const ManagedSession = require('../lib/ManagedSession');
+const msgFactory = require('../lib/clientMessageFactory');
+const { msgTypes } = require('../lib/messageTypes');
+const roles = require('../lib/roles');
+const utils = require('../lib/utils');
+
+const SERVER_URL = 'ws://localhost:8080/';
+const CSLatency = 0;
+const SCLatency = 0;
+const modelist = ace.require('ace/ext/modelist');
+// const Range = ace.require('ace/range').Range;
+const EditSession = ace.require('ace/edit_session').EditSession;
+// const Document = ace.require('ace/document').Document;
+
 class Workspace extends React.Component {
   constructor(props) {
     super(props);
@@ -146,7 +165,7 @@ class Workspace extends React.Component {
       state = stateSnapshot;
     }
 
-    const newTabs = to.prim.deepCopy(state.tabs);
+    const newTabs = utils.deepCopy(state.tabs);
     const index = newTabs.indexOf(fileID);
     if (index < 0) {
       return;
@@ -425,7 +444,7 @@ class Workspace extends React.Component {
 
   onCreateDocument(message) {
     this.setState((prevState) => {
-      const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
+      const fileStructureCopy = utils.deepCopy(prevState.fileStructure);
       const documentObj = fsOps.getNewDocumentObj(message.fileID, message.name);
       fsOps.addFile(fileStructureCopy, this.pathMap, message.parentID, documentObj);
 
@@ -437,7 +456,7 @@ class Workspace extends React.Component {
 
   onCreateFolder(message) {
     this.setState((prevState) => {
-      const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
+      const fileStructureCopy = utils.deepCopy(prevState.fileStructure);
       const folderObj = fsOps.getNewFolderObj(message.fileID, message.name);
       fsOps.addFile(fileStructureCopy, this.pathMap, message.parentID, folderObj);
 
@@ -450,10 +469,10 @@ class Workspace extends React.Component {
   onDeleteDocument(message) {
     this.setState((prevState) => {
       const stateSnapshot = {
-        tabs: to.prim.deepCopy(prevState.tabs),
+        tabs: utils.deepCopy(prevState.tabs),
         activeFile: prevState.activeFile,
         activeTab: prevState.activeTab,
-        fileStructure: to.prim.deepCopy(prevState.fileStructure),
+        fileStructure: utils.deepCopy(prevState.fileStructure),
       };
 
       fsOps.removeFile(stateSnapshot.fileStructure, this.pathMap, message.fileID);
@@ -467,10 +486,10 @@ class Workspace extends React.Component {
   onDeleteFolder(message) {
     this.setState((prevState) => {
       const stateSnapshot = {
-        tabs: to.prim.deepCopy(prevState.tabs),
+        tabs: utils.deepCopy(prevState.tabs),
         activeFile: prevState.activeFile,
         activeTab: prevState.activeTab,
-        fileStructure: to.prim.deepCopy(prevState.fileStructure),
+        fileStructure: utils.deepCopy(prevState.fileStructure),
       };
 
       const folderObj = fsOps.getFileObject(
@@ -502,7 +521,7 @@ class Workspace extends React.Component {
 
   onRenameFile(message) {
     this.setState((prevState) => {
-      const fileStructureCopy = to.prim.deepCopy(prevState.fileStructure);
+      const fileStructureCopy = utils.deepCopy(prevState.fileStructure);
       fsOps.renameFile(fileStructureCopy, this.pathMap, message.fileID, message.name);
 
       // change the file ace mode if the extension changed
@@ -571,3 +590,5 @@ class Workspace extends React.Component {
     );
   }
 }
+
+module.exports = Workspace;

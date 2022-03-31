@@ -1,4 +1,4 @@
-const { WorkspaceServer } = require('./server/WorkspaceServer');
+const WorkspaceServer = require('./server/WorkspaceServer');
 
 const server = new WorkspaceServer();
 server.initialize();
