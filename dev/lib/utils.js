@@ -1,17 +1,17 @@
-export function deepCopy(object) {
+function deepCopy(object) {
   return JSON.parse(JSON.stringify(object));
 }
 
 /**
  * @brief Takes an array of arrays and returns an array containing all nested elements
  */
-export function dissolveArrays(arrays) {
+function dissolveArrays(arrays) {
   const a = [];
   arrays.forEach((array) => a.push(...array));
   return a;
 }
 
-export function deepEqual(x, y) {
+function deepEqual(x, y) {
   if (x === y) {
     return true;
   }
@@ -30,3 +30,7 @@ export function deepEqual(x, y) {
   }
   return false;
 }
+
+module.exports = {
+  deepCopy, dissolveArrays, deepEqual,
+};

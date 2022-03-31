@@ -733,7 +733,7 @@ function ET_RR(wrap, wTransformer) {
 }
 
 /// TODO: consider returning an array from all prim transform functions
-export function IT(wrap, wTransformer) {
+function IT(wrap, wTransformer) {
   const transformedWraps = [];
   if (isAdd(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(IT_AA(wrap, wTransformer));
@@ -801,7 +801,7 @@ export function IT(wrap, wTransformer) {
   return transformedWraps;
 }
 
-export function ET(wrap, wTransformer) {
+function ET(wrap, wTransformer) {
   const transformedWraps = [];
   if (isAdd(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(ET_AA(wrap, wTransformer));
@@ -882,3 +882,7 @@ export function ET(wrap, wTransformer) {
   }
   return transformedWraps;
 }
+
+module.exports = {
+  IT, ET,
+};

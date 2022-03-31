@@ -1,4 +1,4 @@
-export default class StatusChecker {
+class StatusChecker {
   constructor(count) {
     this.check = this.check.bind(this);
     this.checkCount = 1;
@@ -52,3 +52,5 @@ export default class StatusChecker {
     }
   }
 }
+
+module.exports = StatusChecker;

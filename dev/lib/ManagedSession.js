@@ -1,10 +1,10 @@
 /* eslint-disable class-methods-use-this */
-import { del, move, remline, wrapDif } from './subdifOps.mjs';
-import { deepCopy, deepEqual } from './utils.mjs';
-import * as to from './dif.mjs';
-import compress from './compress.mjs';
+const { del, move, remline, wrapDif } = require('./subdifOps');
+const { deepCopy, deepEqual } = require('./utils');
+const { textToDif, UDR } = require('./dif');
+const { compress } = require('./compress');
 
-export default class ManagedSession {
+class ManagedSession {
   constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj) {
     this.processOperation = this.processOperation.bind(this);
     this.processIntervalBuffer = this.processIntervalBuffer.bind(this);
@@ -252,7 +252,7 @@ export default class ManagedSession {
       /// TODO: RACE CONDITION: what about changes made by the user while
       ///   UDR is being processed with handlingChanges === false?
       this.handlingChanges = false;
-      const finalState = to.UDR(
+      const finalState = UDR(
         operation, document, this.HB, this.serverOrdering, false, oldCursorPosition,
       );
       this.handlingChanges = true;
@@ -295,7 +295,7 @@ export default class ManagedSession {
       // paste
       else {
         const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
-        dif = to.textToDif(e.start.row, e.start.column, e.lines, trailingText);
+        dif = textToDif(e.start.row, e.start.column, e.lines, trailingText);
       }
     }
     else if (e.action === 'remove') {
@@ -331,3 +331,5 @@ export default class ManagedSession {
     this.intervalBufAddDif(dif);
   }
 }
+
+module.exports = ManagedSession;

@@ -46,4 +46,6 @@ const msgTypes = {
   },
 };
 
-export default msgTypes;
+module.exports = {
+  msgTypes,
+};

@@ -1,3 +1,4 @@
+/* eslint-disable object-property-newline */
 const types = {
   document: 0,
   folder: 1,
@@ -5,14 +6,14 @@ const types = {
 
 const fileNameRegex = /^[^\\/:*?"<>|]*$/;
 
-export function validateFileName(name) {
+function validateFileName(name) {
   return fileNameRegex.test(name)
     && name !== '.'
     && name !== '..'
     && name !== '';
 }
 
-export function getNewDocumentObj(fileID, name) {
+function getNewDocumentObj(fileID, name) {
   return {
     type: types.document,
     ID: fileID,
@@ -20,7 +21,7 @@ export function getNewDocumentObj(fileID, name) {
   };
 }
 
-export function getNewFolderObj(fileID, name) {
+function getNewFolderObj(fileID, name) {
   return {
     type: types.folder,
     ID: fileID,
@@ -44,7 +45,7 @@ function getIDPathMapRecursion(folderObj, parentPath, map) {
  * @param {*} fileStructure The root of the file structure.
  * @returns Returns a Map from fileIDs to their paths.
  */
-export function getIDPathMap(fileStructure) {
+function getIDPathMap(fileStructure) {
   const map = new Map();
   const path = '';
   map.set(fileStructure.ID, path); // path to root
@@ -52,7 +53,7 @@ export function getIDPathMap(fileStructure) {
   return map;
 }
 
-export function getFileObjectFromPath(fileStructure, path) {
+function getFileObjectFromPath(fileStructure, path) {
   if (typeof path !== 'string') {
     console.log('Absolute path is null!');
     return null;
@@ -78,7 +79,7 @@ export function getFileObjectFromPath(fileStructure, path) {
  * @param {*} fileID The ID of the target file.
  * @returns Returns an object representing the file.
  */
-export function getFileObject(fileStructure, pathMap, fileID) {
+function getFileObject(fileStructure, pathMap, fileID) {
   if (!pathMap.has(fileID)) {
     return null;
   }
@@ -86,7 +87,7 @@ export function getFileObject(fileStructure, pathMap, fileID) {
   return getFileObjectFromPath(fileStructure, pathMap.get(fileID));
 }
 
-export function getParentFileObject(fileStructure, pathMap, fileID) {
+function getParentFileObject(fileStructure, pathMap, fileID) {
   if (!pathMap.has(fileID)) {
     return null;
   }
@@ -112,7 +113,7 @@ export function getParentFileObject(fileStructure, pathMap, fileID) {
  * @param {*} path The path to a file that does not end with /
  * @returns Returns the name of a file based on its path.
  */
-export function getFileNameFromPath(fileStructure, path) {
+function getFileNameFromPath(fileStructure, path) {
   const file = getFileObjectFromPath(fileStructure, path);
   if (file === null) {
     return null;
@@ -120,7 +121,7 @@ export function getFileNameFromPath(fileStructure, path) {
   return file.name;
 }
 
-export function getFileNameFromID(fileStructure, pathMap, fileID) {
+function getFileNameFromID(fileStructure, pathMap, fileID) {
   if (!pathMap.has(fileID)) {
     return null;
   }
@@ -131,7 +132,7 @@ export function getFileNameFromID(fileStructure, pathMap, fileID) {
   return fileObj.name;
 }
 
-export function checkIfFolderHasFileName(folderObj, name) {
+function checkIfFolderHasFileName(folderObj, name) {
   let present = false;
   Object.values(folderObj.items).forEach((fileObj) => {
     if (fileObj.name === name) {
@@ -149,7 +150,7 @@ export function checkIfFolderHasFileName(folderObj, name) {
  * @param {*} fileObj The object of the new file.
  * @returns Returns true if successfull, else returns false.
  */
-export function addFile(fileStructure, pathMap, parentID, fileObj) {
+function addFile(fileStructure, pathMap, parentID, fileObj) {
   if (!pathMap.has(parentID)) {
     return false;
   }
@@ -175,7 +176,7 @@ export function addFile(fileStructure, pathMap, parentID, fileObj) {
  * @param {*} pathMap The map of fileIDs to filePaths.
  * @param {*} folderObj A fileStructure object representing a folder.
  */
- function removeFileRecursion(pathMap, folderObj) {
+function removeFileRecursion(pathMap, folderObj) {
   Object.values(folderObj.items).forEach((item) => {
     if (item.type === types.folder) {
       removeFileRecursion(pathMap, item);
@@ -192,7 +193,7 @@ export function addFile(fileStructure, pathMap, parentID, fileObj) {
  * @param {*} fileID The ID of the file to be deleted.
  * @returns Returns whether the deletion was successfull.
  */
-export function removeFile(fileStructure, pathMap, fileID) {
+function removeFile(fileStructure, pathMap, fileID) {
   if (fileID === 0 || !pathMap.has(fileID)) {
     return false;
   }
@@ -212,7 +213,7 @@ export function removeFile(fileStructure, pathMap, fileID) {
   return true;
 }
 
-export function renameFile(fileStructure, pathMap, fileID, newName) {
+function renameFile(fileStructure, pathMap, fileID, newName) {
   if (fileID === 0 || !pathMap.has(fileID)) {
     return false;
   }
@@ -229,7 +230,7 @@ export function renameFile(fileStructure, pathMap, fileID, newName) {
   return true;
 }
 
-export function isDocument(fileStructure, pathMap, fileID) {
+function isDocument(fileStructure, pathMap, fileID) {
   const path = pathMap.get(fileID);
 
   if (path === undefined) {
@@ -248,7 +249,7 @@ export function isDocument(fileStructure, pathMap, fileID) {
   return true;
 }
 
-export function getAbsolutePathFromIDPath(fileStructure, path) {
+function getAbsolutePathFromIDPath(fileStructure, path) {
   if (typeof path !== 'string') {
     console.log('Absolute path is null!');
     return null;
@@ -277,7 +278,7 @@ export function getAbsolutePathFromIDPath(fileStructure, path) {
  * @param {*} fileID An ID of a document or folder.
  * @returns Returns fileID if it points to a folder, else returns the ID of its parent.
  */
-export function getSpawnParentID(fileStructure, pathMap, fileID) {
+function getSpawnParentID(fileStructure, pathMap, fileID) {
   const parentFolderObj = getParentFileObject(
     fileStructure, pathMap, fileID,
   );
@@ -290,3 +291,10 @@ export function getSpawnParentID(fileStructure, pathMap, fileID) {
   }
   return fileObj.ID;
 }
+
+module.exports = {
+  validateFileName, getNewDocumentObj, getNewFolderObj, getIDPathMap, getFileObjectFromPath,
+  getFileObject, getParentFileObject, getFileNameFromPath, getFileNameFromID,
+  checkIfFolderHasFileName, addFile, removeFile, renameFile, isDocument, getAbsolutePathFromIDPath,
+  getSpawnParentID,
+};

@@ -1,15 +1,10 @@
-/* eslint-disable no-underscore-dangle */
-import express from 'express';
-import path from 'path';
-import { fileURLToPath } from 'url';
-import fs from 'fs';
-import reactViews from 'express-react-views';
-import DatabaseGateway from '../database/DatabaseGateway.mjs';
+const express = require('express');
+const path = require('path');
+const fs = require('fs');
+const reactViews = require('express-react-views');
+const DatabaseGateway = require('../database/DatabaseGateway');
 
-const __filename = fileURLToPath(import.meta.url);
-const __dirname = path.dirname(__filename);
-
-export default class Controller {
+class Controller {
   constructor() {
     this.app = null;
     this.database = null;
@@ -69,3 +64,5 @@ export default class Controller {
     });
   }
 }
+
+module.exports = Controller;

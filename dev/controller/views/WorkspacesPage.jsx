@@ -1,7 +1,7 @@
-import React from 'react';
-import WorkspaceList from './WorkspaceList';
+const React = require('react');
+const WorkspaceList = require('./WorkspaceList');
 
-export default class WorkspacesPage extends React.Component {
+class WorkspacesPage extends React.Component {
   render() {
     return (
       <div className="container">
@@ -11,3 +11,5 @@ export default class WorkspacesPage extends React.Component {
     );
   }
 }
+
+module.exports = WorkspacesPage;

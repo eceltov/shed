@@ -1,6 +1,6 @@
-import React from 'react';
+const React = require('react');
 
-export default class Workspace extends React.Component {
+class Workspace extends React.Component {
   render() {
     // var data = this.props.data;
 
@@ -24,13 +24,12 @@ export default class Workspace extends React.Component {
           <link rel="stylesheet" href="client/default.css" />
           <script src="editor/ace-builds/src-noconflict/ace.js" type="text/javascript" charSet="utf-8" />
           <script src="editor/ace-builds/src-noconflict/ext-modelist.js" type="text/javascript" charSet="utf-8" />
-
-          <script src="lib/dif.mjs" type="text/javascript" />
-          <script src="lib/roles.mjs" type="text/javascript" />
-          <script src="lib/messageTypes.mjs" type="text/javascript" />
-          <script src="lib/clientMessageFactory.mjs" type="text/javascript" />
-          <script src="lib/fileStructureOps.mjs" type="text/javascript" />
-          <script src="lib/ManagedSession.mjs" type="text/javascript" />
+          <script src="lib/dif.js" type="text/javascript" />
+          <script src="lib/roles.js" type="text/javascript" />
+          <script src="lib/messageTypes.js" type="text/javascript" />
+          <script src="lib/clientMessageFactory.js" type="text/javascript" />
+          <script src="lib/fileStructureOps.js" type="text/javascript" />
+          <script src="lib/ManagedSession.js" type="text/javascript" />
           <script src="client/EditableFile.jsx" type="text/babel" />
           <script src="client/FileOperation.jsx" type="text/babel" />
           <script src="client/FileStructure.jsx" type="text/babel" />
@@ -50,3 +49,5 @@ export default class Workspace extends React.Component {
     );
   }
 }
+
+module.exports = Workspace;

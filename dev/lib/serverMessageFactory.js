@@ -1,6 +1,7 @@
-import msgTypes from './messageTypes.mjs';
+/* eslint-disable object-property-newline */
+const { msgTypes } = require('./messageTypes');
 
-export function initialize() {
+function initialize() {
 
 }
 
@@ -8,7 +9,7 @@ export function initialize() {
  * @param {*} fileStructureItems The fileStructure.items property.
  * @param {*} role The role of the client.
  */
-export function initWorkspace(clientID, fileStructureItems, role) {
+function initWorkspace(clientID, fileStructureItems, role) {
   return {
     msgType: msgTypes.server.initWorkspace,
     clientID,
@@ -17,7 +18,7 @@ export function initWorkspace(clientID, fileStructureItems, role) {
   };
 }
 
-export function initDocument(
+function initDocument(
   serverDocument, fileID, serverHB, serverOrdering, firstSOMessageNumber,
 ) {
   return {
@@ -30,14 +31,14 @@ export function initDocument(
   };
 }
 
-export function GCMetadataRequest(fileID) {
+function GCMetadataRequest(fileID) {
   return {
     msgType: msgTypes.server.GCMetadataRequest,
     fileID,
   };
 }
 
-export function GC(fileID, GCOldestMessageNumber) {
+function GC(fileID, GCOldestMessageNumber) {
   return {
     msgType: msgTypes.server.GC,
     fileID,
@@ -45,7 +46,7 @@ export function GC(fileID, GCOldestMessageNumber) {
   };
 }
 
-export function createDocument(parentID, fileID, name) {
+function createDocument(parentID, fileID, name) {
   return {
     msgType: msgTypes.server.createDocument,
     parentID,
@@ -54,7 +55,7 @@ export function createDocument(parentID, fileID, name) {
   };
 }
 
-export function createFolder(parentID, fileID, name) {
+function createFolder(parentID, fileID, name) {
   return {
     msgType: msgTypes.server.createFolder,
     parentID,
@@ -63,24 +64,29 @@ export function createFolder(parentID, fileID, name) {
   };
 }
 
-export function deleteDocument(fileID) {
+function deleteDocument(fileID) {
   return {
     msgType: msgTypes.server.deleteDocument,
     fileID,
   };
 }
 
-export function deleteFolder(fileID) {
+function deleteFolder(fileID) {
   return {
     msgType: msgTypes.server.deleteFolder,
     fileID,
   };
 }
 
-export function renameFile(fileID, name) {
+function renameFile(fileID, name) {
   return {
     msgType: msgTypes.server.renameFile,
     fileID,
     name,
   };
 }
+
+module.exports = {
+  initialize, initWorkspace, initDocument, GCMetadataRequest, GC, createDocument,
+  createFolder, deleteDocument, deleteFolder, renameFile,
+};

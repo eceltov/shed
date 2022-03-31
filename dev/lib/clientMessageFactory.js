@@ -1,6 +1,6 @@
-import msgTypes from './messageTypes.mjs';
+const { msgTypes } = require('./messageTypes');
 
-export function createDocument(clientID, parentID, name) {
+function createDocument(clientID, parentID, name) {
   return {
     msgType: msgTypes.client.createDocument,
     clientID,
@@ -9,7 +9,7 @@ export function createDocument(clientID, parentID, name) {
   };
 }
 
-export function createFolder(clientID, parentID, name) {
+function createFolder(clientID, parentID, name) {
   return {
     msgType: msgTypes.client.createFolder,
     clientID,
@@ -18,7 +18,7 @@ export function createFolder(clientID, parentID, name) {
   };
 }
 
-export function deleteDocument(clientID, fileID) {
+function deleteDocument(clientID, fileID) {
   return {
     msgType: msgTypes.client.deleteDocument,
     clientID,
@@ -26,7 +26,7 @@ export function deleteDocument(clientID, fileID) {
   };
 }
 
-export function deleteFolder(clientID, fileID) {
+function deleteFolder(clientID, fileID) {
   return {
     msgType: msgTypes.client.deleteFolder,
     clientID,
@@ -34,7 +34,7 @@ export function deleteFolder(clientID, fileID) {
   };
 }
 
-export function renameFile(clientID, fileID, name) {
+function renameFile(clientID, fileID, name) {
   return {
     msgType: msgTypes.client.renameFile,
     clientID,
@@ -42,3 +42,7 @@ export function renameFile(clientID, fileID, name) {
     name,
   };
 }
+
+module.exports = {
+  createDocument, createFolder, deleteDocument, deleteFolder, renameFile,
+};

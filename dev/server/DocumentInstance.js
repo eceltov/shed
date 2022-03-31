@@ -1,11 +1,11 @@
-import * as to from '../lib/dif.mjs';
-import StatusChecker from '../lib/status_checker.mjs';
-import { canEdit } from '../lib/roles.mjs';
-import msgTypes from '../lib/messageTypes.mjs';
-import * as msgFactory from '../lib/serverMessageFactory.mjs';
-import * as fsOps from '../lib/fileStructureOps.mjs';
+const { UDR } = require('../lib/dif');
+const StatusChecker = require('../lib/status_checker');
+const { canEdit } = require('../lib/roles');
+const { msgTypes } = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
+const fsOps = require('../lib/fileStructureOps');
 
-export default class DocumentInstance {
+class DocumentInstance {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
     this.processOperation = this.processOperation.bind(this);
@@ -293,7 +293,7 @@ export default class DocumentInstance {
   }
 
   processOperation(message) {
-    const resultingState = to.UDR(message, this.document, this.HB, this.serverOrdering);
+    const resultingState = UDR(message, this.document, this.HB, this.serverOrdering);
     this.serverOrdering.push(
       [message[0][0], message[0][1], message[0][2], message[0][3]],
     ); // append serverOrdering
@@ -362,3 +362,5 @@ export default class DocumentInstance {
     }
   }
 }
+
+module.exports = DocumentInstance;

@@ -1,16 +1,14 @@
-import * as to from '../lib/dif.mjs';
-import msgTypes from '../lib/messageTypes.mjs';
-import { wrapDif } from '../lib/subdifOps.mjs';
-import * as fsOps from '../lib/fileStructureOps.mjs';
-import { roles } from '../lib/roles.mjs';
-import ManagedSession from '../lib/ManagedSession.mjs';
-import websocketPkg from 'websocket';
-const { client: WebSocketClient } = websocketPkg;
-import ace from './aceTesting.js';
+const to = require('../lib/dif');
+const { msgTypes } = require('../lib/messageTypes.js');
+const { wrapDif } = require('../lib/subdifOps');
+const fsOps = require('../lib/fileStructureOps');
+const { roles } = require('../lib/roles');
+const ManagedSession = require('../lib/ManagedSession');
+var WebSocketClient = require('websocket').client;
+const ace = require('./aceTesting');
 const EditSession = ace.require('ace/edit_session').EditSession;
 
-
-export default class Client {
+class Client {
   constructor(serverURL) {
     this.sendMessageToServer = this.sendMessageToServer.bind(this);
     this.serverMessageProcessor = this.serverMessageProcessor.bind(this);
@@ -60,7 +58,7 @@ export default class Client {
   }
 
   sendMessageToServer(messageString) {
-    console.log(this.clientID, 'Sending message:', messageString);
+    if (this.loggingEnabled) console.log(this.clientID, 'Sending message:', messageString);
     const that = this;
     setTimeout(() => {
       that.connection.send(messageString);
@@ -75,7 +73,7 @@ export default class Client {
   }
 
   propagateLocalDif(dif) {
-    console.log(this.clientID, 'propagating local dif:', JSON.stringify(dif));
+    if (this.loggingEnabled) console.log(this.clientID, 'propagating local dif:', JSON.stringify(dif));
     if (!this.openedDocuments.has(this.testFileID)) {
       if (this.loggingEnabled) console.log(this.clientID, "Test document missing!");
     }
@@ -277,5 +275,6 @@ export default class Client {
     this.onConnectionCallbackArgument = argument;
     return this;
   }
-
 }
+
+module.exports = Client;

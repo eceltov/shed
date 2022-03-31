@@ -1,4 +1,4 @@
-import WorkspaceServer from './server/WorkspaceServer.mjs';
+const { WorkspaceServer } = require('./server/WorkspaceServer');
 
 const server = new WorkspaceServer();
 server.initialize();

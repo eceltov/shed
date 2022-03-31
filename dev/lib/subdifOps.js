@@ -1,48 +1,49 @@
+/* eslint-disable object-property-newline */
 /* eslint-disable no-use-before-define */
-import { deepCopy } from './utils.mjs';
+const { deepCopy } = require('./utils');
 
 let wrapID = 0; // id for wrapped difs (used in relative addressing)
 
 // functions for subdif creation
-export function add(row, position, content) {
+function add(row, position, content) {
   return [row, position, content];
 }
-export function del(row, position, count) {
+function del(row, position, count) {
   return [row, position, count];
 }
-export function move(sourceRow, sourcePosition, targetRow, targetPosition, length) {
+function move(sourceRow, sourcePosition, targetRow, targetPosition, length) {
   return [sourceRow, sourcePosition, targetRow, targetPosition, length];
 }
-export function newline(row) {
+function newline(row) {
   return row;
 }
-export function remline(row) {
+function remline(row) {
   if (row === 0) console.log('Creating remline with row = 0!');
   return -row;
 }
 
-export function isAdd(subdif) {
+function isAdd(subdif) {
   const s = unwrapSubdif(subdif);
   return (s.constructor === Array && s.length === 3 && typeof s[2] === 'string');
 }
-export function isDel(subdif) {
+function isDel(subdif) {
   const s = unwrapSubdif(subdif);
   return (s.constructor === Array && s.length === 3 && typeof s[2] === 'number');
 }
-export function isNewline(subdif) {
+function isNewline(subdif) {
   const s = unwrapSubdif(subdif);
   return (typeof s === 'number' && s >= 0);
 }
-export function isRemline(subdif) {
+function isRemline(subdif) {
   const s = unwrapSubdif(subdif);
   return (typeof s === 'number' && s < 0); // line 0 cannot be deleted
 }
-export function isMove(subdif) {
+function isMove(subdif) {
   const s = unwrapSubdif(subdif);
   return (s.constructor === Array && s.length === 5);
 }
 
-export function wrapSubdif(subdif, ID = null) {
+function wrapSubdif(subdif, ID = null) {
   if (!isMove(subdif)) {
     return {
       sub: deepCopy(subdif),
@@ -85,14 +86,14 @@ export function wrapSubdif(subdif, ID = null) {
   };
 }
 
-export function unwrapSubdif(wrap) {
+function unwrapSubdif(wrap) {
   if (wrap.constructor === Object && wrap.sub !== undefined) {
     return wrap.sub;
   }
   return wrap;
 }
 
-export function wrapDif(dif) {
+function wrapDif(dif) {
   const wDif = [];
   dif.forEach((subdif) => {
     wDif.push(wrapSubdif(subdif));
@@ -100,8 +101,14 @@ export function wrapDif(dif) {
   return wDif;
 }
 
-export function unwrapDif(dif) {
+function unwrapDif(dif) {
   const unwrappedDif = [];
   dif.forEach((wrap) => unwrappedDif.push(unwrapSubdif(wrap)));
   return unwrappedDif;
 }
+
+module.exports = {
+  add, del, move, newline, remline,
+  isAdd, isDel, isMove, isNewline, isRemline,
+  wrapSubdif, unwrapSubdif, wrapDif, unwrapDif,
+};

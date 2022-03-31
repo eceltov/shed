@@ -68,9 +68,9 @@
     2) There exist an operation C, such that A *=> C => B
 */
 
-import { IT, ET } from './primitiveTransformations.mjs';
-import { isAdd, isDel, isMove, isNewline, isRemline, wrapDif, unwrapSubdif } from './subdifOps.mjs';
-import { deepCopy, deepEqual } from './utils.mjs';
+const { IT, ET } = require('./primitiveTransformations');
+const { isAdd, isDel, isMove, isNewline, isRemline, wrapDif, unwrapSubdif } = require('./subdifOps');
+const { deepCopy, deepEqual } = require('./utils');
 
 /**
  * @brief Logging function for debugging.
@@ -116,7 +116,7 @@ function dlog(name, obj, mode = 'default') {
   }
 }
 
-export function changeCursorPosition(cursorPosition, wOperation) {
+function changeCursorPosition(cursorPosition, wOperation) {
   if (cursorPosition === null) return;
   let { row } = cursorPosition;
   let position = cursorPosition.column;
@@ -603,7 +603,7 @@ function makeDependant(wDif) {
   return [wDifCopy[0], ...wDependantSubdifs];
 }
 
-export function applyAdd(previousValue, subdif) {
+function applyAdd(previousValue, subdif) {
   if (subdif[1] > previousValue.length) {
     console.log('applyAdd subdif position too large!');
     console.log(subdif);
@@ -614,7 +614,7 @@ export function applyAdd(previousValue, subdif) {
   return (previousValue.substring(0, subdif[1]) + subdif[2] + previousValue.substring(subdif[1]));
 }
 
-export function applyDel(previousValue, subdif) {
+function applyDel(previousValue, subdif) {
   if (subdif[1] + subdif[2] > previousValue.length) {
     console.log('applyDel subdif position too large!');
     console.log(previousValue);
@@ -635,7 +635,7 @@ export function applyDel(previousValue, subdif) {
  *
  * @returns Returns the final dif.
  */
-export function textToDif(targetRow, targetPosition, content, trailingRowText) {
+function textToDif(targetRow, targetPosition, content, trailingRowText) {
   const dif = [];
 
   // add all neccessary newlines
@@ -667,7 +667,7 @@ export function textToDif(targetRow, targetPosition, content, trailingRowText) {
   return dif;
 }
 
-export function applyDifAce(wDif, document) {
+function applyDifAce(wDif, document) {
   wDif.forEach((wrap) => {
     const subdif = wrap.sub;
     if (isAdd(subdif)) {
@@ -1011,7 +1011,7 @@ function GOTCA(wdMessage, wdHB, SO, log = false) {
  * @param {*} log Whether to print out debug messages to the console.
  * @returns Returns an object: { document, HB }, containing the new document and updated HB.
  */
-export function UDR(
+function UDR(
   dMessage, document, wdInitialHB, initialSO, log = false, cursorPosition = null,
 ) {
   if (log) console.log('before:', document);
@@ -1132,3 +1132,7 @@ export function UDR(
     HB: wdHB,
   };
 }
+
+module.exports = {
+  changeCursorPosition, applyAdd, applyDel, textToDif, applyDifAce, UDR,
+};

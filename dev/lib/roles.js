@@ -1,4 +1,4 @@
-export const roles = {
+const roles = {
   none: 0,
   viewer: 1,
   editor: 2, // cannot create/delete/rename files
@@ -11,7 +11,7 @@ export const roles = {
  * @param {*} role The role to be stringified.
  * @returns Returns the string representation of a role.
  */
-export function getRoleName(role) {
+function getRoleName(role) {
   let roleName;
   switch (role) {
     case roles.none:
@@ -42,7 +42,7 @@ export function getRoleName(role) {
  * @param {*} role The role of some entity.
  * @returns Returns true if the role can view documents, else returns false.
  */
-export function canView(role) {
+function canView(role) {
   return (role === roles.viewer)
     || (role === roles.editor)
     || (role === roles.workspaceEditor)
@@ -54,7 +54,7 @@ export function canView(role) {
  * @param {*} role The role of some entity.
  * @returns Returns true if the role can edit documents, else returns false.
  */
-export function canEdit(role) {
+function canEdit(role) {
   return (role === roles.editor)
     || (role === roles.workspaceEditor)
     || (role === roles.admin)
@@ -65,8 +65,12 @@ export function canEdit(role) {
  * @param {*} role The role of some entity.
  * @returns Returns true if the role can create/delete/rename files, else returns false.
  */
-export function canManageFiles(role) {
+function canManageFiles(role) {
   return (role === roles.workspaceEditor)
     || (role === roles.admin)
     || (role === roles.owner);
 }
+
+module.exports = {
+  roles, getRoleName, canView, canEdit, canManageFiles,
+};

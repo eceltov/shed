@@ -1,7 +1,8 @@
-import Client from './TestClient.mjs';
-import * as to from '../lib/dif.mjs';
-import DatabaseGateway from '../database/DatabaseGateway.mjs';
-import * as fsOps from '../lib/fileStructureOps.mjs';
+const Client = require('./TestClient');
+const DatabaseGateway = require('../database/DatabaseGateway');
+const fsOps = require('../lib/fileStructureOps');
+const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { deepEqual } = require('../lib/utils');
 
 const workspaceHash = 'testworkspace';
 const database = new DatabaseGateway();
@@ -19,7 +20,7 @@ const pathMap = fsOps.getIDPathMap(fileStructure);
  * @param timeout Time in ms after which the promise will be rejected.
  * @returns A new Promise.
  */
-export function getStatusPromise(statusChecker, checkCount=1, timeout=0) {
+function getStatusPromise(statusChecker, checkCount=1, timeout=0) {
     return new Promise((resolve, reject) => {
         statusChecker.setCheckCount(checkCount);
         if (statusChecker.ready()) {
@@ -33,13 +34,13 @@ export function getStatusPromise(statusChecker, checkCount=1, timeout=0) {
     });
 }
 
-export function getDelayPromise(delay) {
+function getDelayPromise(delay) {
     return new Promise((resolve, reject) => {
         setTimeout(resolve, delay);
     });
 }
 
-export function cleanFile(fileID) {
+function cleanFile(fileID) {
     database.writeDocumentData(workspaceHash, fsOps.getAbsolutePathFromIDPath(fileStructure, pathMap.get(fileID)), ['']);
 }
 
@@ -50,7 +51,7 @@ export function cleanFile(fileID) {
  * @param msgReceivedChecker A StatusChecker linked to the client's message received status.
  * @returns The new client.
  */
-export function createClient(serverURL, connectionChecker, msgReceivedChecker) {
+function createClient(serverURL, connectionChecker, msgReceivedChecker) {
     let client = new Client(serverURL);
     client.onMessageReceived(msgReceivedChecker.check, 0).onConnection(connectionChecker.check, 0);
     return client;
@@ -64,7 +65,7 @@ export function createClient(serverURL, connectionChecker, msgReceivedChecker) {
  * @param msgReceivedChecker A StatusChecker linked to the clients' message received status.
  * @returns An array of clients.
  */
-export function createClients(count, serverURL, connectionChecker, msgReceivedChecker) {
+function createClients(count, serverURL, connectionChecker, msgReceivedChecker) {
     let clients = [];
     for (let i = 0; i < count; i++) {
         let client = new Client(serverURL);
@@ -75,19 +76,19 @@ export function createClients(count, serverURL, connectionChecker, msgReceivedCh
 }
 
 /// TODO: this solution is not pretty, do not connect clients on creation etc.
-export function setActiveDocument(clients, fileID) {
+function setActiveDocument(clients, fileID) {
     clients.forEach((client) => {
         client.testFileID = fileID;
     });
 }
 
-export function connectClients(clients) {
+function connectClients(clients) {
     clients.forEach((client) => {
         client.connect();
     });
 }
 
-export function reorderClients(clients) {
+function reorderClients(clients) {
     reorderedClients = Array(clients.length);
     for (let i = 0; i < clients.length; i++) {
         reorderedClients[clients[i].clientID] = clients[i];
@@ -95,11 +96,11 @@ export function reorderClients(clients) {
     return reorderedClients;
 }
 
-export function setOrdering(server, fileID, serverOrdering) {
+function setOrdering(server, fileID, serverOrdering) {
     server.workspaces.get(workspaceHash).documents.get(fileID).debugSetOrdering(serverOrdering);
 }
 
-export function disableDifBuffering(clients) {
+function disableDifBuffering(clients) {
     clients.forEach((client) => {
         client.disableBuffering();
     });
@@ -108,7 +109,7 @@ export function disableDifBuffering(clients) {
 /**
  * @returns Returns true if all clients have the same document state.
  */
-export function sameDocumentState(clients, fileID) {
+function sameDocumentState(clients, fileID) {
     let document = JSON.stringify(clients[0].getDocument(fileID));
     for (let i = 1; i < clients.length; i++) {
         if (document !== JSON.stringify(clients[i].getDocument(fileID))) {
@@ -124,9 +125,9 @@ export function sameDocumentState(clients, fileID) {
 /**
  * @returns Returns true if all clients have the specified document state.
  */
-export function checkSameDocumentState(clients, document, fileID) {
+function checkSameDocumentState(clients, document, fileID) {
     if (!sameDocumentState(clients, fileID)) return false;
-    if (!to.prim.deepEqual(clients[0].getDocument(fileID), document)) {
+    if (!deepEqual(clients[0].getDocument(fileID), document)) {
         console.log("Clients have the same document, but a different one than the one provided!")
         console.log("Client document:", JSON.stringify(clients[0].getDocument(fileID)));
         console.log("Provided document:", JSON.stringify(document));
@@ -138,7 +139,7 @@ export function checkSameDocumentState(clients, document, fileID) {
 /**
  * @returns Returns true if all clients have the same serverOrdering.
  */
-export function sameServerOrdering(clients) {
+function sameServerOrdering(clients) {
     let serverOrderingString = JSON.stringify(clients[0].getServerOrdering());
     for (let i = 1; i < clients.length; i++) {
         const differentServerOrderingString = JSON.stringify(clients[i].getServerOrdering());
@@ -155,9 +156,9 @@ export function sameServerOrdering(clients) {
 /**
  * @returns Returns true if all clients have the specified serverOrdering.
  */
-export function checkSameServerOrdering(clients, serverOrdering) {
+function checkSameServerOrdering(clients, serverOrdering) {
     if (!sameServerOrdering(clients)) return false;
-    if (!to.prim.deepEqual(clients[0].serverOrdering, serverOrdering)) {
+    if (!deepEqual(clients[0].serverOrdering, serverOrdering)) {
         console.log("Clients have the same serverOrdering, but a different one than the one provided!")
         console.log("Client serverOrdering:", JSON.stringify(clients[0].serverOrdering));
         console.log("Provided serverOrdering:", JSON.stringify(serverOrdering));
@@ -169,7 +170,7 @@ export function checkSameServerOrdering(clients, serverOrdering) {
 /**
  * @returns Returns true if all clients have the same HB length.
  */
-export function sameHBLength(clients) {
+function sameHBLength(clients) {
     let HBLength = clients[0].HB.length;
     for (let i = 1; i < clients.length; i++) {
         if (HBLength !== clients[i].HB.length) {
@@ -185,7 +186,7 @@ export function sameHBLength(clients) {
 /**
  * @returns Returns true if all clients have the specified HB length.
  */
-export function checkSameHBLength(clients, length) {
+function checkSameHBLength(clients, length) {
     if (!sameHBLength(clients)) return false;
     if (clients[0].HB.length !== length) {
         console.log("Clients have the same HB length, but a different one than the one provided!")
@@ -199,7 +200,7 @@ export function checkSameHBLength(clients, length) {
 /**
  * @returns Returns true if there is a bijection between SO and HB entries. 
  */
-export function bijectionSOHB(client) {
+function bijectionSOHB(client) {
     if (client.HB.length !== client.serverOrdering.length) {
         console.log("SO and HB have different lengths!");
         return false;
@@ -209,7 +210,7 @@ export function bijectionSOHB(client) {
         let match = false;
         for (let j = 0; j < client.HB.length; j++) {
             let HBMetadata = client.HB[j][0];
-            if (to.prim.deepEqual(SOMetadata, HBMetadata)) {
+            if (deepEqual(SOMetadata, HBMetadata)) {
                 match = true;
                 break;
             }
@@ -225,7 +226,7 @@ export function bijectionSOHB(client) {
 /**
  * @returns Returns true if there is a bijection between SO and HB entries for all clients. 
  */
-export function checkBijectionSOHB(clients) {
+function checkBijectionSOHB(clients) {
     for (let i = 0; i < clients.length; i++) {
         if (!bijectionSOHB(clients[i])) {
             return false;
@@ -234,42 +235,39 @@ export function checkBijectionSOHB(clients) {
     return true;
 }
 
-
-
-
-export function setCSGlobalLatency(clients, latency) {
+function setCSGlobalLatency(clients, latency) {
     clients.forEach(client => client.CSLatency = latency);
 }
 
-export function sendAdds(clientMsgCount, subdifCount, clients) {
+function sendAdds(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length * clientMsgCount; i++) {
         let dif = [];
         for (let j = 0; j < subdifCount; j++) {
-            dif.push(to.add(0, j, i.toString()));
+            dif.push(add(0, j, i.toString()));
         }
         let index = Math.floor(i / clientMsgCount);
         clients[index].propagateLocalDif(dif);
     }
 }
 
-export function sendAddsClientID(clientMsgCount, subdifCount, clients) {
+function sendAddsClientID(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length; i++) {
         let clientID = clients[i].clientID;
         for (let j = 0; j < clientMsgCount; j++) {
             let dif = [];
             for (let k = 0; k < subdifCount; k++) {
-                dif.push(to.add(0, 0, clientID.toString()));
+                dif.push(add(0, 0, clientID.toString()));
             }
             clients[i].propagateLocalDif(dif);
         }
     }
 }
 
-export function sendDels(clientMsgCount, subdifCount, clients) {
+function sendDels(clientMsgCount, subdifCount, clients) {
     for (let i = 0; i < clients.length * clientMsgCount; i++) {
         let dif = [];
         for (let j = 0; j < subdifCount; j++) {
-            dif.push(to.del(0, i + j, 1));
+            dif.push(del(0, i + j, 1));
         }
         let index = Math.floor(i / clientMsgCount);
         clients[index].propagateLocalDif(dif);
@@ -279,7 +277,7 @@ export function sendDels(clientMsgCount, subdifCount, clients) {
 /**
  * @brief Returns a dif simulating an Enter keypress on a specific row and position
  */
-export function getRowSplitDif(client, fileID, row, position) {
+function getRowSplitDif(client, fileID, row, position) {
     let dif = [];
     const document = client.getDocument(fileID);
     if (row >= document.length || position >= document[row].length) {
@@ -289,7 +287,15 @@ export function getRowSplitDif(client, fileID, row, position) {
     dif.push(row + 1);
     if (position > 0) {
         let trailingRowText = document[row].substr(position);
-        dif.push(to.move(row, position, row + 1, 0, trailingRowText.length));
+        dif.push(move(row, position, row + 1, 0, trailingRowText.length));
     }
     return dif;
 }
+
+module.exports = {
+    getStatusPromise, getDelayPromise, cleanFile, createClient, createClients, setActiveDocument,
+    connectClients, reorderClients, setOrdering, disableDifBuffering, sameDocumentState,
+    checkSameDocumentState, sameServerOrdering, checkSameServerOrdering, sameHBLength,
+    checkSameHBLength, bijectionSOHB, checkBijectionSOHB, setCSGlobalLatency, sendAdds,
+    sendAddsClientID, sendDels, getRowSplitDif,
+};

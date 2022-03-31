@@ -1,13 +1,13 @@
 /* eslint-disable class-methods-use-this */
-import { server as WebSocketServer } from 'websocket';
-import http from 'http';
-import WorkspaceInstance from './WorkspaceInstance.mjs';
-import msgTypes from '../lib/messageTypes.mjs';
-import * as msgFactory from '../lib/serverMessageFactory.mjs';
-import { roles } from '../lib/roles.mjs';
-import DatabaseGateway from '../database/DatabaseGateway.mjs';
+const WebSocketServer = require('websocket').server;
+const http = require('http');
+const WorkspaceInstance = require('./WorkspaceInstance');
+const { msgTypes } = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
+const { roles } = require('../lib/roles');
+const DatabaseGateway = require('../database/DatabaseGateway');
 
-export default class Server {
+class Server {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
     this.initializeClient = this.initializeClient.bind(this);
@@ -254,3 +254,5 @@ export default class Server {
     return workspace;
   }
 }
+
+module.exports = Server;

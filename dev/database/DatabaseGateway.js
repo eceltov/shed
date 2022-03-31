@@ -1,7 +1,7 @@
-import fs from 'fs';
-import { roles } from '../lib/roles.mjs';
+const fs = require('fs');
+const { roles } = require('../lib/roles');
 
-export default class DatabaseGateway {
+class DatabaseGateway {
   constructor() {
     this.paths = null;
     this.configPath = './database/config.json';
@@ -173,3 +173,5 @@ export default class DatabaseGateway {
     }
   }
 }
+
+module.exports = DatabaseGateway;

@@ -1,8 +1,8 @@
-import DocumentInstance from './DocumentInstance.mjs';
-import msgTypes from '../lib/messageTypes.mjs';
-import * as msgFactory from '../lib/serverMessageFactory.mjs';
-import * as fsOps from '../lib/fileStructureOps.mjs';
-import { canManageFiles, canView } from '../lib/roles.mjs';
+const DocumentInstance = require('./DocumentInstance');
+const { msgTypes } = require('../lib/messageTypes');
+const msgFactory = require('../lib/serverMessageFactory');
+const fsOps = require('../lib/fileStructureOps');
+const { canManageFiles, canView } = require('../lib/roles');
 
 /// TODO: save structure.json and pathMap.json regularly, else progress may be lost
 
@@ -17,7 +17,7 @@ import { canManageFiles, canView } from '../lib/roles.mjs';
  *       in each operation
  */
 
-export default class WorkspaceInstance {
+class WorkspaceInstance {
   constructor() {
     this.clientMessageProcessor = this.clientMessageProcessor.bind(this);
 
@@ -514,3 +514,5 @@ export default class WorkspaceInstance {
     this.saveMetadata();
   }
 }
+
+module.exports = WorkspaceInstance;

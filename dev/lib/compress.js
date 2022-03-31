@@ -1,5 +1,5 @@
-import { deepCopy } from './utils.mjs';
-import { add, del, isAdd, isDel, isMove } from './subdifOps.mjs';
+const { deepCopy } = require('./utils');
+const { add, del, isAdd, isDel, isMove } = require('./subdifOps');
 
 function getCompressionObj(newFirst, newSecond) {
   return {
@@ -86,15 +86,15 @@ function delDelCompression(first, second) {
   return compressionObj;
 }
 
-function addDelCompression(add, del) {
-  const row = add[0];
-  const posAdd = add[1];
-  const text = add[2];
-  const posDel = del[1];
-  const delRange = del[2];
+function addDelCompression(addSubdif, delSubdif) {
+  const row = addSubdif[0];
+  const posAdd = addSubdif[1];
+  const text = addSubdif[2];
+  const posDel = delSubdif[1];
+  const delRange = delSubdif[2];
   let compressionObj;
 
-  if (add[0] !== del[0]) {
+  if (addSubdif[0] !== delSubdif[0]) {
     compressionObj = null;
   }
   // deleting whole add
@@ -188,6 +188,7 @@ function mergeSubdifs(dif) {
       }
 
       if (compressionObj !== null) {
+        changeOccured = true;
         if (compressionObj.newFirst !== null && compressionObj.newSecond !== null) {
           dif[i] = compressionObj.newFirst;
           dif[i + 1] = compressionObj.newSecond;
@@ -200,9 +201,7 @@ function mergeSubdifs(dif) {
           dif[i] = (compressionObj.newFirst !== null
             ? compressionObj.newFirst
             : compressionObj.newSecond);
-          if (i > 0) {
-            i -= 2;
-          }
+          i -= (i > 0 ? 2 : 1);
         }
         else {
           console.error('Error: Invalid compressionObj content');
@@ -217,9 +216,13 @@ function mergeSubdifs(dif) {
  * @param {*} inputDif The dif to be compressed.
  * @returns Compressed dif.
  */
-export default function compress(inputDif) {
+function compress(inputDif) {
   const dif = deepCopy(inputDif);
   removeEmptySubdifs(dif);
   mergeSubdifs(dif);
   return dif;
 }
+
+module.exports = {
+  compress,
+};
