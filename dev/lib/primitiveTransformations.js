@@ -1,4 +1,10 @@
 /* eslint-disable function-call-argument-newline */
+const {
+  add, del, move, newline, remline,
+  isAdd, isDel, isMove, isNewline, isRemline,
+  wrapSubdif, unwrapSubdif, wrapDif, unwrapDif,
+} = require('./subdifOps');
+const { saveLI, saveRA, saveSibling, checkLI, recoverLI } = require('./metaOps');
 
 function sameRow(wrap, wTransformer) {
   return wrap.sub[0] === wTransformer.sub[0];

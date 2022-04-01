@@ -53,7 +53,7 @@ function wrapSubdif(subdif, ID = null) {
         relative: false, // whether relative addresing is in place
         context: {
           original: null,
-          transformers: null,
+          wTransformer: null,
           addresser: null,
           siblings: [], // the wrap IDs of right siblings if fragmented
         },
@@ -69,7 +69,7 @@ function wrapSubdif(subdif, ID = null) {
       relative: false, // whether relative addresing is in place
       context: {
         original: null,
-        transformers: null,
+        wTransformer: null,
         addresser: null,
       },
     },
@@ -79,7 +79,7 @@ function wrapSubdif(subdif, ID = null) {
       relative: false, // whether relative addresing is in place
       context: {
         original: null,
-        transformers: null,
+        wTransformer: null,
         addresser: null,
       },
     },
