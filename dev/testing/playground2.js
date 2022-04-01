@@ -1,5 +1,6 @@
 const { compress } = require('../lib/compress');
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { makeDependant, makeIndependant, LIT, LET } = require('../lib/dif');
+const { add, del, move, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../lib/subdifOps');
 //import * as to from '../lib/dif.mjs';
 
 function dlog(name, obj, mode = 'default') {
@@ -39,48 +40,58 @@ function dlog(name, obj, mode = 'default') {
     console.log();
   }
 }
-/*
+
 function indepDep(dif) {
-  const wiDif = to.prim.makeIndependant(to.prim.wrapDif(dif));
-  const wdDif = to.prim.makeDependant(wiDif);
-  const dif2 = to.prim.unwrapDif(wdDif);
+  const wiDif = makeIndependant(wrapDif(dif));
+  const wdDif = makeDependant(wiDif);
+  const dif2 = unwrapDif(wdDif);
   return dif2;
 }
 
 function depIndep(dif) {
-  const wiDif = to.prim.makeDependant(to.prim.wrapDif(dif));
-  const wdDif = to.prim.makeIndependant(wiDif);
-  const dif2 = to.prim.unwrapDif(wdDif);
+  const wiDif = makeDependant(wrapDif(dif));
+  const wdDif = makeIndependant(wiDif);
+  const dif2 = unwrapDif(wdDif);
   return dif2;
 }
 
 function compositeLITWrapped(dif, transformer) {
-  const wiDif = to.prim.makeIndependant(to.prim.wrapDif(dif));
-  const wTransformer = to.prim.wrapDif(transformer);
-  const wTransformed = to.prim.LIT(wiDif, wTransformer);
+  const wiDif = makeIndependant(wrapDif(dif));
+  const wTransformer = wrapDif(transformer);
+  const wTransformed = LIT(wiDif, wTransformer);
   return wTransformed;
 }
 
 function compositeLIT(dif, transformer) {
   const wTransformed = compositeLITWrapped(dif, transformer);
-  const transformed = to.prim.unwrapDif(wTransformed);
+  const transformed = unwrapDif(wTransformed);
   return transformed;
 }
 
 function compositeLETWrapped(dif, transformer) {
-  const wiDif = to.prim.makeIndependant(to.prim.wrapDif(dif));
-  const wTransformer = to.prim.wrapDif(transformer);
-  const wTransformed = to.prim.LET(wiDif, wTransformer);
+  const wiDif = makeIndependant(wrapDif(dif));
+  const wTransformer = wrapDif(transformer);
+  const wTransformed = LET(wiDif, wTransformer);
   return wTransformed;
 }
 
 function compositeLET(dif, transformer) {
   const wiTransformed = compositeLETWrapped(dif, transformer);
-  const wdTransformed = to.prim.makeDependant(wiTransformed);
-  const transformed = to.prim.unwrapDif(wdTransformed);
+  const wdTransformed = makeDependant(wiTransformed);
+  const transformed = unwrapDif(wdTransformed);
   return transformed;
 }
-*/
+
+const dif = [del(0, 3, 3)];
+const transformer = [del(0, 3, 1)];
+const wTransformed = compositeLITWrapped(dif, transformer);
+const transformed = unwrapDif(wTransformed);
+const expected = [del(0, 3, 2)]; 
+console.log(JSON.stringify(transformed));
+console.log(wTransformed[0].meta.informationLost);
+console.log(JSON.stringify(wTransformed[0].meta.context.original));
+console.log(JSON.stringify(wTransformed[0].meta.context.wTransformer.sub));
+
 
 /*
 [
@@ -90,7 +101,7 @@ function compositeLET(dif, transformer) {
 ],
 */
 
-console.log(compress([add(0, 0, 'a'), add(0, 1, 'b'), add(0, 2, 'c')]));
+//console.log(compress([add(0, 0, 'a'), add(0, 1, 'b'), add(0, 2, 'c')]));
 
 /*
 const subdif1 = to.del(0, 1, 1);
