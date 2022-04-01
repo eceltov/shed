@@ -4,10 +4,7 @@
   "main": "",
   "scripts": {
     "test": "jest",
-    "build-client": "browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/client.jsx -o dev/client/bundle.js",
-    "workspace-server": "node dev/workspaceServer.js",
-    "controller-server": "node dev/controllerServer.js"
-    
+    "build-client": "browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/client.jsx -o dev/client/bundle.js"
   },
   "jest": {
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|js?|tsx?|ts?|mjs?)$",
