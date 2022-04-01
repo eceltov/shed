@@ -1,3 +1,4 @@
+const React = require('react');
 class WelcomeScreen extends React.Component {
   render() {
     return (

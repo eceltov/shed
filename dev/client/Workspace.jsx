@@ -1,3 +1,4 @@
+const React = require('react');
 const FileStructure = require('./FileStructure.jsx');
 const WelcomeScreen = require('./WelcomeScreen.jsx');
 const TabBar = require('./TabBar.jsx');

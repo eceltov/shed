@@ -1,3 +1,4 @@
+const React = require('react');
 const EditableFile = require('./EditableFile.jsx');
 
 class FileStructureDocument extends React.Component {

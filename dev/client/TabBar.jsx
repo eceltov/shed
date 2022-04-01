@@ -1,3 +1,4 @@
+const React = require('react');
 const Tab = require('./Tab.jsx');
 const fsOps = require('../lib/fileStructureOps');
 

@@ -1,3 +1,4 @@
+const React = require('react');
 const FileStructureFolder = require('./FileStructureFolder.jsx');
 const FileOperation = require('./FileOperation.jsx');
 const fsOps = require('../lib/fileStructureOps');

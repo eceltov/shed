@@ -1,3 +1,5 @@
+const React = require('react');
+
 class Tab extends React.Component {
   constructor(props) {
     super(props);

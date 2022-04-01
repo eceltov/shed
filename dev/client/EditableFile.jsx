@@ -1,3 +1,4 @@
+const React = require('react');
 const fsOps = require('../lib/fileStructureOps');
 
 class EditableFile extends React.Component {

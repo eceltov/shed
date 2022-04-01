@@ -1,3 +1,5 @@
+const React = require('react');
+
 class FileOperation extends React.Component {
   constructor(props) {
     super(props);

@@ -1,3 +1,4 @@
+const React = require('react');
 const EditableFile = require('./EditableFile.jsx');
 const FileStructureDocument = require('./FileStructureDocument.jsx');
 const fsOps = require('../lib/fileStructureOps');
