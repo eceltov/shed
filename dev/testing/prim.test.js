@@ -497,13 +497,15 @@ const testsLIT = [
     'Including [del] to [add] 2.',
     [add(0, 3, 'a')],
     [del(0, 1, 5)],
-    [add(0, 1, 'a')],
+    [add(0, 1, 'a')], // losing info
+    [createMetaArr(true, false, 0, 0)],
   ],
   [
     'Including [del] to [add] 3.',
     [add(0, 3, 'a')],
     [del(0, 0, 5)],
-    [add(0, 0, 'a')],
+    [add(0, 0, 'a')], // losing info
+    [createMetaArr(true, false, 0, 0)],
   ],
   [
     'Including [del] to [add] 4.',
@@ -560,48 +562,26 @@ const testsLIT = [
     [del(0, 3, 2)], // losing info
     [createMetaArr(true, false, 0, 0)],
   ],
+  [
+    'Including [del] to [del] 3.',
+    [del(0, 3, 3)],
+    [del(0, 4, 1)],
+    [del(0, 3, 2)], // losing info
+    [createMetaArr(true, false, 0, 0)],
+  ],
+  [
+    'Including [del] to [del] 4.',
+    [del(0, 3, 3)],
+    [del(0, 5, 1)],
+    [del(0, 3, 2)], // losing info
+    [createMetaArr(true, false, 0, 0)],
+  ],
+  [
+    'Including [del] to [del] 5.',
+    [del(0, 3, 3)],
+    [del(0, 6, 1)],
+    [del(0, 3, 3)],
+  ],
 ];
 
 testLITArray(testsLIT);
-
-/*
-test('Including [del] to [del] 2.', () => {
-  const dif = [del(0, 3, 3)];
-  const transformer = [del(0, 3, 1)];
-  const wTransformed = compositeLITWrapped(dif, transformer);
-  const transformed = unwrapDif(wTransformed);
-  const expected = [del(0, 3, 2)]; 
-  expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
-  expect(wTransformed[0].meta.informationLost).toBe(true);
-  expect(JSON.stringify(wTransformed[0].meta.context.original)).toBe(JSON.stringify(dif[0]));
-  expect(JSON.stringify(wTransformed[0].meta.context.wTransformer.sub)).toBe(JSON.stringify(transformer[0]));
-});
-
-test('Including [del] to [del] 3.', () => {
-  const dif = [del(0, 3, 3)];
-  const transformer = [del(0, 4, 1)];
-  const transformed = compositeLIT(dif, transformer);
-  const expected = [del(0, 3, 2)];
-  expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
-});
-
-test('Including [del] to [del] 4.', () => {
-  const dif = [del(0, 3, 3)];
-  const transformer = [del(0, 5, 1)];
-  const wTransformed = compositeLITWrapped(dif, transformer);
-  const transformed = unwrapDif(wTransformed);
-  const expected = [del(0, 3, 2)]; // losing info
-  expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
-  expect(wTransformed[0].meta.informationLost).toBe(true);
-  expect(JSON.stringify(wTransformed[0].meta.context.original)).toBe(JSON.stringify(dif[0]));
-  expect(JSON.stringify(wTransformed[0].meta.context.wTransformer.sub)).toBe(JSON.stringify(transformer[0]));
-});
-
-test('Including [del] to [del] 5.', () => {
-  const dif = [del(0, 3, 3)];
-  const transformer = [del(0, 6, 1)];
-  const transformed = compositeLIT(dif, transformer);
-  const expected = [del(0, 3, 3)];
-  expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
-});
-*/
