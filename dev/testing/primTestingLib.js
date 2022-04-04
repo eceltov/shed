@@ -1,10 +1,18 @@
 const { makeDependant, makeIndependant, LIT, LET } = require('../lib/dif');
 const { add, del, move, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../lib/subdifOps');
+const { joinSiblings } = require('../lib/metaOps');
 
 function createMetaObj(
-  dif, wTransformer, informationLost = undefined, relative = undefined, originalIndex = undefined,
-  transformerIndex = undefined, addresser = undefined, siblings = undefined, ID = undefined,
+  dif, wTransformer, wTransformed, informationLost = undefined, relative = undefined, originalIndex = undefined,
+  transformerIndex = undefined, addresserIndex = undefined, siblingIndices = undefined, ID = undefined,
 ) {
+  let siblings = undefined;
+  if (siblingIndices !== undefined) {
+    siblings = [];
+    siblingIndices.forEach((index) => {
+      siblings.push(wTransformed[index].meta.ID);
+    });
+  }
   return {
     ID: ID,
     informationLost: informationLost, // whether the context had to be saved
@@ -12,18 +20,28 @@ function createMetaObj(
     context: {
       original: isNaN(originalIndex) ? undefined : dif[originalIndex],
       wTransformer: isNaN(transformerIndex) ? undefined : wTransformer[transformerIndex],
-      addresser: addresser,
-      siblings: siblings, // the wrap IDs of right siblings if fragmented
+      addresser: isNaN(addresserIndex) ? undefined : wTransformer[addresserIndex],
+      siblings: siblings,
     },
   };
 }
 
+/**
+ * @param {boolean} informationLost meta.informationLost
+ * @param {boolean} relative meta.relative
+ * @param {number} originalIndex The index of meta.context.original inside the start dif
+ * @param {number} transformerIndex The index of meta.context.wTransformer inside the transformer dif
+ * @param {number} addresserIndex The index of meta.context.addresser inside the transformer dif
+ * @param {number[]} siblingIndices The indices of siblings inside the expected dif
+ * @param {number} ID The ID of the subdif
+ * @returns Returns an array representing the meta state of a subdif.
+ */
 function createMetaArr(
   informationLost = undefined, relative = undefined, originalIndex = undefined,
-  transformerIndex = undefined, addresser = undefined, siblings = undefined, ID = undefined,
+  transformerIndex = undefined, addresserIndex = undefined, siblingIndices = undefined, ID = undefined,
 ) {
   return [
-    informationLost, relative, originalIndex, transformerIndex, addresser, siblings, ID,
+    informationLost, relative, originalIndex, transformerIndex, addresserIndex, siblingIndices, ID,
   ];
 }
 
@@ -32,6 +50,10 @@ function assertMetaEqual(wTransformed, metaArr = null) {
     for (let i = 0; i < wTransformed.length; i++) {
       expect(wTransformed[i].meta.informationLost).toBe(false);
       expect(wTransformed[i].meta.relative).toBe(false);
+      expect(wTransformed[i].meta.context.original).toBe(null);
+      expect(wTransformed[i].meta.context.wTransformer).toBe(null);
+      expect(wTransformed[i].meta.context.addresser).toBe(null);
+      expect(wTransformed[i].meta.context.siblings.length).toBe(0);
     }
   }
   else {
@@ -56,10 +78,10 @@ function assertMetaEqual(wTransformed, metaArr = null) {
 }
 
 // expand each array element into a meta object
-function expandMetaArr(dif, wTransformer, metaArr) {
+function expandMetaArr(dif, wTransformer, wTransformed, metaArr) {
   let expandedMetaArr = [];
   metaArr.forEach((array) => {
-    expanded = createMetaObj(dif, wTransformer, ...array);
+    expanded = createMetaObj(dif, wTransformer, wTransformed, ...array);
     expandedMetaArr.push(expanded);
   });
   return expandedMetaArr;    
@@ -75,7 +97,7 @@ function testLIT(testName, dif, transformer, expected, metaArr = null) {
     expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
 
     if (metaArr !== null) {
-      const expandedMetaArr = expandMetaArr(dif, wTransformer, metaArr);
+      const expandedMetaArr = expandMetaArr(dif, wTransformer, wTransformed, metaArr);
       assertMetaEqual(wTransformed, expandedMetaArr);
     }
     else {
@@ -99,7 +121,7 @@ function testLET(testName, dif, transformer, expected, metaArr = null) {
     expect(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
 
     if (metaArr !== null) {
-      const expandedMetaArr = expandMetaArr(dif, wTransformer, metaArr);
+      const expandedMetaArr = expandMetaArr(dif, wTransformer, wTransformed, metaArr);
       assertMetaEqual(wTransformed, expandedMetaArr);
     }
     else {
@@ -111,6 +133,53 @@ function testLET(testName, dif, transformer, expected, metaArr = null) {
 function testLETArray(testArray) {
   testArray.forEach((test) => {
     testLET(...test);
+  });
+}
+
+function testIndependance(testName, dif, expected, metaArr = null) {
+  test(testName, () => {
+    const wiDif = makeIndependant(wrapDif(dif));
+    const result = unwrapDif(wiDif);
+    expect(JSON.stringify(result)).toBe(JSON.stringify(expected));
+
+    if (metaArr !== null) {
+      const expandedMetaArr = expandMetaArr(dif, null, wiDif, metaArr);
+      assertMetaEqual(wiDif, expandedMetaArr);
+    }
+    else {
+      assertMetaEqual(wiDif);
+    }
+  });
+}
+
+function testIndepArray(testArray) {
+  testArray.forEach((test) => {
+    testIndependance(...test);
+  });
+}
+
+function testIndepDep(testName, dif, metaArr = null) {
+  test(testName, () => {
+    const wiDif = makeIndependant(wrapDif(dif));
+    const wdDif = makeDependant(wiDif);
+    /// TODO add joinSiblings to the actual implementation
+    const wdJoinedDif = joinSiblings(wdDif);
+    const result = unwrapDif(wdJoinedDif);
+    expect(JSON.stringify(result)).toBe(JSON.stringify(dif));
+
+    if (metaArr !== null) {
+      const expandedMetaArr = expandMetaArr(dif, null, wdJoinedDif, metaArr);
+      assertMetaEqual(wdJoinedDif, expandedMetaArr);
+    }
+    else {
+      assertMetaEqual(wdJoinedDif);
+    }
+  });
+}
+
+function testIndepDepArray(testArray) {
+  testArray.forEach((test) => {
+    testIndepDep(...test);
   });
 }
 
@@ -160,7 +229,7 @@ function DEBUGTestLIT(testName, dif, transformer, expected, metaArr = null) {
   DEBUGAssertEqual(transformed, expected, 'Unexpected result');
 
   if (metaArr !== null) {
-    const expandedMetaArr = expandMetaArr(dif, wTransformer, metaArr);
+    const expandedMetaArr = expandMetaArr(dif, wTransformer, wTransformed, metaArr);
     DEBUGAssertMetaEqual(wTransformed, expandedMetaArr);
   }
   else {
@@ -179,10 +248,10 @@ function DEBUGTestLET(testName, dif, transformer, expected, metaArr = null) {
   const wTransformer = wrapDif(transformer);
   const wTransformed = LET(wiDif, wTransformer);
   const transformed = unwrapDif(wTransformed);
-  DEBUGAssertEqual(JSON.stringify(transformed)).toBe(JSON.stringify(expected));
+  DEBUGAssertEqual(transformed, expected, 'Unexpected result');
 
   if (metaArr !== null) {
-    const expandedMetaArr = expandMetaArr(dif, wTransformer, metaArr);
+    const expandedMetaArr = expandMetaArr(dif, wTransformer, wTransformed, metaArr);
     DEBUGAssertMetaEqual(wTransformed, expandedMetaArr);
   }
   else {
@@ -197,5 +266,5 @@ function DEBUGTestLETArray(testArray) {
 }
 
 module.exports = {
-  createMetaArr, testLITArray, testLETArray, DEBUGTestLITArray, DEBUGTestLETArray,
+  createMetaArr, testLITArray, testLETArray, DEBUGTestLITArray, DEBUGTestLETArray, testIndepArray, testIndepDepArray,
 };
