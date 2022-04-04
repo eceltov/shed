@@ -1,5 +1,6 @@
 const { isMove, isNewline, isRemline } = require('./subdifOps');
 const { deepCopy } = require('./utils');
+const { compress } = require('./compress');
 
 function saveLI(wrap, wTransformer, mode = 'default') {
   if (mode === 'default') {
