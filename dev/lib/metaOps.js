@@ -1,4 +1,4 @@
-const { isMove, isNewline, isRemline } = require('./subdifOps');
+const { isMove, isNewline, isRemline, isDel, isAdd } = require('./subdifOps');
 const { deepCopy } = require('./utils');
 const { compress } = require('./compress');
 
@@ -108,11 +108,31 @@ function checkBO(wrap, wTransformer) {
            || wrap.metaDel.context.addresser.meta.ID === wTransformer.meta.ID;
 }
 
+/**
+ * @param {*} wrap The wrap to be converted.
+ * @param {*} wAddresser The wrapped addresser of the wrap.
+ * @returns Returns the wrap that had been converted from relative addressing to absolute.
+ */
 function convertAA(wrap, wAddresser) {
-  if (!isMove(wrap)) {
-    wrap.sub[1] += wAddresser.sub[1];
-    wrap.meta.relative = false;
-    wrap.meta.context.addresser = null;
+  if (isAdd(wrap) || isDel(wrap)) {
+    if (isAdd(wAddresser) || isDel(wAddresser)) {
+      // add the position of the addresser to the relative offset of the wrap
+      wrap.sub[1] += wAddresser.sub[1];
+      wrap.meta.relative = false;
+      wrap.meta.context.addresser = null;
+    }
+    else if (isNewline(wAddresser)) {
+      // set the row equal to the newline
+      wrap.sub[0] = wAddresser.sub;
+      wrap.meta.relative = false;
+      wrap.meta.context.addresser = null;
+    }
+    else {
+      console.log('Conversion not implemented!');
+    }
+  }
+  else if (isNewline(wrap) || isRemline(wrap)) {
+    console.log('Conversion not implemented!');
   }
   else if (wrap.metaAdd.context.addresser.ID === wAddresser.meta.ID) {
     wrap.sub[3] += wAddresser.sub[1];

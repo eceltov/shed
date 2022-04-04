@@ -453,6 +453,10 @@ function ET_AN(wrap, wTransformer) {
   if (transformer < wrap.sub[0]) { /// TODO: revise this
     wrap.sub[0]--;
   }
+  // if the addition occured on a row being excluded, relative addressing has to be used
+  else if (transformer === wrap.sub[0]) {
+    saveRA(wrap, wTransformer);
+  }
   return wrap;
 }
 function ET_AR(wrap, wTransformer) {
@@ -567,6 +571,10 @@ function ET_DN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
   if (transformer < wrap.sub[0]) { /// TODO: revise this
     wrap.sub[0]--;
+  }
+  // if the deletion occured on a row being excluded, relative addressing has to be used
+  else if (transformer === wrap.sub[0]) {
+    saveRA(wrap, wTransformer);
   }
   return wrap;
 }
