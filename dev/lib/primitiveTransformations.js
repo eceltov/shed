@@ -703,6 +703,10 @@ function ET_NM(wrap, wTransformer) {
 function ET_NN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
   if (transformer < wrap.sub) wrap.sub--;
+  // the addressing has to be relative for equal newline, else IT(ET([0, 0])) === [0, 1]
+  else if (transformer === wrap.sub) {
+    saveRA(wrap, wTransformer);
+  }
   return wrap;
 }
 function ET_NR(wrap, wTransformer) {
@@ -734,6 +738,10 @@ function ET_RM(wrap, wTransformer) {
 function ET_RN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
   if (transformer < -wrap.sub) wrap.sub++;
+  // the remline makes sense only in combination with the newline, it has to be made relative
+  else if (transformer === -wrap.sub) {
+    saveRA(wrap, wTransformer);
+  }
   return wrap;
 }
 function ET_RR(wrap, wTransformer) {

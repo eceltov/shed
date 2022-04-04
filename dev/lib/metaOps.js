@@ -35,10 +35,6 @@ function saveSibling(first, second) {
 }
 
 function checkRA(wrap) {
-  // newlines and remlines are never relatively addressed
-  if (isNewline(wrap) || isRemline(wrap)) {
-    return false;
-  }
   if (!isMove(wrap)) {
     return wrap.meta.relative;
   }
@@ -131,8 +127,25 @@ function convertAA(wrap, wAddresser) {
       console.log('Conversion not implemented!');
     }
   }
-  else if (isNewline(wrap) || isRemline(wrap)) {
-    console.log('Conversion not implemented!');
+  else if (isNewline(wrap)) {
+    if (isNewline(wAddresser)) {
+      wrap.sub = wAddresser.sub;
+      wrap.meta.relative = false;
+      wrap.meta.context.addresser = null;
+    }
+    else {
+      console.log('Conversion not implemented!');
+    }
+  }
+  else if (isRemline(wrap)) {
+    if (isNewline(wAddresser)) {
+      wrap.sub = -wAddresser.sub;
+      wrap.meta.relative = false;
+      wrap.meta.context.addresser = null;
+    }
+    else {
+      console.log('Conversion not implemented!');
+    }
   }
   else if (wrap.metaAdd.context.addresser.ID === wAddresser.meta.ID) {
     wrap.sub[3] += wAddresser.sub[1];
