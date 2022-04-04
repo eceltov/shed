@@ -265,6 +265,29 @@ function DEBUGTestLETArray(testArray) {
   });
 }
 
+function DEBUGTestIndepDep(testName, dif, metaArr = null) {
+  const wiDif = makeIndependant(wrapDif(dif));
+  const wdDif = makeDependant(wiDif);
+  /// TODO add joinSiblings to the actual implementation
+  const wdJoinedDif = joinSiblings(wdDif);
+  const result = unwrapDif(wdJoinedDif);
+  DEBUGAssertEqual(result, dif, 'Unexpected result');
+
+  if (metaArr !== null) {
+    const expandedMetaArr = expandMetaArr(dif, null, wdJoinedDif, metaArr);
+    DEBUGAssertMetaEqual(wdJoinedDif, expandedMetaArr);
+  }
+  else {
+    DEBUGAssertMetaEqual(wdJoinedDif);
+  }
+}
+
+function DEBUGTestIndepDepArray(testArray) {
+  testArray.forEach((test) => {
+    DEBUGTestIndepDep(...test);
+  });
+}
+
 module.exports = {
-  createMetaArr, testLITArray, testLETArray, DEBUGTestLITArray, DEBUGTestLETArray, testIndepArray, testIndepDepArray,
+  createMetaArr, testLITArray, testLETArray, DEBUGTestLITArray, DEBUGTestLETArray, testIndepArray, testIndepDepArray, DEBUGTestIndepDepArray,
 };
