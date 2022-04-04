@@ -19,6 +19,7 @@ const tests = [
     [add(0, 0, 'a')],
     [add(0, 0, 'b')],
     [add(0, 0, 'a')],
+    [createMetaArr(false, true, null, undefined, 0)],
     ///TODO: there might be some lost information going on here, test I/E on this example
   ],
   [
@@ -61,13 +62,21 @@ const tests = [
     'Excluding [add] from [del] 2.',
     [del(0, 3, 3)],
     [add(0, 3, 'a')],
-    [del(0, 3, 2)], ///TODO: the lost information should be checked
+    [del(0, 0, 1), del(0, 3, 2)],
+    [
+      createMetaArr(false, true, undefined, undefined, 0, [ 1 ]),
+      createMetaArr(),
+    ],
   ],
   [
     'Excluding [add] from [del] 3.',
     [del(0, 3, 3)],
     [add(0, 4, 'a')],
-    [del(0, 3, 1), del(0, 5, 1)], ///TODO: check lost info, make I/E tests on this
+    [del(0, 0, 1), del(0, 3, 2)],
+    [
+      createMetaArr(false, true, undefined, undefined, 0, [ 1 ]),
+      createMetaArr(),
+    ],
   ],
   [
     'Excluding [add] from [del] 4.',
@@ -92,7 +101,6 @@ const tests = [
     [del(0, 3, 3)],
     [del(0, 3, 1)],
     [del(0, 4, 3)],
-    [createMetaArr(true, false, 0, 0)],
   ],
   [
     'Excluding [del] from [del] 3.',
