@@ -494,7 +494,7 @@ function applyDifAce(wDif, document) {
       // }
     }
     else if (isNewline(subdif)) {
-      document.insertNewLine({ row: subdif, column: 0 });
+      document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
     }
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document.removeNewLine(-subdif - 1);
@@ -529,7 +529,7 @@ function undoDifAce(wDif, document) {
       document.removeNewLine(subdif - 1);
     }
     else if (isRemline(subdif)) {
-      document.insertNewLine({ row: -subdif, column: 0 });
+      document.insertMergedLines({ row: -subdif, column: 0 }, ['', '']);
     }
     else {
       console.log('Received unknown dif!');
