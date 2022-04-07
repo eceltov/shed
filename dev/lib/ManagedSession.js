@@ -3,6 +3,7 @@ const { del, move, remline, wrapDif } = require('./subdifOps');
 const { deepCopy, deepEqual } = require('./utils');
 const { textToDif, UDR } = require('./dif');
 const { compress } = require('./compress');
+const { msgTypes } = require('./messageTypes');
 
 class ManagedSession {
   constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj) {
