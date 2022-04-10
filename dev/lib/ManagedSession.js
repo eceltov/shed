@@ -1,6 +1,6 @@
 /* eslint-disable class-methods-use-this */
 const { del, move, remline, wrapDif } = require('./subdifOps');
-const { deepCopy, deepEqual } = require('./utils');
+const { deepCopy, deepEqual, dlog } = require('./utils');
 const { textToDif, UDR } = require('./dif');
 const { compress } = require('./compress');
 const { msgTypes } = require('./messageTypes');
@@ -43,6 +43,7 @@ class ManagedSession {
     this.handlingChanges = true;
     this.LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
 
+    this.loggingEnabled = false;
     this.DEBUG = false;
 
     this.session.on('change', this.handleChange);
@@ -197,7 +198,7 @@ class ManagedSession {
       dependancy,
     };
     this.sendMessageToServer(JSON.stringify(response));
-    console.log('Sent GCMetadataResponse');
+    if (this.loggingEnabled) console.log('Sent GCMetadataResponse');
   }
 
   GC(message) {
@@ -205,28 +206,30 @@ class ManagedSession {
     const SOGarbageIndex = GCOldestMessageNumber - this.firstSOMessageNumber;
 
     if (SOGarbageIndex < 0 || SOGarbageIndex >= this.serverOrdering.length) {
-      console.log('GC Bad SO index');
+      if (this.loggingEnabled) console.log('GC Bad SO index');
       return;
     }
 
-    const GCClientID = this.serverOrdering[SOGarbageIndex][0];
-    const GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
-
-    let HBGarbageIndex = 0;
-
-    for (let i = 0; i < this.HB.length; i++) {
-      const HBClientID = this.HB[i][0][0];
-      const HBCommitSerialNumber = this.HB[i][0][1];
-      if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
-        HBGarbageIndex = i;
-        break;
+    // find matching elements in HB to those in SO
+    const HBRemovalIndices = [];
+    for (let SOIndex = 0; SOIndex < SOGarbageIndex; SOIndex++) {
+      const GCClientID = this.serverOrdering[SOIndex][0];
+      const GCCommitSerialNumber = this.serverOrdering[SOIndex][1];
+      for (let HBIndex = 0; HBIndex < this.HB.length; HBIndex++) {
+        const HBClientID = this.HB[HBIndex][0][0];
+        const HBCommitSerialNumber = this.HB[HBIndex][0][1];
+        if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
+          HBRemovalIndices.push(HBIndex);
+          break;
+        }
       }
     }
 
-    this.HB = this.HB.slice(HBGarbageIndex);
+    // filter out all the GC'd operations
+    this.HB = this.HB.filter((operation, index) => !HBRemovalIndices.includes(index));
     this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
     this.firstSOMessageNumber += SOGarbageIndex;
-    console.log("GC'd");
+    if (this.loggingEnabled) console.log("GC'd");
   }
 
   /**
@@ -328,7 +331,7 @@ class ManagedSession {
         }
       }
     }
-    if (dif.length === 0) console.log('handleChange dif is empty!');
+    if (this.loggingEnabled && dif.length === 0) console.log('handleChange dif is empty!');
     this.intervalBufAddDif(dif);
   }
 }
