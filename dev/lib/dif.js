@@ -429,7 +429,8 @@ function textToDif(targetRow, targetPosition, content, trailingRowText) {
 }
 
 function applyDifAce(wDif, document) {
-  wDif.forEach((wrap) => {
+  for (let i = 0; i < wDif.length; i++) {
+    const wrap = wDif[i];
     const subdif = wrap.sub;
     if (isAdd(subdif)) {
       document.insert({ row: subdif[0], column: subdif[1] }, subdif[2]);
@@ -438,19 +439,33 @@ function applyDifAce(wDif, document) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2]);
     }
     else if (isMove(subdif)) {
-      /* // the move is a simple newline in the middle of a line
-      if (subdif[0] === subdif[2] - 1 && subdif[3] === 0) {
-        document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
-      } */
-      /// TODO: this does not translate to a move instruction in ManagedSession.handleChange
-      // else {
+      console.log('Isolated Move detected! wDif:', console.log(JSON.stringify(wdDif)));
+      /*
       const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
       document.insert({ row: subdif[2], column: subdif[3] }, movedText);
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
-      // }
+      */
     }
     else if (isNewline(subdif)) {
-      document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
+      if (i + 1 < wDif.length) {
+        const nextSubdif = wDif[i + 1].sub;
+        // check if the newline and move sequence looks like adding a new line in the middle
+        //  of a row
+        if (isMove(nextSubdif)
+          && nextSubdif[0] === nextSubdif[2] - 1
+          && nextSubdif[3] === 0
+          && nextSubdif[2] === subdif
+        ) {
+          document.insertMergedLines({ row: nextSubdif[0], column: nextSubdif[1] }, ['', '']);
+          i++;
+        }
+        else {
+          document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
+        }
+      }
+      else {
+        document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
+      }
     }
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document.removeNewLine(-subdif - 1);
@@ -461,7 +476,7 @@ function applyDifAce(wDif, document) {
     else {
       console.log('Received unknown subdif!', subdif);
     }
-  });
+  }
   return document;
 }
 
