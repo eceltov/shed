@@ -4,6 +4,7 @@ const { deepCopy, deepEqual, dlog } = require('./utils');
 const { textToDif, UDR } = require('./dif');
 const { compress } = require('./compress');
 const { msgTypes } = require('./messageTypes');
+const { GCRemove } = require('./GC');
 
 class ManagedSession {
   constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj) {
@@ -205,29 +206,13 @@ class ManagedSession {
     const GCOldestMessageNumber = message.GCOldestMessageNumber;
     const SOGarbageIndex = GCOldestMessageNumber - this.firstSOMessageNumber;
 
-    if (SOGarbageIndex < 0 || SOGarbageIndex >= this.serverOrdering.length) {
-      if (this.loggingEnabled) console.log('GC Bad SO index');
-      return;
-    }
-
-    // find matching elements in HB to those in SO
-    const HBRemovalIndices = [];
-    for (let SOIndex = 0; SOIndex < SOGarbageIndex; SOIndex++) {
-      const GCClientID = this.serverOrdering[SOIndex][0];
-      const GCCommitSerialNumber = this.serverOrdering[SOIndex][1];
-      for (let HBIndex = 0; HBIndex < this.HB.length; HBIndex++) {
-        const HBClientID = this.HB[HBIndex][0][0];
-        const HBCommitSerialNumber = this.HB[HBIndex][0][1];
-        if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
-          HBRemovalIndices.push(HBIndex);
-          break;
-        }
-      }
-    }
+    const { HB, serverOrdering } = GCRemove(
+      this.serverOrdering, this.HB, SOGarbageIndex, this.loggingEnabled,
+    );
 
     // filter out all the GC'd operations
-    this.HB = this.HB.filter((operation, index) => !HBRemovalIndices.includes(index));
-    this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
+    this.HB = HB;
+    this.serverOrdering = serverOrdering;
     this.firstSOMessageNumber += SOGarbageIndex;
     if (this.loggingEnabled) console.log("GC'd");
   }

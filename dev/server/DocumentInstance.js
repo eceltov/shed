@@ -4,6 +4,7 @@ const { canEdit } = require('../lib/roles');
 const { msgTypes } = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const fsOps = require('../lib/fileStructureOps');
+const { GCRemove } = require('../lib/GC');
 
 class DocumentInstance {
   constructor() {
@@ -210,21 +211,13 @@ class DocumentInstance {
     //    because that is how many SO entries from the beginning are missing
     const SOGarbageIndex = this.GCOldestMessageNumber - this.firstSOMessageNumber;
 
-    const GCClientID = this.serverOrdering[SOGarbageIndex][0];
-    const GCCommitSerialNumber = this.serverOrdering[SOGarbageIndex][1];
+    const { HB, serverOrdering } = GCRemove(
+      this.serverOrdering, this.HB, SOGarbageIndex, this.loggingEnabled,
+    );
 
-    let HBGarbageIndex = 0;
-    for (let i = 0; i < this.HB.length; i++) {
-      const HBClientID = this.HB[i][0][0];
-      const HBCommitSerialNumber = this.HB[i][0][1];
-      if (HBClientID === GCClientID && HBCommitSerialNumber === GCCommitSerialNumber) {
-        HBGarbageIndex = i;
-        break;
-      }
-    }
-
-    this.HB = this.HB.slice(HBGarbageIndex);
-    this.serverOrdering = this.serverOrdering.slice(SOGarbageIndex);
+    // filter out all the GC'd operations
+    this.HB = HB;
+    this.serverOrdering = serverOrdering;
     this.firstSOMessageNumber += SOGarbageIndex;
 
     const message = msgFactory.GC(this.fileID, this.GCOldestMessageNumber);
