@@ -37,6 +37,7 @@ afterEach(() => {
     lib.cleanFile(testFileID);
 });
 
+
 test('Clients can connect to the server', () => {
     initializeClients(10);
     return lib.getStatusPromise(connectionChecker)
@@ -63,7 +64,7 @@ test('Clients can send and receive messages.', () => {
     });
 });
 
-/*
+
 test('Add convergence test 1SpD (one user adds "a" and the second one "b").', () => {
     initializeClients(10);
     return lib.getStatusPromise(connectionChecker)
@@ -303,17 +304,14 @@ test('Add 6SpD Del 4SpD 5C intention test (multiple users attempt to delete the 
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        clients.forEach(client => {
-            console.log(JSON.stringify(client.getDocument(testFileID)));
-        });
         expect(lib.checkSameDocumentState(
             clients,
             [ '244333333888888777777666666111111111111111111000000999999111111444444111111333333111111222222400999999888888777777666666555555111111444444111111333333111111222222111111111111111111000000111111999999111111888888111111777777111111666666111111555555222222444444222222333333222222222222222222111111222222000000' ],
             testFileID
         )).toBe(true);
     });
-});*/
-/*
+});
+
 test('Newline 1SpD 5C simple convergence test.', () => {
     initializeClients(5);
     
@@ -372,7 +370,7 @@ test('Newline Add 1SpD 5C convergence test.', () => {
         expect(lib.checkSameDocumentState(clients, [ '', 'Sample text with several words.' ], testFileID)).toBe(true);
     });
 });
-/*
+
 test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
     initializeClients(5);
     
@@ -416,7 +414,7 @@ test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
     .then(() => {
         let document = [];
         for (let i = 0; i < 11; i++) document.push('');
-        expect(lib.checkSameDocumentState(clients, document)).toBe(true);
+        expect(lib.checkSameDocumentState(clients, document, testFileID)).toBe(true);
     });
 });
 
@@ -429,14 +427,14 @@ test('Move 5C simple convergence test.', () => {
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
-        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], 0, 6));
+        clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], testFileID, 0, 6));
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ], testFileID)).toBe(true);
     });
 });
-*/
+/*
 test('Move 5C convergence test.', () => {
     initializeClients(5);
     const serverOrdering = [
@@ -460,17 +458,18 @@ test('Move 5C convergence test.', () => {
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ], testFileID)).toBe(true);
     });
-});
-/*
+});*/
+
 test('Newline Remline Add 5C message chain test (adding text to a new line and deleting it while not empty).', () => {
     initializeClients(5);
-    server.setOrdering([
+    const serverOrdering = [
         [0],
         [0, 1]
-    ]);
+    ];
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
+        lib.setOrdering(server, testFileID, serverOrdering);
         clients[0].propagateLocalDif([newline(1)]);
         return lib.getStatusPromise(msgReceivedChecker);
     })
@@ -480,23 +479,22 @@ test('Newline Remline Add 5C message chain test (adding text to a new line and d
         return lib.getStatusPromise(msgReceivedChecker, 2);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', 'text' ])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '', 'text' ], testFileID)).toBe(true);
     });
 });
-
+/*
 test('Newline Remline Add 5C conflict test (adding text, newlining and remlining on the same row).', () => {
     initializeClients(5);
-    let messageOrdering = [
+    const serverOrdering = [
         [0],
         [0, 1, 2, 3, 4]
     ];
     
-    server.setOrdering(messageOrdering);
-    
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
+        lib.setOrdering(server, testFileID, serverOrdering);
         clients[0].propagateLocalDif([newline(1)]);
-        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[0].length);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
     })
     .then(() => {
         clients[0].propagateLocalDif([add(1, 0, "text")]);
@@ -504,11 +502,10 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
         clients[2].propagateLocalDif([add(1, 0, "sample")]);
         clients[3].propagateLocalDif([newline(1)]);
         clients[4].propagateLocalDif([add(1, 0, "random")]);
-        return lib.getStatusPromise(msgReceivedChecker, messageOrdering[1].length);
+        return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ])).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ], testFileID)).toBe(true);
     });
 });
-
 */

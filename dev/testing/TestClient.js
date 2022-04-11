@@ -177,6 +177,7 @@ class Client {
       managedSession.setListenInterval(0);
       managedSession.DEBUG = true;
     }
+    if (this.loggingEnabled) managedSession.loggingEnabled = true;
     this.openedDocuments.set(message.fileID, managedSession);
 
     this.tabs = [message.fileID, ...(this.tabs)];

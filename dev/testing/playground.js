@@ -19,14 +19,35 @@ const testFileID = 1;
 connectionChecker = new StatusChecker(clientCount);
 msgReceivedChecker = new StatusChecker(clientCount);
 clients = lib.createClients(clientCount, serverURL, connectionChecker, msgReceivedChecker);
-clients.forEach((client) => {
-    client.loggingEnabled = true;
+const loggingClients = [0, 3];
+clients.forEach((client, index) => {
+    if (loggingClients.includes(index)) {
+        client.loggingEnabled = true;
+    }
 });
 
 lib.setActiveDocument(clients, testFileID);
 lib.connectClients(clients);
 lib.disableDifBuffering(clients);
 
+/*
+lib.getStatusPromise(connectionChecker)
+.then(() => {
+    clients[0].propagateLocalDif([add(0, 0, 'Sample text with several words.')]);
+    return lib.getStatusPromise(msgReceivedChecker);
+})
+.then(() => {
+    clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], testFileID, 0, 6));
+    return lib.getStatusPromise(msgReceivedChecker);
+})
+.then(() => {
+    console.log(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ], testFileID));
+    console.log(lib.sameDocumentState(clients, testFileID));
+    server.close();
+    lib.cleanFile(testFileID);
+});
+*/
+/*
 lib.getStatusPromise(connectionChecker)
 .then(() => {
     let dif = [add(0, 0, 'test')];
@@ -43,95 +64,46 @@ lib.getStatusPromise(connectionChecker)
     server.close();
     lib.cleanFile(testFileID);
 });
+*/
 
-/*
+
+lib.cleanFile(testFileID);
+
 const serverOrdering = [
     [0],
     //[0, 1, 2, 3],
-    [3, 2, 1, 0],
+    [3, 0],
 ];
 
 lib.getStatusPromise(connectionChecker)
 .then(() => {
     lib.setOrdering(server, testFileID, serverOrdering);
-    clients[0].propagateLocalDif([to.add(0, 0, 'Sample text with several words.')]);
+    clients[0].propagateLocalDif([add(0, 0, 'Sample text with several words.')]);
     return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
 })
 .then(() => {
     clients[0].propagateLocalDif(lib.getRowSplitDif(clients[0], testFileID, 0, 6));
-    clients[1].propagateLocalDif([to.add(0, 0, "Some ")]);
-    clients[2].propagateLocalDif([to.add(0, 6, "s")]);
-    clients[3].propagateLocalDif([to.add(0, 11, "s")]);
+    //clients[1].propagateLocalDif([add(0, 0, "Some ")]);
+    //clients[2].propagateLocalDif([add(0, 6, "s")]);
+    clients[3].propagateLocalDif([add(0, 11, "s")]);
     return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
 })
 .then(() => {
     console.log(lib.sameDocumentState(clients, testFileID));
     console.log(lib.sameServerOrdering(clients));
-    //expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ], testFileID)).toBe(true);
+    //console.log(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ], testFileID));
+    console.log(lib.checkSameDocumentState(clients, [ 'Sample', ' texts with several words.' ], testFileID));
     server.close();
     lib.cleanFile(testFileID);
 })
-.catch(() => {
+/*.catch(() => {
     console.log('fail');
     server.close();
     lib.cleanFile(testFileID);
-});
-*/
+});*/
 
 
 
-
-/*
-const serverOrdering = [
-    [0, 1, 1, 0, 1, 0, 0, 1, 1, 0], 
-    [0, 1, 1, 0, 1, 0],
-    [0, 1],
-    [0, 1],
-];
-
-lib.getStatusPromise(connectionChecker)
-.then(() => {
-    console.log(lib.sameDocumentState(clients, testFileID));
-    console.log(lib.sameServerOrdering(clients));
-    lib.setOrdering(server, testFileID, serverOrdering);
-    let clientMsgCount = 5;
-    lib.sendAdds(clientMsgCount, 2, clients);
-    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-})
-.then(() => {
-    console.log(lib.sameDocumentState(clients, testFileID));
-    console.log(lib.sameServerOrdering(clients));
-    let clientMsgCount = 3;
-    lib.sendDels(clientMsgCount, 1, clients);
-    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-})
-.then(() => {
-    console.log(lib.sameDocumentState(clients, testFileID));
-    console.log(lib.sameServerOrdering(clients));
-    let clientMsgCount = 1;
-    lib.sendAdds(clientMsgCount, 1, clients);
-    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-})
-.then(() => {
-    // document state: ["0141009988776655"]
-    console.log(lib.sameDocumentState(clients, testFileID));
-    console.log(lib.sameServerOrdering(clients));
-    let clientMsgCount = 1;
-    lib.sendDels(clientMsgCount, 1, clients);
-    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-})
-.then(() => {
-    console.log(lib.sameDocumentState(clients, testFileID));
-    console.log(lib.sameServerOrdering(clients));
-    server.close();
-    lib.cleanFile(testFileID);
-})
-.catch(() => {
-    console.log('fail');
-    server.close();
-    lib.cleanFile(testFileID);
-});
-*/
 
 /*
 lib.getStatusPromise(connectionChecker)
