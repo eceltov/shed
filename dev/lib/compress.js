@@ -1,5 +1,5 @@
 const { deepCopy } = require('./utils');
-const { add, del, isAdd, isDel, isMove } = require('./subdifOps');
+const { add, del, isAdd, isDel } = require('./subdifOps');
 
 function getCompressionObj(newFirst, newSecond) {
   return {
@@ -26,12 +26,6 @@ function removeEmptySubdifs(dif) {
     }
     else if (isDel(dif[i])) {
       if (dif[i][2] === 0) {
-        dif.splice(i, 1);
-        --i;
-      }
-    }
-    else if (isMove(dif[i])) {
-      if (dif[i][4] === 0) {
         dif.splice(i, 1);
         --i;
       }

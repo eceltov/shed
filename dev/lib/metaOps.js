@@ -1,26 +1,11 @@
-const { isMove, isNewline, isRemline, isDel, isAdd } = require('./subdifOps');
+const { isNewline, isRemline, isDel, isAdd } = require('./subdifOps');
 const { deepCopy } = require('./utils');
 const { compress } = require('./compress');
 
-function saveLI(wrap, wTransformer, mode = 'default') {
-  if (mode === 'default') {
-    wrap.meta.informationLost = true;
-    wrap.meta.context.original = deepCopy(wrap.sub);
-    wrap.meta.context.wTransformer = deepCopy(wTransformer);
-  }
-  else if (mode === 'add') {
-    wrap.metaAdd.informationLost = true;
-    wrap.metaAdd.context.original = deepCopy(wrap.sub);
-    wrap.metaAdd.context.wTransformer = deepCopy(wTransformer);
-  }
-  else if (mode === 'del') {
-    wrap.metaDel.informationLost = true;
-    wrap.metaDel.context.original = deepCopy(wrap.sub);
-    wrap.metaDel.context.wTransformer = deepCopy(wTransformer);
-  }
-  else {
-    console.log('Unknown mode in saveLI!');
-  }
+function saveLI(wrap, wTransformer) {
+  wrap.meta.informationLost = true;
+  wrap.meta.context.original = deepCopy(wrap.sub);
+  wrap.meta.context.wTransformer = deepCopy(wTransformer);
   return wrap;
 }
 
@@ -35,73 +20,30 @@ function saveSibling(first, second) {
 }
 
 function checkRA(wrap) {
-  if (!isMove(wrap)) {
-    return wrap.meta.relative;
-  }
-  return wrap.metaAdd.relative || wrap.metaDel.relative;
+  return wrap.meta.relative;
 }
 
-/// TODO: what if the transformer is move?
 /**
  * @brief Checks whether the wrap lost information due to the transformer.
  *
  * @param {*} wrap
  * @param {*} wTransformer
- * @param {*} mode Used for move wraps. Either "add" or "del".
  * @returns
  */
-function checkLI(wrap, wTransformer, mode = 'default') {
-  if (!isMove(wrap)) {
-    if (!wrap.meta.informationLost) {
-      return false;
-    }
-    return wrap.meta.context.wTransformer.meta.ID === wTransformer.meta.ID;
+function checkLI(wrap, wTransformer) {
+  if (!wrap.meta.informationLost) {
+    return false;
   }
-
-  if (mode === 'add') {
-    if (!wrap.metaAdd.informationLost) {
-      return false;
-    }
-    return wrap.metaAdd.context.wTransformer.meta.ID === wTransformer.meta.ID;
-  }
-  if (mode === 'del') {
-    if (!wrap.metaDel.informationLost) {
-      return false;
-    }
-    return wrap.metaDel.context.wTransformer.meta.ID === wTransformer.meta.ID;
-  }
-
-  console.log('Incorrect checkLI usage!');
-  return false;
+  return wrap.meta.context.wTransformer.meta.ID === wTransformer.meta.ID;
 }
 
-function recoverLI(wrap, mode = 'default') {
-  if (!isMove(wrap)) {
-    wrap.sub = wrap.meta.context.original;
-    wrap.meta.informationLost = false;
-  }
-  else if (mode === 'add') {
-    // the add part of move only handles where the moved text is pasted
-    wrap.sub[2] = wrap.metaAdd.context.original[2];
-    wrap.sub[3] = wrap.metaAdd.context.original[3];
-    wrap.metaAdd.informationLost = false;
-  }
-  else if (mode === 'del') {
-    // the del part of move handles from where the text was taken and how much of it
-    wrap.sub[0] = wrap.metaDel.context.original[0];
-    wrap.sub[1] = wrap.metaDel.context.original[1];
-    wrap.sub[4] = wrap.metaDel.context.original[4];
-    wrap.metaDel.informationLost = false;
-  }
-  // return wrap.meta.context.original;
+function recoverLI(wrap) {
+  wrap.sub = wrap.meta.context.original;
+  wrap.meta.informationLost = false;
 }
 
 function checkBO(wrap, wTransformer) {
-  if (!isMove(wrap)) {
-    return wrap.meta.context.addresser.meta.ID === wTransformer.meta.ID;
-  }
-  return wrap.metaAdd.context.addresser.meta.ID === wTransformer.meta.ID
-           || wrap.metaDel.context.addresser.meta.ID === wTransformer.meta.ID;
+  return wrap.meta.context.addresser.meta.ID === wTransformer.meta.ID;
 }
 
 /**
@@ -119,7 +61,7 @@ function convertAA(wrap, wAddresser) {
     }
     else if (isNewline(wAddresser)) {
       // set the row equal to the newline
-      wrap.sub[0] = wAddresser.sub;
+      wrap.sub[0] = wAddresser.sub[0];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }
@@ -129,7 +71,7 @@ function convertAA(wrap, wAddresser) {
   }
   else if (isNewline(wrap)) {
     if (isNewline(wAddresser)) {
-      wrap.sub = wAddresser.sub;
+      wrap.sub[0] = wAddresser.sub[0];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }
@@ -139,23 +81,13 @@ function convertAA(wrap, wAddresser) {
   }
   else if (isRemline(wrap)) {
     if (isNewline(wAddresser)) {
-      wrap.sub = -wAddresser.sub;
+      wrap.sub[0] = wAddresser.sub[0];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }
     else {
       console.log('Conversion not implemented!');
     }
-  }
-  else if (wrap.metaAdd.context.addresser.ID === wAddresser.meta.ID) {
-    wrap.sub[3] += wAddresser.sub[1];
-    wrap.metaAdd.relative = false;
-    wrap.metaAdd.context.addresser = null;
-  }
-  else if (wrap.metaDel.context.addresser.ID === wAddresser.meta.ID) {
-    wrap.sub[1] += wAddresser.sub[1];
-    wrap.metaDel.relative = false;
-    wrap.metaDel.context.addresser = null;
   }
   else {
     console.log('Unknown addresser in convertAA!');
@@ -176,10 +108,6 @@ function internalJoinSiblings(wSlice) {
   let i = 1;
   while (siblingIDs.length > 0) {
     const wrap = wSlice[i];
-    /// TODO: implement move
-    if (isMove(wrap)) {
-      continue;
-    }
     // check if wrap is sibling
     if (siblingIDs.includes(wrap.meta.ID)) {
       // siblings will be defined, because this sibling could not be consumed yet
@@ -217,19 +145,14 @@ function internalJoinSiblings(wSlice) {
 function joinSiblings(wDif) {
   const wNewDif = [];
   wDif.forEach((wrap, i) => {
-    if (!isMove(wrap)) {
-      const siblings = wrap.meta.context.siblings;
-      // consumed siblings will have their siblings prop set to null
-      if (siblings !== null) {
-        if (siblings.length > 0) {
-          // join siblings
-          // wrap = ...
-          wrap = internalJoinSiblings(wDif.slice(i));
-        }
-        wNewDif.push(wrap);
+    const siblings = wrap.meta.context.siblings;
+    // consumed siblings will have their siblings prop set to null
+    if (siblings !== null) {
+      if (siblings.length > 0) {
+        // join siblings
+        // wrap = ...
+        wrap = internalJoinSiblings(wDif.slice(i));
       }
-    }
-    else {
       wNewDif.push(wrap);
     }
   });

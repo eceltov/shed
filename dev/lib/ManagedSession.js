@@ -1,5 +1,5 @@
 /* eslint-disable class-methods-use-this */
-const { del, move, remline, wrapDif } = require('./subdifOps');
+const { del, remline, wrapDif, newline, add } = require('./subdifOps');
 const { deepCopy, deepEqual, dlog } = require('./utils');
 const { textToDif, UDR } = require('./dif');
 const { compress } = require('./compress');
@@ -269,37 +269,29 @@ class ManagedSession {
     if (e.action === 'insert') {
       // single line text
       if (e.lines.length === 1) {
-        dif.push([e.start.row, e.start.column, e.lines[0]]);
+        dif.push(add(e.start.row, e.start.column, e.lines[0]));
       }
 
       // newline
       else if (e.lines.length === 2 && e.lines[0] === '' && e.lines[1] === '') {
-        const trailingText = this.session.getLine(e.end.row);
-        dif.push(e.end.row); // add new row
-        if (trailingText.length > 0) {
-          dif.push(move(e.start.row, e.start.column, e.end.row, 0, trailingText.length));
-        }
+        const remainingText = this.session.getLine(e.start.row);
+        dif.push(newline(e.start.row, remainingText.length));
       }
 
       // paste
       else {
-        const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
-        dif = textToDif(e.start.row, e.start.column, e.lines, trailingText);
+        dif = textToDif(e.start.row, e.start.column, e.lines);
       }
     }
     else if (e.action === 'remove') {
       // single line text removal
       if (e.lines.length === 1) {
-        dif.push([e.start.row, e.start.column, e.lines[0].length]);
+        dif.push(del(e.start.row, e.start.column, e.lines[0].length));
       }
 
       // remline
       else if (e.lines.length === 2 && e.lines[0] === '' && e.lines[1] === '') {
-        const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
-        if (trailingText.length > 0) {
-          dif.push(move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
-        }
-        dif.push(-e.end.row);
+        dif.push(remline(e.start.row, e.start.column));
       }
 
       // multiline delete
@@ -309,11 +301,7 @@ class ManagedSession {
           dif.push(del(e.start.row + i, 0, e.lines[i].length));
         }
         dif.push(del(e.end.row, 0, e.lines[e.lines.length - 1].length));
-        const trailingText = this.session.getLine(e.start.row).substr(e.start.column);
-        dif.push(move(e.end.row, 0, e.start.row, e.start.column, trailingText.length));
-        for (let i = e.end.row; i > e.start.row; i--) {
-          dif.push(remline(i));
-        }
+        dif.push(remline(e.start.row, e.start.column));
       }
     }
     if (this.loggingEnabled && dif.length === 0) console.log('handleChange dif is empty!');
