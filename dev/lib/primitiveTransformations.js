@@ -282,7 +282,7 @@ function IT_RR(wrap, wTransformer) {
     wrap.sub[0]--;
     wrap.sub[1] += transformer[1];
   }
-  if (transformer[0] === wrap.sub[0]) {
+  else if (transformer[0] === wrap.sub[0]) {
     /**
          * Trying to delete a row that already had been deleted. The intention was
            fulfilled by someone else, therefore the subdif may be omitted.
