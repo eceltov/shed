@@ -377,8 +377,11 @@ function undoDifAce(wDif, document) {
     else if (isNewline(subdif)) {
       document.removeNewLine(subdif[0]);
     }
-    else if (isRemline(subdif)) {
+    else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
+    }
+    else if (isRemline(subdif) && wrap.meta.informationLost) {
+      // do nothing
     }
     else {
       console.log('Received unknown dif!');
@@ -438,11 +441,14 @@ function undoDifServer(wDif, document) {
       document[subdif[0]] += document[subdif[0] + 1];
       document.splice(subdif[0] + 1, 1);
     }
-    else if (isRemline(subdif)) {
+    else if (isRemline(subdif) && !wrap.meta.informationLost) {
       const prefix = document[subdif[0]].substring(0, subdif[1]);
       const trailingText = document[subdif[0]].substring(subdif[1]);
       document[subdif[0]] = prefix;
       document.splice(subdif[0] + 1, 0, trailingText);
+    }
+    else if (isRemline(subdif) && wrap.meta.informationLost) {
+      // do nothing
     }
     else {
       console.log('Received unknown dif!');
@@ -702,6 +708,7 @@ function UDR(
   changeCursorPosition(cursorPosition, wdTransformedMessage);
 
   if (log) dlog('wdTransformedMessage', wdTransformedMessage[1], 'wDif');
+  // if (log) console.log('applied GOTCA operation:', document);
 
   // creating a list of undone difs for transformation
   const wdUndoneDifs = [];

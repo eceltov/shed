@@ -241,8 +241,10 @@ class ManagedSession {
       /// TODO: RACE CONDITION: what about changes made by the user while
       ///   UDR is being processed with handlingChanges === false?
       this.handlingChanges = false;
+      const loggingCond = false;
+      // this.clientID === 1 && operation[0][0] === 0 && operation[0][1] >= 2;
       const finalState = UDR(
-        operation, document, this.HB, this.serverOrdering, false, oldCursorPosition,
+        operation, document, this.HB, this.serverOrdering, loggingCond, oldCursorPosition,
       );
       this.handlingChanges = true;
       /// TODO: RACE CONDITION END

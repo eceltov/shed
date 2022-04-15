@@ -317,7 +317,7 @@ test('Newline 1SpD 5C simple convergence test.', () => {
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        clients[0].propagateLocalDif([newline(0)]);
+        clients[0].propagateLocalDif([newline(0, 0)]);
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
@@ -332,7 +332,7 @@ test('Newline 3SpD 5C convergence test.', () => {
     .then(() => {
         let clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [newline(0), newline(1), newline(2)];
+            let dif = [newline(0, 0), newline(1, 0), newline(2, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
@@ -341,7 +341,7 @@ test('Newline 3SpD 5C convergence test.', () => {
     .then(() => {
         let clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [newline(0), newline(1), newline(2)];
+            let dif = [newline(0, 0), newline(1, 0), newline(2, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
@@ -363,7 +363,7 @@ test('Newline Add 1SpD 5C convergence test.', () => {
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
-        clients[0].propagateLocalDif([newline(0)]);
+        clients[0].propagateLocalDif([newline(0, 0)]);
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
@@ -373,52 +373,63 @@ test('Newline Add 1SpD 5C convergence test.', () => {
 
 test('Newline 3SpD Remline 2-3SpD 5C convergence test.', () => {
     initializeClients(5);
+    let numberOfLines = 1; // the doc starts with one line
     
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
-        let clientMsgCount = 2;
+        const clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [newline(0), newline(1), newline(2)];
+            let dif = [newline(0, 0), newline(1, 0), newline(2, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
+        numberOfLines += clientCount * clientMsgCount * 3;
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        let clientMsgCount = 2;
+        // each client wants to remove clientMsgCount * 2 lines
+        // every client wants to remove the same lines, so only clientMsgCount * 2 lines
+        // should be deleted in total
+        const clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [remline(1), remline(1)];
+            let dif = [remline(0, 0), remline(0, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
+        numberOfLines -= clientMsgCount * 2;
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        let clientMsgCount = 2;
+        const clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [newline(0), newline(1), newline(2)];
+            let dif = [newline(0, 0), newline(1, 0), newline(2, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
+        numberOfLines += clientCount * clientMsgCount * 3;
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
-        let clientMsgCount = 2;
+        // each client wants to remove clientMsgCount * 3 lines
+        // every client wants to remove the same lines, so only clientMsgCount * 3 lines
+        // should be deleted in total
+        const clientMsgCount = 2;
         for (let i = 0; i < clientCount * clientMsgCount; i++) {
-            let dif = [remline(2), remline(5), remline(7)];
+            let dif = [remline(1, 0), remline(4, 0), remline(6, 0)];
             let index = Math.floor(i / clientMsgCount);
             clients[index].propagateLocalDif(dif);
         }
+        numberOfLines -= clientMsgCount * 3;
         return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
     })
     .then(() => {
         let document = [];
-        for (let i = 0; i < 11; i++) document.push('');
+        for (let i = 0; i < numberOfLines; i++) document.push('');
         expect(lib.checkSameDocumentState(clients, document, testFileID)).toBe(true);
     });
 });
 
-test('Move 5C simple convergence test.', () => {
+test('Newline 5C simple row split convergence test.', () => {
     initializeClients(5);
     
     return lib.getStatusPromise(connectionChecker)
@@ -434,8 +445,8 @@ test('Move 5C simple convergence test.', () => {
         expect(lib.checkSameDocumentState(clients, [ 'Sample', ' text with several words.' ], testFileID)).toBe(true);
     });
 });
-/*
-test('Move 5C convergence test.', () => {
+
+test('Newline 5C convergence test.', () => {
     initializeClients(5);
     const serverOrdering = [
         [0],
@@ -458,9 +469,9 @@ test('Move 5C convergence test.', () => {
     .then(() => {
         expect(lib.checkSameDocumentState(clients, [ 'Some Samples', ' texts with several words.' ], testFileID)).toBe(true);
     });
-});*/
+});
 
-test('Newline Remline Add 5C message chain test (adding text to a new line and deleting it while not empty).', () => {
+test('Remline Add 5C convergence test (adding text to a new line and deleting it).', () => {
     initializeClients(5);
     const serverOrdering = [
         [0],
@@ -470,19 +481,19 @@ test('Newline Remline Add 5C message chain test (adding text to a new line and d
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
         lib.setOrdering(server, testFileID, serverOrdering);
-        clients[0].propagateLocalDif([newline(1)]);
+        clients[0].propagateLocalDif([newline(0, 0)]);
         return lib.getStatusPromise(msgReceivedChecker);
     })
     .then(() => {
         clients[0].propagateLocalDif([add(1, 0, "text")]);
-        clients[1].propagateLocalDif([remline(1)]);
+        clients[1].propagateLocalDif([remline(0, 0)]);
         return lib.getStatusPromise(msgReceivedChecker, 2);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', 'text' ], testFileID)).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ 'text' ], testFileID)).toBe(true);
     });
 });
-/*
+
 test('Newline Remline Add 5C conflict test (adding text, newlining and remlining on the same row).', () => {
     initializeClients(5);
     const serverOrdering = [
@@ -493,19 +504,18 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
     return lib.getStatusPromise(connectionChecker)
     .then(() => {
         lib.setOrdering(server, testFileID, serverOrdering);
-        clients[0].propagateLocalDif([newline(1)]);
+        clients[0].propagateLocalDif([newline(0, 0)]);
         return lib.getStatusPromise(msgReceivedChecker, serverOrdering[0].length);
     })
     .then(() => {
         clients[0].propagateLocalDif([add(1, 0, "text")]);
-        clients[1].propagateLocalDif([remline(1)]);
+        clients[1].propagateLocalDif([remline(0, 0)]);
         clients[2].propagateLocalDif([add(1, 0, "sample")]);
-        clients[3].propagateLocalDif([newline(1)]);
+        clients[3].propagateLocalDif([newline(1, 0)]);
         clients[4].propagateLocalDif([add(1, 0, "random")]);
         return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ '', '', 'textsamplerandom' ], testFileID)).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ 'textsamplerandom', '' ], testFileID)).toBe(true);
     });
 });
-*/

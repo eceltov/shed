@@ -1,4 +1,4 @@
-const { add } = require('../lib/subdifOps');
+const { add, newline, remline } = require('../lib/subdifOps');
 const lib = require('./test_lib');
 const StatusChecker = require('../lib/status_checker');
 const Server = require('../server/WorkspaceServer');
@@ -14,12 +14,12 @@ server.initialize();
 //server.enableLogging();
 server.listen(8080);
 
-clientCount = 5;
+clientCount = 2;
 const testFileID = 1;
 connectionChecker = new StatusChecker(clientCount);
 msgReceivedChecker = new StatusChecker(clientCount);
 clients = lib.createClients(clientCount, serverURL, connectionChecker, msgReceivedChecker);
-const loggingClients = [0, 3];
+const loggingClients = [0, 1];
 clients.forEach((client, index) => {
     if (loggingClients.includes(index)) {
         client.loggingEnabled = true;
@@ -69,6 +69,53 @@ lib.getStatusPromise(connectionChecker)
 
 lib.cleanFile(testFileID);
 
+
+lib.getStatusPromise(connectionChecker)
+.then(() => {
+    let clientMsgCount = 1;
+    for (let i = 0; i < clientCount * clientMsgCount; i++) {
+        let dif = [newline(0, 0)];
+        let index = Math.floor(i / clientMsgCount);
+        clients[index].propagateLocalDif(dif);
+    }
+    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+})
+.then(() => {
+    clients.forEach((client, id) => {
+        console.log(id, ':', client.getDocument(testFileID));
+    });
+    let clientMsgCount = 1;
+    for (let i = 0; i < clientCount * clientMsgCount; i++) {
+        let dif = [newline(0, 0)];
+        let index = Math.floor(i / clientMsgCount);
+        clients[index].propagateLocalDif(dif);
+    }
+    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+})
+.then(() => {
+    clients.forEach((client, id) => {
+        console.log(id, ':', client.getDocument(testFileID));
+    });
+    let clientMsgCount = 2;
+    for (let i = 0; i < clientCount * clientMsgCount; i++) {
+        let dif = [remline(0, 0)];
+        let index = Math.floor(i / clientMsgCount);
+        clients[index].propagateLocalDif(dif);
+    }
+    return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+})
+.then(() => {
+    const document = [];
+    for (let i = 0; i < 11; i++) document.push('');
+    console.log(lib.sameDocumentState(clients, testFileID));
+    console.log(lib.sameServerOrdering(clients));
+    console.log(clients[0].getDocument(testFileID));
+    //console.log(lib.checkSameDocumentState(clients, document, testFileID));
+    server.close();
+    lib.cleanFile(testFileID);
+});
+
+/*
 const serverOrdering = [
     [0],
     //[0, 1, 2, 3],
@@ -95,7 +142,7 @@ lib.getStatusPromise(connectionChecker)
     console.log(lib.checkSameDocumentState(clients, [ 'Sample', ' texts with several words.' ], testFileID));
     server.close();
     lib.cleanFile(testFileID);
-})
+})*/
 /*.catch(() => {
     console.log('fail');
     server.close();
