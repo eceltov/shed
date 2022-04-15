@@ -278,16 +278,11 @@ function sendDels(clientMsgCount, subdifCount, clients) {
  * @brief Returns a dif simulating an Enter keypress on a specific row and position
  */
 function getRowSplitDif(client, fileID, row, position) {
-    let dif = [];
+    const dif = [newline(row, position)];
     const document = client.getDocument(fileID);
     if (row >= document.length || position >= document[row].length) {
         console.log("getRowSplitDif incorrect parameters!");
         return dif;
-    }
-    dif.push(row + 1);
-    if (position > 0) {
-        let trailingRowText = document[row].substr(position);
-        dif.push(move(row, position, row + 1, 0, trailingRowText.length));
     }
     return dif;
 }
