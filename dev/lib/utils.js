@@ -35,7 +35,7 @@ function deepEqual(x, y) {
  * @brief Logging function for debugging.
  * @param {*} name Name of the object.
  * @param {*} obj Object to be logged.
- * @param {*} mode What kind of object it is. Supported: wDif, wDifs, wHB.
+ * @param {*} mode What kind of object it is. Supported: wDif, wDifs, wHB, SO, default (not nested).
  */
 function dlog(name, obj, mode = 'default') {
   if (mode === 'default') {
