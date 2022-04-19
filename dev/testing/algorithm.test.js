@@ -516,6 +516,6 @@ test('Newline Remline Add 5C conflict test (adding text, newlining and remlining
         return lib.getStatusPromise(msgReceivedChecker, serverOrdering[1].length);
     })
     .then(() => {
-        expect(lib.checkSameDocumentState(clients, [ 'textsamplerandom', '' ], testFileID)).toBe(true);
+        expect(lib.checkSameDocumentState(clients, [ 'textsample', 'random' ], testFileID)).toBe(true);
     });
 });

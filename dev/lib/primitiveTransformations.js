@@ -36,7 +36,7 @@ function IT_AN(wrap, wTransformer) {
     wrap.sub[0]++;
   }
   // the line was split before the add position
-  else if (sameRow(wrap, wTransformer) && transformer[1] < wrap.sub[1]) {
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
     wrap.sub[0]++;
     wrap.sub[1] -= transformer[1];
   }
@@ -261,10 +261,12 @@ function IT_RN(wrap, wTransformer) {
     wrap.sub[0]++;
   }
   else if (transformer[0] === wrap.sub[0]) {
-    wrap.sub[0]++;
-    wrap.sub[1] -= transformer[1];
     if (transformer[1] > wrap.sub[1]) {
       console.log('IT_RN Newline is on a bigger position than the remline!');
+    }
+    else {
+      wrap.sub[0]++;
+      wrap.sub[1] -= transformer[1];
     }
   }
   return wrap;
