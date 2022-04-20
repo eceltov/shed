@@ -172,7 +172,7 @@ function IT_DR(wrap, wTransformer) {
     wrap.sub[0]--;
     wrap.sub[1] += transformer[1];
   }
-  else if (transformer[0] === wrap.sub[0]) {
+  else if (transformer[0] === wrap.sub[0] && wrap.sub[1] + wrap.sub[2] > transformer[1]) {
     /**
      * The user tries to delete characters that no longer exist,
        therefore his intention was fulfilled by someone else and
@@ -194,7 +194,9 @@ function IT_ND(wrap, wTransformer) {
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
     if (transformer[1] < wrap.sub[1] && transformer[1] + transformer[2] >= wrap.sub[1]) {
-      saveLI(wrap, wTransformer);
+      if (transformer[1] + transformer[2] > wrap.sub[1]) {
+        saveLI(wrap, wTransformer);
+      }
       wrap.sub[1] = transformer[1]; // the line will break at the start of the del
     }
     else if (transformer[1] + transformer[2] < wrap.sub[1]) {
