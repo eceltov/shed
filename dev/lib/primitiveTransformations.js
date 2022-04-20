@@ -334,9 +334,13 @@ function ET_AN(wrap, wTransformer) {
     wrap.sub[0]--;
     wrap.sub[1] += transformer[1];
   }
-  // nothing has to be done if the add and newline are on the same row,
-  // because the only adds that moved are on the next line and only those need
-  // to be transformed
+  // the add was added to the new empty space created on the original row
+  else if (transformer[0] === wrap.sub[0] && transformer[1] === wrap.sub[1]) {
+    // the add is relative to the newline, otherwise including the newline would push the add to the
+    // next row
+    saveRA(wrap, wTransformer);
+    wrap.sub[1] = 0;
+  }
   return wrap;
 }
 function ET_AR(wrap, wTransformer) {
@@ -447,7 +451,7 @@ function ET_DN(wrap, wTransformer) {
     wrap.sub[0]--;
     wrap.sub[1] += transformer[1];
   }
-  // nothing has to be done if the add and newline are on the same row,
+  // nothing has to be done if the del and newline are on the same row,
   // because the only dels that moved are on the next line and only those need
   // to be transformed
   return wrap;
@@ -503,6 +507,13 @@ function ET_NN(wrap, wTransformer) {
   else if (transformer[0] === wrap.sub[0] - 1) {
     wrap.sub[0]--;
     wrap.sub[1] += transformer[1];
+  }
+  // the newline was added to the new empty space created on the original row
+  else if (transformer[0] === wrap.sub[0] && transformer[1] === wrap.sub[1]) {
+    // the wrap is relative to the transformer, otherwise including the transformer would push
+    // the wrap to the next row
+    saveRA(wrap, wTransformer);
+    wrap.sub[1] = 0;
   }
   return wrap;
 }

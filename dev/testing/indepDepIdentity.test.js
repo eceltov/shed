@@ -1,4 +1,4 @@
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { add, del, newline, remline } = require('../lib/subdifOps');
 const { testIndepDepArray } = require('./primTestingLib');
 
 const tests = [
@@ -31,44 +31,48 @@ const tests = [
     [add(0, 0, 'abcd'), del(0, 1, 2), add(0, 0, 'abcd'), del(0, 1, 4)],
   ],
   [
+    'Making a dif [newline, add] independant and then dependant is an identity 1.',
+    [newline(0, 0), add(0, 0, 'a')],
+  ],
+  [
+    'Making a dif [newline, add] independant and then dependant is an identity 2.',
+    [newline(1, 1), add(2, 1, 'a')],
+  ],
+  [
     'Making a dif [newline, del] independant and then dependant is an identity 1.',
-    [newline(0), del(1, 1, 1)],
+    [newline(0, 0), del(1, 1, 1)],
   ],
   [
     'Making a dif [newline, del] independant and then dependant is an identity 2.',
-    [newline(1), del(1, 1, 1)],
-  ],
-  [
-    'Making a dif [newline, del] independant and then dependant is an identity 3.',
-    [newline(2), del(1, 1, 1)],
+    [newline(2, 0), del(1, 1, 1)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 1.',
-    [newline(0), newline(0), newline(0)],
+    [newline(0, 0), newline(0, 0), newline(0, 0)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 2.',
-    [newline(0), newline(1), newline(2)],
+    [newline(0, 0), newline(1, 0), newline(2, 0)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 3.',
-    [newline(2), newline(1), newline(0)],
+    [newline(2, 0), newline(1, 0), newline(0, 0)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 4.',
-    [newline(1), newline(1), newline(0)],
+    [newline(1, 0), newline(1, 0), newline(0, 0)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 5.',
-    [newline(2), newline(1), newline(2)], 
+    [newline(2, 0), newline(1, 0), newline(2, 0)], 
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 6.',
-    [newline(1), newline(2), newline(1)],
+    [newline(1, 0), newline(2, 0), newline(1, 0)],
   ],
   [
     'Making a dif [newline, newline, newline] independant and then dependant is an identity 7.',
-    [newline(2), newline(2), newline(0)],
+    [newline(2, 0), newline(2, 0), newline(0, 0)],
   ],
 ];
 
