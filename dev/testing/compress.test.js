@@ -1,4 +1,4 @@
-const { add, del, move } = require('../lib/subdifOps');
+const { add, del } = require('../lib/subdifOps');
 const { compress } = require('../lib/compress');
 
 function testCompress(testName, inputDif, expected) {
@@ -17,12 +17,12 @@ function testCompressArray(testArray) {
 const tests = [
   [
     'Empty subdifs get removed.',
-    [add(1, 2, 0), del(1, 2, 0), add(0, 0, 'a'), move(0, 0, 0, 0, 0)],
+    [add(1, 2, 0), del(1, 2, 0), add(0, 0, 'a')],
     [add(0, 0, 'a')],
   ],
   [
     'Dif containing only empty subdifs returns an empty dif',
-    [add(1, 2, 0), del(1, 2, 0), move(0, 0, 0, 0, 0)],
+    [add(1, 2, 0), del(1, 2, 0)],
     [],
   ],
   [
