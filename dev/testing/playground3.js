@@ -1,5 +1,5 @@
 const { makeDependant, makeIndependant, LIT, LET } = require('../lib/dif');
-const { add, del, move, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../lib/subdifOps');
+const { add, del, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../lib/subdifOps');
 const { createMetaArr, DEBUGTestLITArray, DEBUGTestLETArray, DEBUGTestIndepDepArray } = require('./primTestingLib');
 
 const testsLET = [
@@ -22,11 +22,11 @@ const testsLIT = [
 
 const testsIndepDep = [
   [
-    'Making a dif [newline, newline, newline] independant and then dependant is an identity 1.',
-    [newline(0), newline(0), newline(0)],
+    'Making a dif [add, newline] independant and then dependant is an identity 1.',
+    [add(0, 0, 'a'), newline(0, 0)],
   ],
 ];
 
 //DEBUGTestLITArray(testsLIT);
 //DEBUGTestLETArray(testsLET);
-DEBUGTestIndepDepArray(testsIndepDep)
+DEBUGTestIndepDepArray(testsIndepDep);

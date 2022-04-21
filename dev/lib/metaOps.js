@@ -70,7 +70,12 @@ function convertAA(wrap, wAddresser) {
     }
   }
   else if (isNewline(wrap)) {
-    if (isNewline(wAddresser)) {
+    if (isAdd(wAddresser)) {
+      wrap.sub[1] += wAddresser.sub[1];
+      wrap.meta.relative = false;
+      wrap.meta.context.addresser = null;
+    }
+    else if (isNewline(wAddresser)) {
       wrap.sub[0] = wAddresser.sub[0];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;

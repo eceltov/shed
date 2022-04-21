@@ -481,9 +481,12 @@ function ET_NA(wrap, wTransformer) {
       wrap.sub[1] -= transformer[2].length;
     }
     // case when the newline is in the middle of the add, relative addressing needs to be used
-    else if (transformer[1] < wrap.sub[1] && transformer[1] + transformer[2].length > wrap.sub[1]) {
-      wrap.sub[1] -= transformer[1];
+    else if (
+      transformer[1] <= wrap.sub[1]
+      && transformer[1] + transformer[2].length > wrap.sub[1]
+    ) {
       saveRA(wrap, wTransformer);
+      wrap.sub[1] -= transformer[1];
     }
   }
   return wrap;

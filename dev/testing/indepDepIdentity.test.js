@@ -39,6 +39,34 @@ const tests = [
     [newline(1, 1), add(2, 1, 'a')],
   ],
   [
+    'Making a dif [newline, add] independant and then dependant is an identity 3.',
+    [newline(1, 0), add(0, 0, 'a')],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 1.',
+    [add(0, 0, 'a'), newline(0, 0)],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 2.',
+    [add(0, 0, 'ab'), newline(0, 0)],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 3.',
+    [add(0, 0, 'ab'), newline(0, 1)],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 4.',
+    [add(0, 0, 'ab'), newline(0, 2)],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 5.',
+    [add(0, 0, 'ab'), newline(0, 3)],
+  ],
+  [
+    'Making a dif [add, newline] independant and then dependant is an identity 6.',
+    [add(1, 0, 'a'), newline(0, 0)],
+  ],
+  [
     'Making a dif [newline, del] independant and then dependant is an identity 1.',
     [newline(0, 0), del(1, 1, 1)],
   ],
