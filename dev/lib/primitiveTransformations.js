@@ -456,6 +456,7 @@ function ET_DN(wrap, wTransformer) {
   // to be transformed
   return wrap;
 }
+// @note May return multiple subdifs.
 function ET_DR(wrap, wTransformer) {
   // case when the remline is disabled
   if (wTransformer.meta.informationLost) {
@@ -469,6 +470,20 @@ function ET_DR(wrap, wTransformer) {
   else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
     wrap.sub[0]++;
     wrap.sub[1] -= transformer[1];
+  }
+  // case when the removed remline splits the del
+  else if (sameRow(wrap, wTransformer)
+    && wrap.sub[1] < transformer[1]
+    && wrap.sub[1] + wrap.sub[2] > transformer[1]
+  ) {
+    const delWrap1 = wrapSubdif(del(
+      wrap.sub[0], wrap.sub[1], transformer[1],
+    ), wrap.meta.ID);
+    const delWrap2 = wrapSubdif(del(
+      wrap.sub[0] + 1, 0, wrap.sub[2] - transformer[1],
+    ));
+    saveSibling(delWrap1, delWrap2);
+    wrap = [delWrap1, delWrap2];
   }
   return wrap;
 }
@@ -661,7 +676,14 @@ function ET(wrap, wTransformer) {
       }
     }
     else if (isNewline(wTransformer)) transformedWraps.push(ET_DN(wrap, wTransformer));
-    else if (isRemline(wTransformer)) transformedWraps.push(ET_DR(wrap, wTransformer));
+    else if (isRemline(wTransformer)) {
+      const result = ET_DR(wrap, wTransformer);
+      if (isDel(result)) transformedWraps.push(result);
+      else {
+        transformedWraps.push(result[0]);
+        transformedWraps.push(result[1]);
+      }
+    }
   }
   else if (isNewline(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(ET_NA(wrap, wTransformer));
