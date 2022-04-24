@@ -561,7 +561,7 @@ function ET_RN(wrap, wTransformer) {
   }
   else if (transformer[0] === wrap.sub[0] - 1) {
     wrap.sub[0]--;
-    wrap.sub[0] += transformer[1];
+    wrap.sub[1] += transformer[1];
   }
   // the remline makes sense only in combination with the newline, it has to be made relative
   else if (transformer[0] === wrap.sub[0]) {
