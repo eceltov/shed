@@ -348,11 +348,11 @@ const tests = [
   ],
   [
     '[add, newline, add, newline] 5.',
-    [add(0, 0, '1234'), newline(0, 4), add(0, 4, '5678'), newline(0, 8)],
+    [add(0, 0, '1234'), newline(0, 4), add(0, 3, '5678'), newline(0, 8)],
   ],
   [
     '[add, newline, add, newline] 6.',
-    [add(0, 0, '1231'), newline(0, 3), add(0, 4, '4561'), newline(0, 6)],
+    [add(0, 0, '1231'), newline(0, 3), add(0, 3, '4561'), newline(0, 6)],
   ],
   [
     '[newline, newline, remline, newline, remline] 1.',
