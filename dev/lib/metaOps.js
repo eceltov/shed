@@ -60,8 +60,8 @@ function convertAA(wrap, wAddresser) {
       wrap.meta.context.addresser = null;
     }
     else if (isNewline(wAddresser)) {
-      // set the row equal to the newline
       wrap.sub[0] = wAddresser.sub[0];
+      wrap.sub[1] += wAddresser.sub[1];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }
@@ -77,6 +77,7 @@ function convertAA(wrap, wAddresser) {
     }
     else if (isNewline(wAddresser)) {
       wrap.sub[0] = wAddresser.sub[0];
+      wrap.sub[1] += wAddresser.sub[1];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }
@@ -86,6 +87,7 @@ function convertAA(wrap, wAddresser) {
   }
   else if (isRemline(wrap)) {
     if (isNewline(wAddresser)) {
+      /// TODO: the position is not incremented here, is this correct?
       wrap.sub[0] = wAddresser.sub[0];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
