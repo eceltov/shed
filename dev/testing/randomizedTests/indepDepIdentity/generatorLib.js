@@ -1,14 +1,16 @@
-const { add, del, newline, remline } = require('../lib/subdifOps');
-const { testIndepDepArray } = require('./primTestingLib');
+const { add, del, newline, remline } = require('../../../lib/subdifOps');
 const seedrandom = require('seedrandom');
+const fs = require('fs');
 
-const seed = 'seed';
-const testCount = 69420;
-const subdifCountLower = 2;
-const subdifCountUpper = 10;
+const configString = fs.readFileSync(__dirname + '/config.json');
+const config = JSON.parse(configString);
+
+const seed = config.seed;
+const subdifCountLower = config.subdifCountLower;
+const subdifCountUpper = config.subdifCountUpper;
 
 const rng = seedrandom(seed);
-let testNumber = 1;
+let testNumber = 0;
 
 function randomInt(lower, upper) {
   if (upper <= lower) {
@@ -18,9 +20,7 @@ function randomInt(lower, upper) {
   return Math.abs(rng.int32() % (dif + 1)) + lower;
 }
 
-
-
-function createTest() {
+function generateTest() {
   const subdifCount = randomInt(subdifCountLower, subdifCountUpper);
 
   // row of the next subdif added, 2 because 0 is a special case
@@ -37,6 +37,9 @@ function createTest() {
   let description = '#' + testNumber++ + ' [';
 
   for (let i = 0; i < subdifCount; i++) {
+    if (testNumber === 93) {
+      let a = 5;
+    }
     const length = lengths[row];
     const minLength = minLengths[row];
     // determine what subdif will be added (do not consider del when the row is empty)
@@ -102,11 +105,17 @@ function createTest() {
       let position;
       if (length === undefined) {
         position = randomInt(minLength, minLength + 1);
+        lengths[row] = position; // position pre remline
         if (row + 1 < lengths.length && lengths[row + 1] !== undefined) {
-          minLengths[row] += lengths[row + 1];
+          lengths[row] += lengths[row + 1];
+        }
+        else if (row + 1 < lengths.length && lengths[row + 1] === undefined) {
+          minLengths[row] = minLengths[row + 1] + lengths[row];
+          lengths[row] = undefined;
         }
         else if (row + 1 >= lengths.length) {
-          minLengths[row] += minLengths[row + 1];
+          minLengths[row] = minLengths[row + 1] + lengths[row];
+          lengths[row] = undefined;
         }
       }
       else {
@@ -114,9 +123,13 @@ function createTest() {
         if (row + 1 < lengths.length && lengths[row + 1] !== undefined) {
           lengths[row] = length + lengths[row + 1];
         }
-        else if (row + 1 >= lengths.length) {
+        else if (row + 1 < lengths.length && lengths[row + 1] === undefined) {
+          minLengths[row] = minLengths[row + 1] + lengths[row];
           lengths[row] = undefined;
-          minLengths[row] = minLengths[row + 1];
+        }
+        else if (row + 1 >= lengths.length) {
+          minLengths[row] = minLengths[row + 1] + lengths[row];
+          lengths[row] = undefined;
         }
       }
       for (let j = row + 1; j < lengths.length - 1; j++) {
@@ -146,10 +159,12 @@ function createTest() {
   ];
 }
 
-const tests = [];
-
-for (let i = 0; i < testCount; i++) {
-  tests.push(createTest());
+function generateTests(testCount) {
+  const tests = [];
+  for (let i = 0; i < testCount; i++) {
+    tests.push(generateTest());
+  }
+  return tests;
 }
 
-testIndepDepArray(tests);
+module.exports = { generateTests };

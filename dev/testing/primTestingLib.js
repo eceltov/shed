@@ -183,41 +183,47 @@ function testIndepDepArray(testArray) {
   });
 }
 
-function DEBUGAssertEqual(received, expected, errMsg) {
+function DEBUGAssertEqual(received, expected, errMsg, log = true) {
   if (JSON.stringify(received) !== JSON.stringify(expected)) {
-    console.log(errMsg);
-    console.log('Expected: ', expected);
-    console.log('Received: ', received);
-    console.log();
+    if (log) {
+      console.log(errMsg);
+      console.log('Expected: ', expected);
+      console.log('Received: ', received);
+      console.log();
+    }
+    return false;
   }
+  return true;
 }
 
-function DEBUGAssertMetaEqual(wTransformed, metaArr = null) {
+function DEBUGAssertMetaEqual(wTransformed, metaArr = null, log = true) {
+  let success = true;
   if (metaArr === null) {
     for (let i = 0; i < wTransformed.length; i++) {
-      DEBUGAssertEqual(wTransformed[i].meta.informationLost, false, 'Information lost mismatch');
-      DEBUGAssertEqual(wTransformed[i].meta.relative, false, 'Relative mismatch');
+      success &&= DEBUGAssertEqual(wTransformed[i].meta.informationLost, false, 'Information lost mismatch', log);
+      success &&= DEBUGAssertEqual(wTransformed[i].meta.relative, false, 'Relative mismatch', log);
     }
   }
   else {
-    DEBUGAssertEqual(wTransformed.length, metaArr.length, 'Length mismatch');
+    success &&= DEBUGAssertEqual(wTransformed.length, metaArr.length, 'Length mismatch', log);
     for (let i = 0; i < wTransformed.length; i++) {
       if (metaArr[i].informationLost !== undefined) 
-        DEBUGAssertEqual(wTransformed[i].meta.informationLost, metaArr[i].informationLost, 'Information lost mismatch');
+        success &&= DEBUGAssertEqual(wTransformed[i].meta.informationLost, metaArr[i].informationLost, 'Information lost mismatch', log);
       if (metaArr[i].relative !== undefined) 
-        DEBUGAssertEqual(wTransformed[i].meta.relative, metaArr[i].relative, 'Relative mismatch');
+        success &&= DEBUGAssertEqual(wTransformed[i].meta.relative, metaArr[i].relative, 'Relative mismatch', log);
       if (metaArr[i].context !== undefined) {
         if (metaArr[i].context.original !== undefined)
-          DEBUGAssertEqual(wTransformed[i].meta.context.original, metaArr[i].context.original, 'Original mismatch');
+          success &&= DEBUGAssertEqual(wTransformed[i].meta.context.original, metaArr[i].context.original, 'Original mismatch', log);
         if (metaArr[i].context.wTransformer !== undefined)
-          DEBUGAssertEqual(wTransformed[i].meta.context.wTransformer, metaArr[i].context.wTransformer, 'wTransformer mismatch');
+          success &&= DEBUGAssertEqual(wTransformed[i].meta.context.wTransformer, metaArr[i].context.wTransformer, 'wTransformer mismatch', log);
         if (metaArr[i].context.addresser !== undefined) 
-          DEBUGAssertEqual(wTransformed[i].meta.context.addresser, metaArr[i].context.addresser, 'Addresser mismatch');
+          success &&= DEBUGAssertEqual(wTransformed[i].meta.context.addresser, metaArr[i].context.addresser, 'Addresser mismatch', log);
         if (metaArr[i].context.siblings !== undefined) 
-          DEBUGAssertEqual(wTransformed[i].meta.context.siblings, metaArr[i].context.siblings, 'Siblings mismatch');
+          success &&= DEBUGAssertEqual(wTransformed[i].meta.context.siblings, metaArr[i].context.siblings, 'Siblings mismatch', log);
       }
     }
   }
+  return success;
 }
 
 // metaArr is an array of arrays
@@ -265,27 +271,37 @@ function DEBUGTestLETArray(testArray) {
   });
 }
 
-function DEBUGTestIndepDep(testName, dif, metaArr = null) {
+function DEBUGTestIndepDep(log, testName, dif, metaArr = null) {
   const wiDif = makeIndependant(wrapDif(dif));
   const wdDif = makeDependant(wiDif);
   /// TODO add joinSiblings to the actual implementation
   const wdJoinedDif = joinSiblings(wdDif);
   const result = unwrapDif(wdJoinedDif);
-  DEBUGAssertEqual(result, dif, 'Unexpected result');
+  let success = true;
+  success &&= DEBUGAssertEqual(result, dif, 'Unexpected result', log);
 
   if (metaArr !== null) {
     const expandedMetaArr = expandMetaArr(dif, null, wdJoinedDif, metaArr);
-    DEBUGAssertMetaEqual(wdJoinedDif, expandedMetaArr);
+    success &&= DEBUGAssertMetaEqual(wdJoinedDif, expandedMetaArr, log);
   }
   else {
-    DEBUGAssertMetaEqual(wdJoinedDif);
+    success &&= DEBUGAssertMetaEqual(wdJoinedDif, null, log);
   }
+
+  return success;
 }
 
-function DEBUGTestIndepDepArray(testArray) {
+function DEBUGTestIndepDepArray(testArray, log = true) {
+  const failedIndices = [];
+  const failedScenarios = [];
   testArray.forEach((test) => {
-    DEBUGTestIndepDep(...test);
+    if (!DEBUGTestIndepDep(log, ...test)) {
+      const numberEnd = test[0].indexOf(' ');
+      failedIndices.push(parseInt(test[0].substring(1, numberEnd)));
+      failedScenarios.push(test[1]);
+    }
   });
+  return failedScenarios;
 }
 
 module.exports = {
