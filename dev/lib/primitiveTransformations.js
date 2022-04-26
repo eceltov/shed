@@ -84,7 +84,7 @@ function IT_DA(wrap, wTransformer) {
       wrap.sub[0],
       wrap.sub[1],
       transformer[1] - wrap.sub[1],
-    ), wrap.meta.ID),
+    ), wrap.meta.ID, wrap.meta.context.siblings),
     wrapSubdif(del(
       wrap.sub[0],
       transformer[1] + transformer[2].length,
@@ -146,7 +146,7 @@ function IT_DN(wrap, wTransformer) {
           wrap.sub[0],
           wrap.sub[1],
           transformer[1] - wrap.sub[1],
-        ), wrap.meta.ID),
+        ), wrap.meta.ID, wrap.meta.context.siblings),
         wrapSubdif(del(
           wrap.sub[0] + 1,
           0,
@@ -382,7 +382,7 @@ function ET_DA(wrap, wTransformer) {
       wrap.sub[0],
       wrap.sub[1] - transformer[1],
       transformer[1] + transformer[2].length - wrap.sub[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0],
       transformer[1],
@@ -398,7 +398,7 @@ function ET_DA(wrap, wTransformer) {
   ) {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], 0, transformer[2].length,
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], wrap.sub[2] - transformer[2].length,
     ));
@@ -409,7 +409,7 @@ function ET_DA(wrap, wTransformer) {
   else {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
     ));
@@ -433,7 +433,7 @@ function ET_DD(wrap, wTransformer) {
   else {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], transformer[1] + transformer[2], wrap.sub[1] + wrap.sub[2] - transformer[1],
     ));
@@ -477,10 +477,10 @@ function ET_DR(wrap, wTransformer) {
     && wrap.sub[1] + wrap.sub[2] > transformer[1]
   ) {
     const delWrap1 = wrapSubdif(del(
-      wrap.sub[0], wrap.sub[1], transformer[1],
-    ), wrap.meta.ID);
+      wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
-      wrap.sub[0] + 1, 0, wrap.sub[2] - transformer[1],
+      wrap.sub[0] + 1, 0, wrap.sub[1] + wrap.sub[2] - transformer[1],
     ));
     saveSibling(delWrap1, delWrap2);
     wrap = [delWrap1, delWrap2];
