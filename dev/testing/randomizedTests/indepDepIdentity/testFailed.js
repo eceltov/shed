@@ -25,6 +25,12 @@ const newFailedScenarios = DEBUGTestIndepDepArray(tests, false);
 console.log(newFailedScenarios.length, 'failed');
 
 if (newFailedScenarios.length > 0) {
-  console.log('First failed scenario:');
-  console.log(newFailedScenarios[0]);
+  console.log('Shortest failed scenario:');
+  let shortest = newFailedScenarios[0];
+  for (let i = 1; i < newFailedScenarios.length; i++) {
+    if (newFailedScenarios[i].length < shortest.length) {
+      shortest = newFailedScenarios[i];
+    }
+  }
+  console.log(shortest);
 }

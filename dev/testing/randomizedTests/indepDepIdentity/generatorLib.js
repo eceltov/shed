@@ -70,7 +70,8 @@ function generateTest() {
       if (length === undefined) {
         // the add will be somewhere of the certain range + 1
         position = randomInt(0, minLength + 1);
-        minLengths[row] += content.length;
+        minLengths[row] += content.length + 1;
+        // the + 1 is from the line above, the minLength does not need to be exact, just not shorter
       }
       else {
         position = randomInt(0, length);
@@ -89,7 +90,8 @@ function generateTest() {
       let position;
       if (length === undefined) {
         position = randomInt(0, minLength + 1);
-        minLengths[row + 1] = 2; // the number here does not have a higher meaning, it should just be small
+        // set the min length of the next row based on the current row
+        minLengths[row + 1] = (position > minLength ? 0 : minLength - position);
         lengths[row + 1] = undefined;
       }
       else {

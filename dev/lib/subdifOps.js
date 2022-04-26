@@ -35,7 +35,7 @@ function isRemline(subdif) {
   return (s[2] === false);
 }
 
-function wrapSubdif(subdif, ID = null) {
+function wrapSubdif(subdif, ID = null, siblings = []) {
   return {
     sub: deepCopy(subdif),
     meta: {
@@ -46,7 +46,7 @@ function wrapSubdif(subdif, ID = null) {
         original: null,
         wTransformer: null,
         addresser: null,
-        siblings: [], // the wrap IDs of right siblings if fragmented
+        siblings, // the wrap IDs of right siblings if fragmented
       },
     },
   };

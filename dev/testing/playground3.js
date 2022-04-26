@@ -22,8 +22,13 @@ const testsLIT = [
 
 const testsIndepDep = [
   [
-    'Making a dif [add, newline] independant and then dependant is an identity 1.',
-    [add(0, 0, 'a'), newline(0, 0)],
+    '[newline, newline, remline, newline, remline] 8.',
+    [
+      [ 0, 3, true ],
+      [ 0, 3, false ],
+      [ 0, 0, true ],
+      [ 1, 2, false ]
+    ],
   ],
 ];
 
