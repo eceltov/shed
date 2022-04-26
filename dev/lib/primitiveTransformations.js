@@ -1,19 +1,13 @@
 /* eslint-disable function-call-argument-newline */
 const {
-  add, del, move, newline, remline,
-  isAdd, isDel, isMove, isNewline, isRemline,
+  add, del, newline, remline,
+  isAdd, isDel, isNewline, isRemline,
   wrapSubdif, unwrapSubdif, wrapDif, unwrapDif,
 } = require('./subdifOps');
 const { saveLI, saveRA, saveSibling, checkLI, recoverLI } = require('./metaOps');
 
 function sameRow(wrap, wTransformer) {
   return wrap.sub[0] === wTransformer.sub[0];
-}
-
-function mockupString(length) {
-  return {
-    length,
-  };
 }
 
 function IT_AA(wrap, wTransformer) {
@@ -36,24 +30,15 @@ function IT_AD(wrap, wTransformer) {
   }
   return wrap;
 }
-function IT_AM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    wrap = IT_AD(wrap, wrapSubdif(
-      del(transformer[0], transformer[1], transformer[4]),
-    ));
-  }
-  else if (wrap.sub[0] === transformer[2]) {
-    wrap = IT_AA(wrap, wrapSubdif(
-      add(transformer[2], transformer[3], mockupString(transformer[4])),
-    ));
-  }
-  return wrap;
-}
 function IT_AN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer <= wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0]) {
     wrap.sub[0]++;
+  }
+  // the line was split before the add position
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
   }
   return wrap;
 }
@@ -63,16 +48,23 @@ function IT_AR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0] - 1) {
     wrap.sub[0]--;
   }
-  else if (-transformer === wrap.sub[0]) {
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  else if (transformer[0] === wrap.sub[0]) {
     /**
-         * In order to preserve the intention of adding characters,
-           a new line has to be added and those characters will be added here.
-         * Note that those character may not make semantically sense, if they were
-           to be inserted in another set of characters that were deleted.
-         */
+     * In order to preserve the intention of adding characters,
+       a new line has to be added and those characters will be added here.
+      * Note that those character may not make semantically sense, if they were
+        to be inserted in another set of characters that were deleted.
+      */
+    /**
+     * Another idea is to do nothing, the remline was first, therefore the add might end up wrong
+     */
     /// TODO: implement this
   }
   return wrap;
@@ -92,12 +84,13 @@ function IT_DA(wrap, wTransformer) {
       wrap.sub[0],
       wrap.sub[1],
       transformer[1] - wrap.sub[1],
-    ), wrap.meta.ID),
+    ), wrap.meta.ID, wrap.meta.context.siblings),
     wrapSubdif(del(
       wrap.sub[0],
       transformer[1] + transformer[2].length,
       wrap.sub[2] - (transformer[1] - wrap.sub[1]),
-    ))];
+    )),
+  ];
   saveSibling(wraps[0], wraps[1]);
   return wraps;
 }
@@ -137,22 +130,32 @@ function IT_DD(wrap, wTransformer) {
   return wrap;
 }
 // @note May return an array with two subdifs
-function IT_DM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    wrap = IT_DD(wrap, del(transformer[0], transformer[1], transformer[4]));
-  }
-  else if (wrap.sub[0] === transformer[2]) {
-    wrap = IT_DA(
-      wrap, add(transformer[2], transformer[3], mockupString(transformer[4])),
-    );
-  }
-  return wrap;
-}
 function IT_DN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer <= wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0]) {
     wrap.sub[0]++;
+  }
+  else if (sameRow(wrap, wTransformer)) {
+    if (transformer[1] <= wrap.sub[1]) {
+      wrap.sub[0]++;
+      wrap.sub[1] -= transformer[1];
+    }
+    else if (transformer[1] > wrap.sub[1] && transformer[1] < wrap.sub[1] + wrap.sub[2]) {
+      const wraps = [
+        wrapSubdif(del(
+          wrap.sub[0],
+          wrap.sub[1],
+          transformer[1] - wrap.sub[1],
+        ), wrap.meta.ID, wrap.meta.context.siblings),
+        wrapSubdif(del(
+          wrap.sub[0] + 1,
+          0,
+          wrap.sub[2] - (transformer[1] - wrap.sub[1]),
+        )),
+      ];
+      saveSibling(wraps[0], wraps[1]);
+      wrap = wraps;
+    }
   }
   return wrap;
 }
@@ -162,192 +165,55 @@ function IT_DR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0] - 1) {
     wrap.sub[0]--;
   }
-  else if (-transformer === wrap.sub[0]) {
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  else if (transformer[0] === wrap.sub[0] && wrap.sub[1] + wrap.sub[2] > transformer[1]) {
     /**
-         * The user tries to delete characters that no longer exist,
-           therefore his intention was fulfilled by someone else and
-           the deletion can be removed.
-         */
+     * The user tries to delete characters that no longer exist,
+       therefore his intention was fulfilled by someone else and
+        the deletion can be removed.
+      */
+    /// TODO: check if the empty del does not corrupt the algorithm
     wrap.sub = del(0, 0, 0);
   }
   return wrap;
 }
-// @note May return an array with two subdifs
-function IT_MA(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    const delWrap = IT_DA(
-      wrapSubdif(del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer,
-    );
-    if (isDel(delWrap)) {
-      wrap.sub[1] = delWrap.sub[1];
-    }
-    else {
-      const wraps = [
-        wrapSubdif(move(
-          wrap.sub[0],
-          delWrap[0].sub[1],
-          wrap.sub[2],
-          wrap.sub[3],
-          delWrap[0].sub[2],
-        )),
-        wrapSubdif(move(
-          wrap.sub[0],
-          delWrap[1].sub[1],
-          wrap.sub[2],
-          wrap.sub[3] + delWrap[0].sub[2],
-          delWrap[1].sub[2],
-        )),
-      ];
-      saveSibling(wraps[0], wraps[1]);
-      return wraps;
-    }
-  }
-  else if (wrap.sub[2] === transformer[0]) {
-    const addWrap = IT_AA(
-      wrapSubdif(add(wrap.sub[2], wrap.sub[3], mockupString(wrap.sub[4]))),
-      wTransformer,
-    );
-    wrap.sub[3] = addWrap.sub[1];
-  }
-  return wrap;
-}
-function IT_MD(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    const delWrap = IT_DD(
-      wrapSubdif(del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), wTransformer,
-    );
-    if (delWrap.meta.informationLost) {
-      saveLI(wrap, wTransformer, 'del');
-    }
-    wrap.sub[1] = delWrap.sub[1];
-    wrap.sub[4] = delWrap.sub[2];
-  }
-  else if (wrap.sub[2] === transformer[0]) {
-    const addWrap = IT_AD(
-      wrapSubdif(add(wrap.sub[2], wrap.sub[3], mockupString(wrap.sub[4]))),
-      wTransformer,
-    );
-    if (addWrap.meta.informationLost) {
-      saveLI(wrap, wTransformer, 'add');
-    }
-    wrap.sub[3] = addWrap[1];
-  }
-  return wrap;
-}
-// @note May return an array with two subdifs
-function IT_MM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    wrap = IT_MD(
-      wrap, wrapSubdif(del(transformer[0], transformer[1], transformer[4])),
-    );
-  }
-  if (wrap.sub[0] === transformer[2]) {
-    const delWrap = IT_DA(
-      wrapSubdif(del(wrap.sub[0], wrap.sub[1], wrap.sub[4])),
-      wrapSubdif(add(
-        transformer[2], transformer[3], mockupString(transformer[4]),
-      )),
-    );
-    if (isDel(delWrap)) {
-      wrap.sub[1] = delWrap.sub[1];
-    }
-    else {
-      // splitting the move into two sections
-      const moveWrap1 = wrapSubdif(
-        move(wrap.sub[0], delWrap[0].sub[1], wrap.sub[2], wrap.sub[3], delWrap[0].sub[2]),
-      );
-      const moveWrap2 = wrapSubdif(move(
-        wrap.sub[0],
-        delWrap[1].sub[1],
-        wrap.sub[2],
-        wrap.sub[3] + delWrap[0].sub[2],
-        delWrap[1].sub[2],
-      ));
-      /// TODO: add sibling
-      /// TODO: implement this
-      /* if (wrap.sub[2] === transformer[0]) {
-                let addWrap = IT_AD(
-                  add(move1[2], move1[3], mockupString(move1[4])),
-                  del(transformer[0], transformer[1], transformer[4]),
-                );
-                move1[3] = addWrap[1];
-                // appending the second move right after the first one
-                move2[3] = addWrap[1] + move1[4];
-            } */
-      console.log('IT_MM not implemented');
-      return [moveWrap1, moveWrap2];
-    }
-  }
-  if (wrap.sub[2] === transformer[0]) {
-    wrap = IT_MD(
-      wrap, wrapSubdif(del(transformer[0], transformer[1], transformer[4])),
-    );
-  }
-  if (wrap.sub[2] === transformer[2]) {
-    wrap = IT_MA(
-      wrap, wrapSubdif(
-        add(transformer[2], transformer[3], mockupString(transformer[4])),
-      ),
-    );
-  }
-  return wrap;
-}
-function IT_MN(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (checkLI(wrap, wTransformer, 'add')) {
-    recoverLI(wrap, 'add');
-    return wrap;
-  }
-  if (checkLI(wrap, wTransformer, 'del')) {
-    recoverLI(wrap, 'del');
-    return wrap;
-  }
-  if (wrap.sub[0] >= transformer) wrap.sub[0]++;
-  if (wrap.sub[2] >= transformer) wrap.sub[2]++;
-  return wrap;
-}
-function IT_MR(wrap, wTransformer) {
-  // case when the remline is disabled
-  if (wTransformer.meta.informationLost) {
-    return wrap;
-  }
-  const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) wrap.sub[0]--;
-  else if (-transformer === wrap.sub[0]) {
-    /**
-         * The text that had to be moved no longer exists, therefore
-           the move operation can be removed.
-         */
-    wrap.sub = move(0, 0, 0, 0, 0);
-  }
-  if (-transformer < wrap.sub[2]) wrap.sub[2]--;
-  else if (-transformer === wrap.sub[2]) {
-    /**
-         * The target row no longer exists, therefore a new row has to be
-           added (similarily to IT_AR)
-         */
-    /// TODO: implement this
-  }
-  return wrap;
-}
 function IT_NA(wrap, wTransformer) {
+  const transformer = wTransformer.sub;
+  if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[1] += transformer[2].length;
+  }
   return wrap;
 }
 function IT_ND(wrap, wTransformer) {
-  return wrap;
-}
-function IT_NM(wrap, wTransformer) {
+  const transformer = wTransformer.sub;
+  if (sameRow(wrap, wTransformer)) {
+    if (transformer[1] < wrap.sub[1] && transformer[1] + transformer[2] >= wrap.sub[1]) {
+      if (transformer[1] + transformer[2] > wrap.sub[1]) {
+        saveLI(wrap, wTransformer);
+      }
+      wrap.sub[1] = transformer[1]; // the line will break at the start of the del
+    }
+    else if (transformer[1] + transformer[2] < wrap.sub[1]) {
+      wrap.sub[1] -= transformer[2]; // subtract the length of the del
+    }
+  }
   return wrap;
 }
 function IT_NN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer <= wrap.sub) wrap.sub++;
+  if (transformer[0] < wrap.sub[0]) {
+    wrap.sub[0]++;
+  }
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
+  }
   return wrap;
 }
 function IT_NR(wrap, wTransformer) {
@@ -356,40 +222,55 @@ function IT_NR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub) wrap.sub--;
-  else if (-transformer === wrap.sub) {
+  if (transformer[0] < wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+  }
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  else if (transformer[0] === wrap.sub[0]) {
     /**
-         * The place to add the new line might be deleted.
-         * The solution would be to add the newline at the same position, or
-           if the position does not exist, add a newline at the end of the document.
-         */
-    /// TODO: implement this
+     * Leaving the newline as is should result in both operations canceling themselves out
+     */
   }
   return wrap;
 }
 function IT_RA(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (-wrap.sub === transformer[0]) {
+  if (sameRow(wrap, wTransformer)) {
     // disable the remline
-    saveLI(wrap, wTransformer);
+    // saveLI(wrap, wTransformer);
+    /// TODO: make sure that the remline should not be disabled
+
+    // move the position so that it will again be on the end of the row
+    wrap.sub[1] += transformer[2].length;
   }
   return wrap;
 }
 function IT_RD(wrap, wTransformer) {
-  return wrap;
-}
-function IT_RM(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (-wrap.sub === transformer[2]) {
-    console.log('Transforming remline agains a move addition on the same row!');
-    // disable the remline
-    saveLI(wrap, wTransformer);
+  if (sameRow(wrap, wTransformer)) {
+    // it is assumed that the del is valid and will always delete characters
+    // move the position so that it will again be on the end of the row
+    wrap.sub[1] -= transformer[2];
   }
   return wrap;
 }
 function IT_RN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer <= -wrap.sub) wrap.sub--;
+  if (transformer[0] < wrap.sub[0]) {
+    wrap.sub[0]++;
+  }
+  else if (transformer[0] === wrap.sub[0]) {
+    if (transformer[1] > wrap.sub[1]) {
+      console.log('IT_RN Newline is on a bigger position than the remline!');
+    }
+    else {
+      wrap.sub[0]++;
+      wrap.sub[1] -= transformer[1];
+    }
+  }
   return wrap;
 }
 function IT_RR(wrap, wTransformer) {
@@ -398,13 +279,20 @@ function IT_RR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < -wrap.sub) wrap.sub++;
-  if (transformer === wrap.sub) {
+  if (transformer[0] < wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+  }
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  else if (transformer[0] === wrap.sub[0]) {
     /**
          * Trying to delete a row that already had been deleted. The intention was
            fulfilled by someone else, therefore the subdif may be omitted.
          */
-    /// TODO: implement this
+    /// TODO: not sure if this is the right way to disable a remline
+    saveLI(wrap, wTransformer);
   }
   return wrap;
 }
@@ -436,26 +324,22 @@ function ET_AD(wrap, wTransformer) {
   }
   return wrap;
 }
-function ET_AM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    wrap.sub = ET_AD(wrap, del(transformer[0], transformer[1], transformer[4]));
-  }
-  else if (wrap.sub[0] === transformer[2]) {
-    wrap.sub = ET_AA(
-      wrap, add(transformer[2], transformer[3], mockupString(transformer[4])),
-    );
-  }
-  return wrap;
-}
 function ET_AN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer < wrap.sub[0]) { /// TODO: revise this
+  if (transformer[0] < wrap.sub[0] - 1) {
     wrap.sub[0]--;
   }
-  // if the addition occured on a row being excluded, relative addressing has to be used
-  else if (transformer === wrap.sub[0]) {
+  // the add is on the line made by the newline
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  // the add was added to the new empty space created on the original row
+  else if (transformer[0] === wrap.sub[0] && transformer[1] === wrap.sub[1]) {
+    // the add is relative to the newline, otherwise including the newline would push the add to the
+    // next row
     saveRA(wrap, wTransformer);
+    wrap.sub[1] = 0;
   }
   return wrap;
 }
@@ -465,8 +349,13 @@ function ET_AR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0]) {
     wrap.sub[0]++;
+  }
+  // case when the add was part of the text on the removed line
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
   }
   return wrap;
 }
@@ -493,7 +382,7 @@ function ET_DA(wrap, wTransformer) {
       wrap.sub[0],
       wrap.sub[1] - transformer[1],
       transformer[1] + transformer[2].length - wrap.sub[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0],
       transformer[1],
@@ -509,7 +398,7 @@ function ET_DA(wrap, wTransformer) {
   ) {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], 0, transformer[2].length,
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], wrap.sub[2] - transformer[2].length,
     ));
@@ -520,7 +409,7 @@ function ET_DA(wrap, wTransformer) {
   else {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], 0, wrap.sub[1] + wrap.sub[2] - transformer[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
     ));
@@ -544,7 +433,7 @@ function ET_DD(wrap, wTransformer) {
   else {
     const delWrap1 = wrapSubdif(del(
       wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
-    ), wrap.meta.ID);
+    ), wrap.meta.ID, wrap.meta.context.siblings);
     const delWrap2 = wrapSubdif(del(
       wrap.sub[0], transformer[1] + transformer[2], wrap.sub[1] + wrap.sub[2] - transformer[1],
     ));
@@ -553,159 +442,96 @@ function ET_DD(wrap, wTransformer) {
   }
   return wrap;
 }
-// @note May return an array with two subdifs
-/// TODO: the wrap might be losing some meta information here
-function ET_DM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    wrap = ET_DD(wrap, del(transformer[0], transformer[1], transformer[4]));
-  }
-  else if (wrap.sub[0] === transformer[2]) {
-    wrap = ET_DA(wrap, add(
-      transformer[2], transformer[3], mockupString(transformer[4]),
-    ));
-  }
-  return wrap;
-}
 function ET_DN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer < wrap.sub[0]) { /// TODO: revise this
+  if (transformer[0] < wrap.sub[0] - 1) {
     wrap.sub[0]--;
   }
-  // if the deletion occured on a row being excluded, relative addressing has to be used
-  else if (transformer === wrap.sub[0]) {
-    saveRA(wrap, wTransformer);
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
   }
+  // nothing has to be done if the del and newline are on the same row,
+  // because the only dels that moved are on the next line and only those need
+  // to be transformed
   return wrap;
 }
+// @note May return multiple subdifs.
 function ET_DR(wrap, wTransformer) {
   // case when the remline is disabled
   if (wTransformer.meta.informationLost) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) {
+  if (transformer[0] < wrap.sub[0]) {
     wrap.sub[0]++;
   }
-  return wrap;
-}
-// @note May return an array with two subdifs
-function ET_MA(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    const delWrap = ET_DA(
-      wrapSubdif(del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer,
-    );
-    if (isDel(delWrap)) {
-      wrap.sub[1] = delWrap.sub[1];
-      wrap.metaDel.relative = delWrap.meta.relative;
-      wrap.metaDel.context.addresser = delWrap.meta.context.addresser;
-    }
-    else {
-      const delWrap1 = delWrap[0];
-      const delWrap2 = delWrap[1];
-      const moveWrap1 = wrapSubdif(move(
-        wrap.sub[0], delWrap1.sub[1], wrap.sub[2], wrap.sub[3], delWrap1.sub[2],
-      ));
-      moveWrap1.metaDel = delWrap1.meta;
-      const moveWrap2 = wrapSubdif(move(
-        wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2],
-      ));
-      moveWrap2.metaDel = delWrap2.meta;
-      saveSibling(moveWrap1, moveWrap2);
-      return [moveWrap1, moveWrap2];
-    }
+  // case when the del was part of the text on the removed line
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
   }
-  else if (wrap.sub[2] === transformer[0]) {
-    const addWrap = ET_AA(
-      wrapSubdif(add(wrap.sub[2], wrap.sub[3], mockupString(wrap.sub[4]))),
-      transformer,
-    );
-    wrap.sub[3] = addWrap.sub[1];
-    wrap.metaAdd.relative = addWrap.meta.relative;
-    wrap.metaAdd.context.addresser = addWrap.meta.context.addresser;
+  // case when the removed remline splits the del
+  else if (sameRow(wrap, wTransformer)
+    && wrap.sub[1] < transformer[1]
+    && wrap.sub[1] + wrap.sub[2] > transformer[1]
+  ) {
+    const delWrap1 = wrapSubdif(del(
+      wrap.sub[0], wrap.sub[1], transformer[1] - wrap.sub[1],
+    ), wrap.meta.ID, wrap.meta.context.siblings);
+    const delWrap2 = wrapSubdif(del(
+      wrap.sub[0] + 1, 0, wrap.sub[1] + wrap.sub[2] - transformer[1],
+    ));
+    saveSibling(delWrap1, delWrap2);
+    wrap = [delWrap1, delWrap2];
   }
-  return wrap;
-}
-// @note May return an array with two subdifs
-function ET_MD(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (wrap.sub[0] === transformer[0]) {
-    const delWrap = ET_DD(
-      wrapSubdif(del(wrap.sub[0], wrap.sub[1], wrap.sub[4])), transformer,
-    );
-    if (isDel(delWrap)) {
-      wrap.sub = delWrap.sub;
-    }
-    else {
-      const delWrap1 = delWrap[0];
-      const delWrap2 = delWrap[1];
-      const moveWrap1 = wrapSubdif(move(
-        wrap.sub[0], delWrap1.sub[1], wrap.sub[2], wrap.sub[3], delWrap1.sub[2],
-      ));
-      const moveWrap2 = wrapSubdif(move(
-        wrap.sub[0], delWrap2.sub[1], wrap.sub[2], wrap.sub[3] + delWrap1.sub[2], delWrap2.sub[2],
-      ));
-      saveSibling(moveWrap1, moveWrap2);
-      return [moveWrap1, moveWrap2];
-    }
-  }
-  else if (wrap.sub[2] === transformer[0]) {
-    const addWrap = ET_AD(
-      wrapSubdif(
-        add(wrap.sub[2], wrap.sub[3], mockupString(wrap.sub[4])),
-      ),
-      transformer,
-    );
-    wrap.sub[3] = addWrap[1];
-  }
-  return wrap;
-}
-// @note May return an array with two subdifs
-function ET_MM(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  /// TODO: finish
-  console.log('Not implemented ET_MM');
-  return wrap;
-}
-function ET_MN(wrap, wTransformer) {
-  const transformer = wTransformer.sub;
-  if (transformer < wrap.sub[0]) wrap.sub[0]--;
-  else if (transformer === wrap.sub[0]) {
-    saveLI(wrap, wTransformer, 'del');
-  }
-
-  if (transformer < wrap.sub[2]) wrap.sub[2]--;
-  else if (transformer === wrap.sub[2]) {
-    saveLI(wrap, wTransformer, 'add');
-  }
-  return wrap;
-}
-function ET_MR(wrap, wTransformer) {
-  // case when the remline is disabled
-  if (wTransformer.meta.informationLost) {
-    return wrap;
-  }
-  const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub[0]) wrap.sub[0]++;
-  if (-transformer < wrap.sub[2]) wrap.sub[2]++;
   return wrap;
 }
 function ET_NA(wrap, wTransformer) {
+  const transformer = wTransformer.sub;
+  if (sameRow(wrap, wTransformer)) {
+    /// TODO: should that inequality be sharp instead (like in ET_AA)?
+    // case when the whole add is in front of the newline
+    if (transformer[1] + transformer[2].length <= wrap.sub[1]) {
+      wrap.sub[1] -= transformer[2].length;
+    }
+    // case when the newline is in the middle of the add, relative addressing needs to be used
+    else if (
+      transformer[1] <= wrap.sub[1]
+      && transformer[1] + transformer[2].length > wrap.sub[1]
+    ) {
+      saveRA(wrap, wTransformer);
+      wrap.sub[1] -= transformer[1];
+    }
+  }
   return wrap;
 }
 function ET_ND(wrap, wTransformer) {
-  return wrap;
-}
-function ET_NM(wrap, wTransformer) {
+  const transformer = wTransformer.sub;
+  if (checkLI(wrap, wTransformer)) {
+    recoverLI(wrap);
+  }
+  /// TODO: should the inequality be sharp?
+  else if (sameRow(wrap, wTransformer) && transformer[1] < wrap.sub[1]) {
+    wrap.sub[1] += transformer[2];
+  }
   return wrap;
 }
 function ET_NN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer < wrap.sub) wrap.sub--;
-  // the addressing has to be relative for equal newline, else IT(ET([0, 0])) === [0, 1]
-  else if (transformer === wrap.sub) {
+  if (transformer[0] < wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+  }
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
+  // the newline was added to the new empty space created on the original row
+  else if (transformer[0] === wrap.sub[0] && transformer[1] === wrap.sub[1]) {
+    // the wrap is relative to the transformer, otherwise including the transformer would push
+    // the wrap to the next row
     saveRA(wrap, wTransformer);
+    wrap.sub[1] = 0;
   }
   return wrap;
 }
@@ -715,42 +541,68 @@ function ET_NR(wrap, wTransformer) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < wrap.sub) wrap.sub++;
+  if (transformer[0] < wrap.sub[0]) {
+    wrap.sub[0]++;
+  }
+  // case when the newline was part of the text on the removed line
+  else if (sameRow(wrap, wTransformer) && transformer[1] <= wrap.sub[1]) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
+  }
   return wrap;
 }
 function ET_RA(wrap, wTransformer) {
-  /// TODO: this might be redundant
-  if (checkLI(wrap, wTransformer)) {
-    recoverLI(wrap);
+  const transformer = wTransformer.sub;
+  if (sameRow(wrap, wTransformer)) {
+    // the remline is dependent on the add, therefore it has to be positioned before the remline
+    // move the position so that it will again be on the end of the row
+    wrap.sub[1] -= transformer[2].length;
   }
   return wrap;
 }
 function ET_RD(wrap, wTransformer) {
-  return wrap;
-}
-function ET_RM(wrap, wTransformer) {
-  /// TODO: this might be redundant
-  if (checkLI(wrap, wTransformer)) {
-    recoverLI(wrap);
+  const transformer = wTransformer.sub;
+  if (sameRow(wrap, wTransformer)) {
+    // the remline is dependent on the add, therefore it has to be positioned before the remline
+    // move the position so that it will again be on the end of the row
+    wrap.sub[1] += transformer[2];
   }
   return wrap;
 }
 function ET_RN(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (transformer < -wrap.sub) wrap.sub++;
+  if (transformer[0] < wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+  }
+  else if (transformer[0] === wrap.sub[0] - 1) {
+    wrap.sub[0]--;
+    wrap.sub[1] += transformer[1];
+  }
   // the remline makes sense only in combination with the newline, it has to be made relative
-  else if (transformer === -wrap.sub) {
+  else if (transformer[0] === wrap.sub[0]) {
     saveRA(wrap, wTransformer);
   }
   return wrap;
 }
 function ET_RR(wrap, wTransformer) {
   // case when the remline is disabled
+  if (checkLI(wrap, wTransformer)) {
+    recoverLI(wrap);
+    return wrap;
+  }
   if (wTransformer.meta.informationLost) {
     return wrap;
   }
   const transformer = wTransformer.sub;
-  if (-transformer < -wrap.sub) wrap.sub--;
+  if (transformer[0] < wrap.sub[0]) {
+    wrap.sub[0]++;
+  }
+  // the positional check is not done here because the wrap needs to be part of the text
+  // of the deleted row, else it would not be dependent on the transformer
+  else if (sameRow(wrap, wTransformer)) {
+    wrap.sub[0]++;
+    wrap.sub[1] -= transformer[1];
+  }
   return wrap;
 }
 
@@ -760,7 +612,6 @@ function IT(wrap, wTransformer) {
   if (isAdd(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(IT_AA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(IT_AD(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(IT_AM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(IT_AN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(IT_AR(wrap, wTransformer));
   }
@@ -774,49 +625,25 @@ function IT(wrap, wTransformer) {
       }
     }
     else if (isDel(wTransformer)) transformedWraps.push(IT_DD(wrap, wTransformer));
-    else if (isMove(wTransformer)) {
-      const result = IT_DM(wrap, wTransformer);
+    else if (isNewline(wTransformer)) {
+      const result = IT_DN(wrap, wTransformer);
       if (isDel(result)) transformedWraps.push(result);
       else {
         transformedWraps.push(result[0]);
         transformedWraps.push(result[1]);
       }
     }
-    else if (isNewline(wTransformer)) transformedWraps.push(IT_DN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(IT_DR(wrap, wTransformer));
-  }
-  else if (isMove(wrap)) {
-    if (isAdd(wTransformer)) {
-      const result = IT_MA(wrap, wTransformer);
-      if (isMove(result)) transformedWraps.push(result);
-      else {
-        transformedWraps.push(result[0]);
-        transformedWraps.push(result[1]);
-      }
-    }
-    else if (isDel(wTransformer)) transformedWraps.push(IT_MD(wrap, wTransformer));
-    else if (isMove(wTransformer)) {
-      const result = IT_MM(wrap, wTransformer);
-      if (isMove(result)) transformedWraps.push(result);
-      else {
-        transformedWraps.push(result[0]);
-        transformedWraps.push(result[1]);
-      }
-    }
-    else if (isNewline(wTransformer)) transformedWraps.push(IT_MN(wrap, wTransformer));
-    else if (isRemline(wTransformer)) transformedWraps.push(IT_MR(wrap, wTransformer));
   }
   else if (isNewline(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(IT_NA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(IT_ND(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(IT_NM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(IT_NN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(IT_NR(wrap, wTransformer));
   }
   else if (isRemline(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(IT_RA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(IT_RD(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(IT_RM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(IT_RN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(IT_RR(wrap, wTransformer));
   }
@@ -828,7 +655,6 @@ function ET(wrap, wTransformer) {
   if (isAdd(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(ET_AA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(ET_AD(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(ET_AM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(ET_AN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(ET_AR(wrap, wTransformer));
   }
@@ -849,56 +675,25 @@ function ET(wrap, wTransformer) {
         transformedWraps.push(result[1]);
       }
     }
-    else if (isMove(wTransformer)) {
-      const result = ET_DM(wrap, wTransformer);
+    else if (isNewline(wTransformer)) transformedWraps.push(ET_DN(wrap, wTransformer));
+    else if (isRemline(wTransformer)) {
+      const result = ET_DR(wrap, wTransformer);
       if (isDel(result)) transformedWraps.push(result);
       else {
         transformedWraps.push(result[0]);
         transformedWraps.push(result[1]);
       }
     }
-    else if (isNewline(wTransformer)) transformedWraps.push(ET_DN(wrap, wTransformer));
-    else if (isRemline(wTransformer)) transformedWraps.push(ET_DR(wrap, wTransformer));
-  }
-  else if (isMove(wrap)) {
-    if (isAdd(wTransformer)) {
-      const result = ET_MA(wrap, wTransformer);
-      if (isMove(result)) transformedWraps.push(result);
-      else {
-        transformedWraps.push(result[0]);
-        transformedWraps.push(result[1]);
-      }
-    }
-    else if (isDel(wTransformer)) {
-      const result = ET_MD(wrap, wTransformer);
-      if (isMove(result)) transformedWraps.push(result);
-      else {
-        transformedWraps.push(result[0]);
-        transformedWraps.push(result[1]);
-      }
-    }
-    else if (isMove(wTransformer)) {
-      const result = ET_MM(wrap, wTransformer);
-      if (isMove(result)) transformedWraps.push(result);
-      else {
-        transformedWraps.push(result[0]);
-        transformedWraps.push(result[1]);
-      }
-    }
-    else if (isNewline(wTransformer)) transformedWraps.push(ET_MN(wrap, wTransformer));
-    else if (isRemline(wTransformer)) transformedWraps.push(ET_MR(wrap, wTransformer));
   }
   else if (isNewline(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(ET_NA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(ET_ND(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(ET_NM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(ET_NN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(ET_NR(wrap, wTransformer));
   }
   else if (isRemline(wrap)) {
     if (isAdd(wTransformer)) transformedWraps.push(ET_RA(wrap, wTransformer));
     else if (isDel(wTransformer)) transformedWraps.push(ET_RD(wrap, wTransformer));
-    else if (isMove(wTransformer)) transformedWraps.push(ET_RM(wrap, wTransformer));
     else if (isNewline(wTransformer)) transformedWraps.push(ET_RN(wrap, wTransformer));
     else if (isRemline(wTransformer)) transformedWraps.push(ET_RR(wrap, wTransformer));
   }

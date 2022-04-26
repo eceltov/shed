@@ -1,4 +1,4 @@
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { add, del, newline, remline } = require('../lib/subdifOps');
 const { createMetaArr, testLETArray } = require('./primTestingLib');
 
 const tests = [
@@ -107,12 +107,20 @@ const tests = [
     [del(0, 3, 3)],
     [del(0, 4, 1)],
     [del(0, 3, 1), del(0, 5, 2)], ///TODO: check lost info, test I/E
+    [
+      createMetaArr(false, false, undefined, undefined, undefined, [1]),
+      createMetaArr(),
+    ]
   ],
   [
     'Excluding [del] from [del] 4.',
     [del(0, 3, 3)],
     [del(0, 5, 1)],
     [del(0, 3, 2), del(0, 6, 1)],
+    [
+      createMetaArr(false, false, undefined, undefined, undefined, [1]),
+      createMetaArr(),
+    ]
   ],
   [
     'Excluding [del] from [del] 5.',

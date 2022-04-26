@@ -1,0 +1,6 @@
+{
+  "seed": "seedy",
+  "subdifCountLower": 2,
+  "subdifCountUpper": 8,
+  "maxTestChunk": 100000
+}

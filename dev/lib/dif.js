@@ -1,102 +1,37 @@
 /* eslint-disable object-property-newline */
 /* eslint-disable object-curly-newline */
-/**
- * @note Dif definition: A dif is an array of primitive operations called subdifs.
-   A primitive operation can be adding newlines (called newline), removing empty lines (called
-   remlines), adding text (called add) deleting text (called del) or moving text to
-   a different location (called move).
-
-    Subdif structure:
-    - newline: x; where x is a positive integer or zero saying that a new row should be added at
-      index x. Example: applying the subdif 1 means that row 0 will not be changed, rows 1, 2, ...
-      will have their index incremented by one and the new row with index 1 will be empty.
-
-    - remline: x; where x is a negative integer saying that the row with index -x should be
-      deleted and all following rows should have their index decremented by one. The row with
-      index -x must be empty.
-
-    - add: [row, position, content]; where row and position are positive integers or zeroes and
-      content is a string. Example: applying the subdif [2, 1, 'abc'] means that the string 'abc'
-      will be inserted between the first and second character on the row with index 2
-
-    - del: [row, position, count]; where all variables are positive integers or zeroes.
-      Example: applying the subdif [3, 1, 4] where the content of row 3 is '123456789'
-      will result in the new content of row 3 being '16789' (4 characters after
-         the 1st will be removed).
-
-    - move: [sourceRow, sourcePosition, targetRow, targetPosition, length]; where all
-        variables are positive integers or zeroes.
-      Example: let the content on row 0 be "1234" and content on row 1 be "abcd". Applying
-      the subdif [0, 1, 1, 2, 2] will result in row 0 being "14" and row 1 being "ab23cd".
-      For sake of implementation simplicity, it is assumed
-      that the move instruction cannot move content on the same row.
-
-    Example dif: [2, -3, [1, 2, 'abc'], [3, 3, 1]]
-
- *  @note Operation definition: An operation is an array with two elements. The first is an array
-    containing user transaction metadata (userID, commitSerialNumber, preceding userID,
-    preceding commitSerialNumber) and the second element is a dif describing the changes
-    made by the author.
-
-    Note that an operation contains enough information to determine its total ordering.
-
- *  @note Server ordering (SO): Server ordering is defined by the order the server relays
-    operations to other users. The operation are received by all users in the same order,
-    therefore server ordering stays the same for all users.
-
- *  @note Direct dependancy: An operation is directly dependant on the operation described by its
-    preceding userID and preceding commitSerialNumber and all operations before that in server
-    ordering.
-
- *  @note Local dependancy: An operation is locally dependant on all previous operations made by
-    the same user. Note that local dependancy may contain operations not included in direct
-    dependancy. This happens when a user sends multiple operations before receiving them from
-    the server, as these operations may all have the same preceding userID and preceding
-    commitSerialNumber.
-
- *  @note An operation is only dependant an all directly and locally dependant operations.
-    All other operations are independant.
-
- *  @note Total ordering:
-    Given the operations A and B: A => B (B directly follows A) if and only if:
-    1) B is not part of a message chain and A is the last member of it's message chain.
-    Or
-    2) B is part of a message chain and A is the previous member of the message chain.
-
-    Given the operations A and B: A *=> B (B follows A) if and only if:
-    1) A => B
-    OR
-    2) There exist an operation C, such that A *=> C => B
-*/
 
 const { IT, ET } = require('./primitiveTransformations');
-const { isAdd, isDel, isMove, isNewline, isRemline, wrapDif, unwrapSubdif } = require('./subdifOps');
+const { isAdd, isDel, isNewline, isRemline, wrapDif, unwrapSubdif, add, newline } = require('./subdifOps');
 const { checkRA, checkBO, convertAA } = require('./metaOps');
 const { deepCopy, deepEqual, dissolveArrays, dlog } = require('./utils');
 
 function changeCursorPosition(cursorPosition, wOperation) {
   if (cursorPosition === null) return;
-  let { row } = cursorPosition;
+  let row = cursorPosition.row;
   let position = cursorPosition.column;
   wOperation[1].forEach((wrap) => {
-    if (isNewline(wrap) && wrap.sub <= row) {
-      row++;
+    if (isNewline(wrap)) {
+      if (wrap.sub[0] < row) {
+        row++;
+      }
+      else if (wrap.sub[0] === row && position >= wrap.sub[1]) {
+        row++;
+        position += wrap.sub[1];
+      }
     }
-    if (isRemline(wrap) && -wrap.sub <= row) {
-      row--;
-    }
-    if (
-      isMove(wrap)
-      && row === wrap.sub[0]
-      && position > wrap.sub[1]
-      && position <= wrap.sub[1] + wrap.sub[4]
-    ) {
-      const cursorOffset = position - wrap.sub[1];
-      row = wrap.sub[2];
-      position = wrap.sub[3] + cursorOffset;
+    if (isRemline(wrap)) {
+      if (wrap.sub[0] < row - 1) {
+        row--;
+      }
+      else if (wrap.sub[0] === row - 1) {
+        row--;
+        position += wrap.sub[1];
+      }
     }
   });
   cursorPosition.row = row;
+  cursorPosition.column = position;
 }
 
 /**
@@ -364,73 +299,46 @@ function makeDependant(wDif) {
   return [wDifCopy[0], ...wDependantSubdifs];
 }
 
-function applyAdd(previousValue, subdif) {
-  if (subdif[1] > previousValue.length) {
-    console.log('applyAdd subdif position too large!');
-    console.log(subdif);
-    console.log(previousValue);
-    return previousValue;
-  }
-
-  return (previousValue.substring(0, subdif[1]) + subdif[2] + previousValue.substring(subdif[1]));
-}
-
-function applyDel(previousValue, subdif) {
-  if (subdif[1] + subdif[2] > previousValue.length) {
-    console.log('applyDel subdif position too large!');
-    console.log(previousValue);
-    console.log(subdif);
-    return previousValue;
-  }
-
-  return (previousValue.substring(0, subdif[1])) + previousValue.substring(subdif[1] + subdif[2]);
-}
-
 /**
  * @brief Converts text to a dif.
  *
  * @param targetRow The row where the text is being added.
  * @param targetPosition The position at which the text is being added.
  * @param content An array of lines to be converted.
- * @param trailingRowText The text after the cursor.
  *
  * @returns Returns the final dif.
  */
-function textToDif(targetRow, targetPosition, content, trailingRowText) {
+function textToDif(targetRow, targetPosition, content) {
   const dif = [];
 
-  // add all neccessary newlines
-  for (let i = 0; i < content.length - 1; ++i) {
-    dif.push(targetRow + 1);
+  if (content.length === 1) {
+    dif.push(add(targetRow, targetPosition, content[0]));
   }
+  else if (content.length > 1) {
+    // first newline, pushes text after cursor to a new line
+    dif.push(newline(targetRow, targetPosition));
 
-  // add the first line
-  if (content[0]) {
-    dif.push([targetRow, targetPosition, content[0]]);
-  }
+    // add other newlines
+    for (let i = 0; i < content.length - 2; i++) {
+      dif.push(newline(targetRow, targetPosition));
+    }
 
-  // add the remaining lines
-  for (let i = 1; i < content.length; ++i) {
-    dif.push([targetRow + i, 0, content[i]]);
-  }
+    // add first line of text
+    if (content[0].length > 0) {
+      dif.push(add(targetRow, targetPosition, content[0]));
+    }
 
-  // move trailing row text
-  if (trailingRowText) {
-    dif.push([
-      targetRow,
-      targetPosition + content[0].length,
-      targetRow + content.length - 1,
-      content[content.length - 1].length,
-      trailingRowText.length,
-    ]);
+    // add remaining lines
+    for (let i = 1; i < content.length; i++) {
+      dif.push(add(targetRow + i, 0, content[1]));
+    }
   }
 
   return dif;
 }
 
 function applyDifAce(wDif, document) {
-  for (let i = 0; i < wDif.length; i++) {
-    const wrap = wDif[i];
+  wDif.forEach((wrap) => {
     const subdif = wrap.sub;
     if (isAdd(subdif)) {
       document.insert({ row: subdif[0], column: subdif[1] }, subdif[2]);
@@ -438,37 +346,11 @@ function applyDifAce(wDif, document) {
     else if (isDel(subdif)) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2]);
     }
-    else if (isMove(subdif)) {
-      console.log('Isolated Move detected! wDif:', console.log(JSON.stringify(wdDif)));
-      /*
-      const movedText = document.getLine(subdif[0]).substr(subdif[1], subdif[4]);
-      document.insert({ row: subdif[2], column: subdif[3] }, movedText);
-      document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[4]);
-      */
-    }
     else if (isNewline(subdif)) {
-      if (i + 1 < wDif.length) {
-        const nextSubdif = wDif[i + 1].sub;
-        // check if the newline and move sequence looks like adding a new line in the middle
-        //  of a row
-        if (isMove(nextSubdif)
-          && nextSubdif[0] === nextSubdif[2] - 1
-          && nextSubdif[3] === 0
-          && nextSubdif[2] === subdif
-        ) {
-          document.insertMergedLines({ row: nextSubdif[0], column: nextSubdif[1] }, ['', '']);
-          i++;
-        }
-        else {
-          document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
-        }
-      }
-      else {
-        document.insertMergedLines({ row: subdif, column: 0 }, ['', '']);
-      }
+      document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
     }
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
-      document.removeNewLine(-subdif - 1);
+      document.removeNewLine(subdif[0]);
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing
@@ -476,7 +358,8 @@ function applyDifAce(wDif, document) {
     else {
       console.log('Received unknown subdif!', subdif);
     }
-  }
+  });
+
   return document;
 }
 
@@ -491,16 +374,14 @@ function undoDifAce(wDif, document) {
     else if (isDel(subdif)) {
       document.insert({ row: subdif[0], column: subdif[1] }, '#'.repeat(subdif[2]));
     }
-    else if (isMove(subdif)) {
-      const movedText = document.getLine(subdif[2]).substr(subdif[3], subdif[4]);
-      document.insert({ row: subdif[0], column: subdif[1] }, movedText);
-      document.removeInLine(subdif[2], subdif[3], subdif[3] + subdif[4]);
-    }
     else if (isNewline(subdif)) {
-      document.removeNewLine(subdif - 1);
+      document.removeNewLine(subdif[0]);
     }
-    else if (isRemline(subdif)) {
-      document.insertMergedLines({ row: -subdif, column: 0 }, ['', '']);
+    else if (isRemline(subdif) && !wrap.meta.informationLost) {
+      document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
+    }
+    else if (isRemline(subdif) && wrap.meta.informationLost) {
+      // do nothing
     }
     else {
       console.log('Received unknown dif!');
@@ -509,7 +390,7 @@ function undoDifAce(wDif, document) {
   return document;
 }
 
-function applyDifTest(wDif, document) {
+function applyDifServer(wDif, document) {
   wDif.forEach((wrap) => {
     // console.log('applyDifTest:', JSON.stringify(document));
     const subdif = unwrapSubdif(wrap);
@@ -522,23 +403,16 @@ function applyDifTest(wDif, document) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2]);
     }
-    else if (isMove(subdif)) {
-      const sourceRow = document[subdif[0]];
-      const targetRow = document[subdif[2]];
-      const movedText = sourceRow.substr(subdif[1], subdif[4]);
-
-      document[subdif[0]] = sourceRow.substr(0, subdif[1])
-        + sourceRow.substr(subdif[1] + subdif[4]);
-
-      document[subdif[2]] = targetRow.substr(0, subdif[3])
-        + movedText + targetRow.substr(subdif[3]);
-    }
     else if (isNewline(subdif)) {
-      document.splice(subdif, 0, '');
+      const prefix = document[subdif[0]].substring(0, subdif[1]);
+      const trailingText = document[subdif[0]].substring(subdif[1]);
+      document[subdif[0]] = prefix;
+      document.splice(subdif[0] + 1, 0, trailingText);
     }
     /// TODO: don't forget to implement the information lost bit in the live version
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
-      document.splice(-subdif, 1);
+      document[subdif[0]] += document[subdif[0] + 1];
+      document.splice(subdif[0] + 1, 1);
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing
@@ -550,7 +424,7 @@ function applyDifTest(wDif, document) {
   return document;
 }
 
-function undoDifTest(wDif, document) {
+function undoDifServer(wDif, document) {
   const wDifCopy = deepCopy(wDif);
   wDifCopy.reverse(); // subdifs need to be undone in reverse order
   wDifCopy.forEach((wrap) => {
@@ -563,22 +437,18 @@ function undoDifTest(wDif, document) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + '#'.repeat(subdif[2]) + row.substr(subdif[1]);
     }
-    else if (isMove(subdif)) {
-      const sourceRow = document[subdif[2]];
-      const targetRow = document[subdif[0]];
-      const movedText = sourceRow.substr(subdif[3], subdif[4]);
-
-      document[subdif[2]] = sourceRow.substr(0, subdif[3])
-        + sourceRow.substr(subdif[3] + subdif[4]);
-
-      document[subdif[0]] = targetRow.substr(0, subdif[1])
-        + movedText + targetRow.substr(subdif[1]);
-    }
     else if (isNewline(subdif)) {
-      document.splice(subdif, 1);
+      document[subdif[0]] += document[subdif[0] + 1];
+      document.splice(subdif[0] + 1, 1);
     }
-    else if (isRemline(subdif)) {
-      document.splice(-subdif, 0, '');
+    else if (isRemline(subdif) && !wrap.meta.informationLost) {
+      const prefix = document[subdif[0]].substring(0, subdif[1]);
+      const trailingText = document[subdif[0]].substring(subdif[1]);
+      document[subdif[0]] = prefix;
+      document.splice(subdif[0] + 1, 0, trailingText);
+    }
+    else if (isRemline(subdif) && wrap.meta.informationLost) {
+      // do nothing
     }
     else {
       console.log('Received unknown dif!');
@@ -596,7 +466,7 @@ function undoDifTest(wDif, document) {
  */
 function applyDif(wDif, document) {
   if (document.constructor === Array) {
-    return applyDifTest(wDif, document);
+    return applyDifServer(wDif, document);
   }
 
   return applyDifAce(wDif, document);
@@ -613,7 +483,7 @@ function applyDif(wDif, document) {
  */
 function undoDif(wDif, document) {
   if (document.constructor === Array) {
-    return undoDifTest(wDif, document);
+    return undoDifServer(wDif, document);
   }
 
   return undoDifAce(wDif, document);
@@ -630,13 +500,11 @@ function undoDif(wDif, document) {
  */
 function GOTCA(wdMessage, wdHB, SO, log = false) {
   /**
-     *  @note Due to the fact that all operations are being received by all clients in the same
-         order, the only independant operations from the received one can be those made by the
-        local client after the received ones generation, as all others are present in the context
-        of the received operation.
-    */
-
-  
+   *  @note Due to the fact that all operations are being received by all clients in the same
+       order, the only independant operations from the received one can be those made by the
+      local client after the received ones generation, as all others are present in the context
+      of the received operation.
+  */
 
   // array of difs of independant operations in HB
   const wdIndependantDifs = [];
@@ -840,6 +708,7 @@ function UDR(
   changeCursorPosition(cursorPosition, wdTransformedMessage);
 
   if (log) dlog('wdTransformedMessage', wdTransformedMessage[1], 'wDif');
+  // if (log) console.log('applied GOTCA operation:', document);
 
   // creating a list of undone difs for transformation
   const wdUndoneDifs = [];
@@ -910,6 +779,6 @@ function UDR(
 }
 
 module.exports = {
-  changeCursorPosition, applyAdd, applyDel, textToDif, applyDifAce, UDR,
+  changeCursorPosition, textToDif, applyDifAce, UDR,
   makeDependant, makeIndependant, LIT, LET, // these are exported for tesing purposes only
 };

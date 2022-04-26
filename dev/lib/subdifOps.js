@@ -11,76 +11,42 @@ function add(row, position, content) {
 function del(row, position, count) {
   return [row, position, count];
 }
-function move(sourceRow, sourcePosition, targetRow, targetPosition, length) {
-  return [sourceRow, sourcePosition, targetRow, targetPosition, length];
+function newline(row, position) {
+  return [row, position, true];
 }
-function newline(row) {
-  return row;
-}
-function remline(row) {
-  if (row === 0) console.log('Creating remline with row = 0!');
-  return -row;
+function remline(row, position) {
+  return [row, position, false];
 }
 
 function isAdd(subdif) {
   const s = unwrapSubdif(subdif);
-  return (s.constructor === Array && s.length === 3 && typeof s[2] === 'string');
+  return (typeof s[2] === 'string');
 }
 function isDel(subdif) {
   const s = unwrapSubdif(subdif);
-  return (s.constructor === Array && s.length === 3 && typeof s[2] === 'number');
+  return (typeof s[2] === 'number');
 }
 function isNewline(subdif) {
   const s = unwrapSubdif(subdif);
-  return (typeof s === 'number' && s >= 0);
+  return (s[2] === true);
 }
 function isRemline(subdif) {
   const s = unwrapSubdif(subdif);
-  return (typeof s === 'number' && s < 0); // line 0 cannot be deleted
-}
-function isMove(subdif) {
-  const s = unwrapSubdif(subdif);
-  return (s.constructor === Array && s.length === 5);
+  return (s[2] === false);
 }
 
-function wrapSubdif(subdif, ID = null) {
-  if (!isMove(subdif)) {
-    return {
-      sub: deepCopy(subdif),
-      meta: {
-        ID: ID === null ? wrapID++ : ID, // each wrap has its ID
-        informationLost: false, // whether the context had to be saved
-        relative: false, // whether relative addresing is in place
-        context: {
-          original: null,
-          wTransformer: null,
-          addresser: null,
-          siblings: [], // the wrap IDs of right siblings if fragmented
-        },
-      },
-    };
-  }
-
+function wrapSubdif(subdif, ID = null, siblings = []) {
   return {
     sub: deepCopy(subdif),
-    metaDel: {
-      ID: wrapID++,
+    meta: {
+      ID: ID === null ? wrapID++ : ID, // each wrap has its ID
       informationLost: false, // whether the context had to be saved
       relative: false, // whether relative addresing is in place
       context: {
         original: null,
         wTransformer: null,
         addresser: null,
-      },
-    },
-    metaAdd: {
-      ID: wrapID++,
-      informationLost: false, // whether the context had to be saved
-      relative: false, // whether relative addresing is in place
-      context: {
-        original: null,
-        wTransformer: null,
-        addresser: null,
+        siblings, // the wrap IDs of right siblings if fragmented
       },
     },
   };
@@ -108,7 +74,7 @@ function unwrapDif(dif) {
 }
 
 module.exports = {
-  add, del, move, newline, remline,
-  isAdd, isDel, isMove, isNewline, isRemline,
+  add, del, newline, remline,
+  isAdd, isDel, isNewline, isRemline,
   wrapSubdif, unwrapSubdif, wrapDif, unwrapDif,
 };
