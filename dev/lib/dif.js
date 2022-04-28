@@ -259,36 +259,6 @@ function LIT(wDif, wTransformationDif, log = false) {
   }
   return wdTransformedDif;
 }
-function LITa(wDif, wTransformationDif, log = false) {
-  if (wDif.length === 0) return [];
-  if (wTransformationDif.length === 0) return wDif;
-  const wdTransformedDif = [];
-  wDif.forEach((wrap) => {
-    wdTransformedDif.push(...LIT1(wrap, [...wTransformationDif, ...wdTransformedDif]));
-  });
-  return wdTransformedDif;
-}
-function LIT1(wrapOriginal, wTransformationDif, log = false) {
-  let wTransformedSubdifs = [];
-  const wrap = deepCopy(wrapOriginal);
-  if (wTransformationDif.length === 0) {
-    wTransformedSubdifs = [wrap];
-  }
-  // if the wrap is relatively addressed and the transformer is not the target, then skip it
-  else if (checkRA(wrap) && !checkBO(wrap, wTransformationDif[0])) {
-    wTransformedSubdifs = LIT1(wrap, wTransformationDif.slice(1), log);
-  }
-  else if (checkRA(wrap) && checkBO(wrap, wTransformationDif[0])) {
-    convertAA(wrap, wTransformationDif[0]);
-    wTransformedSubdifs = LIT1(wrap, wTransformationDif.slice(1));
-  }
-  else {
-    wTransformedSubdifs = LIT(
-      IT(wrap, wTransformationDif[0]), wTransformationDif.slice(1), log,
-    );
-  }
-  return wTransformedSubdifs;
-}
 
 /**
  * @brief Excludes a dif from another dif.
@@ -321,52 +291,12 @@ function LET(wDif, wTransformationDif, log) {
   });
   return wiTransformedDif;
 }
-function LETa(wDif, wTransformationDif, log) {
-  if (wDif.length === 0) return [];
-  if (wTransformationDif.length === 0) return wDif;
-  const wiTransformedDif = [];
-  wDif.forEach((wrap) => {
-    wiTransformedDif.push(...LET1(wrap, wTransformationDif, log));
-  });
-  return wiTransformedDif;
-}
-function LET1(wrapOriginal, wTransformationDif, log) {
-  let wTransformedSubdifs = [];
-  const wrap = deepCopy(wrapOriginal);
-  if (wTransformationDif.length === 0) {
-    wTransformedSubdifs = [wrap];
-  }
-  else if (checkRA(wrap)) {
-    wTransformedSubdifs = [wrap];
-  }
-  else {
-    wTransformedSubdifs = LET(
-      ET(wrap, wTransformationDif[0]), wTransformationDif.slice(1), log,
-    );
-  }
-  return wTransformedSubdifs;
-}
 
 /**
  * @brief Takes a wDif of chronologically dependant subdifs and
  *    returns a new wDif of independant subdifs.
  */
 function makeIndependant(wDif) {
-  const wDifCopy = deepCopy(wDif);
-  const wDifReversed = deepCopy(wDif).reverse();
-  const wIndependantDif = [];
-  for (let i = 0; i < wDif.length; i++) {
-    const wrap = wDifCopy[i];
-    const wdTransformedDif = LET(
-      [wrap], wDifReversed.slice(wDifReversed.length - i),
-    ); // LET can return multiple subdifs
-
-    wIndependantDif.push(...wdTransformedDif);
-  }
-  return wIndependantDif;
-}
-
-function makeIndependant2(wDif) {
   const wDifCopy = deepCopy(wDif);
   let wIndependantDif = [];
 
@@ -870,5 +800,5 @@ function UDR(
 
 module.exports = {
   changeCursorPosition, textToDif, applyDifAce, UDR,
-  makeDependant, makeIndependant, makeIndependant2, LIT, LET,
+  makeDependant, makeIndependant, LIT, LET,
 };
