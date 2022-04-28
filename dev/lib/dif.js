@@ -218,11 +218,55 @@ function identicalSubdifs(subdif1, subdif2) {
 function LIT(wDif, wTransformationDif, log = false) {
   if (wDif.length === 0) return [];
   if (wTransformationDif.length === 0) return wDif;
-  const wTransformedSubdifs1 = LIT1(wDif[0], wTransformationDif, log);
-  const wTransformedSubdifs2 = LIT(
-    wDif.slice(1), [...wTransformationDif, ...wTransformedSubdifs1],
-  );
-  return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
+  const wdTransformedDif = [];
+  // array of wraps, updated after each applied transformer, because transformed wraps
+  // may fall apart
+  let wraps = [...wDif];
+  // LIT makes dependent wraps, therefore finished wraps made in the previous steps are
+  // added to the transformer. A shallow copy of the original transformer is made.
+  const wNewTransformationDif = [...wTransformationDif];
+  // the number of completed transformations (how many elements of the transformer have been
+  // applied)
+  let transformations = 0;
+  while (wraps.length > 0) {
+    for (let i = transformations; i < wNewTransformationDif.length; i++, transformations++) {
+      // proxy wrap array so that one transformation step always works with the same data
+      const newWraps = [];
+      // apply a transformer to each wrap
+      wraps.forEach((wrap) => {
+        if (checkRA(wrap) && !checkBO(wrap, wNewTransformationDif[i])) {
+          newWraps.push(wrap);
+        }
+        else if (checkRA(wrap) && checkBO(wrap, wNewTransformationDif[i])) {
+          convertAA(wrap, wNewTransformationDif[i]);
+          newWraps.push(wrap);
+        }
+        else {
+          newWraps.push(...IT(wrap, wNewTransformationDif[i]));
+        }
+      });
+      // update wraps
+      wraps = newWraps;
+    }
+    // the end of the for cycle signals that the first wrap of @wraps was fully transformed,
+    // however, more wraps might have spawned. The new wraps need to be transformed against the
+    // first one, so it is pushed to the respective arrays and is removed from @wraps.
+    // In order to not transform the wraps agains a transformer multiple times, the for cycle
+    // will start at the first transformer not yet applied (the first wrap).
+    wNewTransformationDif.push(wraps[0]);
+    wdTransformedDif.push(wraps[0]);
+    wraps.splice(0, 1);
+  }
+  return wdTransformedDif;
+}
+function LITa(wDif, wTransformationDif, log = false) {
+  if (wDif.length === 0) return [];
+  if (wTransformationDif.length === 0) return wDif;
+  const wdTransformedDif = [];
+  wDif.forEach((wrap) => {
+    wdTransformedDif.push(...LIT1(wrap, [...wTransformationDif, ...wdTransformedDif]));
+  });
+  return wdTransformedDif;
 }
 function LIT1(wrapOriginal, wTransformationDif, log = false) {
   let wTransformedSubdifs = [];
@@ -246,12 +290,45 @@ function LIT1(wrapOriginal, wTransformationDif, log = false) {
   return wTransformedSubdifs;
 }
 
+/**
+ * @brief Excludes a dif from another dif.
+ * @param {*} wDif The dif to be transformed.
+ * @param {*} wTransformationDif The dif to be excluded. This dif should be chronologically
+ *  reversed, so that the application of the first subdif of this dif resulted in the final document
+ *  state from which the dif to be transformed was generated.
+ * @param {*} log Whether this function should log.
+ * @returns Returns the transformed dif.
+ */
 function LET(wDif, wTransformationDif, log) {
   if (wDif.length === 0) return [];
   if (wTransformationDif.length === 0) return wDif;
-  const wTransformedSubdifs1 = LET1(wDif[0], wTransformationDif, log);
-  const wTransformedSubdifs2 = LET(wDif.slice(1), wTransformationDif, log);
-  return [...wTransformedSubdifs1, ...wTransformedSubdifs2];
+  const wiTransformedDif = [];
+  wDif.forEach((originalWrap) => {
+    let wraps = [originalWrap];
+    for (let i = 0; i < wTransformationDif.length; i++) {
+      const newWraps = [];
+      wraps.forEach((wrap) => {
+        if (checkRA(wrap)) {
+          newWraps.push(wrap);
+        }
+        else {
+          newWraps.push(...ET(wrap, wTransformationDif[i]));
+        }
+      });
+      wraps = newWraps;
+    }
+    wiTransformedDif.push(...wraps);
+  });
+  return wiTransformedDif;
+}
+function LETa(wDif, wTransformationDif, log) {
+  if (wDif.length === 0) return [];
+  if (wTransformationDif.length === 0) return wDif;
+  const wiTransformedDif = [];
+  wDif.forEach((wrap) => {
+    wiTransformedDif.push(...LET1(wrap, wTransformationDif, log));
+  });
+  return wiTransformedDif;
 }
 function LET1(wrapOriginal, wTransformationDif, log) {
   let wTransformedSubdifs = [];
@@ -286,6 +363,19 @@ function makeIndependant(wDif) {
 
     wIndependantDif.push(...wdTransformedDif);
   }
+  return wIndependantDif;
+}
+
+function makeIndependant2(wDif) {
+  const wDifCopy = deepCopy(wDif);
+  let wIndependantDif = [];
+
+  for (let i = wDif.length - 1; i >= 1; i--) {
+    wIndependantDif.unshift(wDifCopy[i]);
+    wIndependantDif = LET(wIndependantDif, [wDif[i - 1]]);
+  }
+  wIndependantDif.unshift(wDifCopy[0]);
+
   return wIndependantDif;
 }
 
@@ -780,5 +870,5 @@ function UDR(
 
 module.exports = {
   changeCursorPosition, textToDif, applyDifAce, UDR,
-  makeDependant, makeIndependant, LIT, LET, // these are exported for tesing purposes only
+  makeDependant, makeIndependant, makeIndependant2, LIT, LET,
 };
