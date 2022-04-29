@@ -67,9 +67,9 @@ const tests = [
   ],
   [
     'Including [add] to [del] 3.',
-    [del(0, 3, 3)],
-    [add(0, 4, 'a')],
-    [del(0, 3, 1), del(0, 5, 2)],
+    [del(0, 0, 3)],
+    [add(0, 1, 'a')],
+    [del(0, 0, 1), del(0, 1, 2)],
     [
       createMetaArr(false, false, undefined, undefined, undefined, [1]),
       createMetaArr(),
