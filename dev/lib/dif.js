@@ -274,19 +274,25 @@ function LET(wDif, wTransformationDif, log) {
   if (wTransformationDif.length === 0) return wDif;
   const wiTransformedDif = [];
   wDif.forEach((originalWrap) => {
+    // the originalWrap may fall apart, therefore an array is used
     let wraps = [originalWrap];
-    for (let i = 0; i < wTransformationDif.length; i++) {
+    // apply each transformer one by one
+    wTransformationDif.forEach((wTransformer) => {
+      // proxy array of wraps, so that newly fragmented wraps are not pushed immediately to @wraps
       const newWraps = [];
+      // transform each wrap that originated from the @originalWrap
       wraps.forEach((wrap) => {
         if (checkRA(wrap)) {
           newWraps.push(wrap);
         }
         else {
-          newWraps.push(...ET(wrap, wTransformationDif[i]));
+          newWraps.push(...ET(wrap, wTransformer));
         }
       });
+      // update wraps
       wraps = newWraps;
-    }
+    });
+    // push the transformed @originalWrap
     wiTransformedDif.push(...wraps);
   });
   return wiTransformedDif;
