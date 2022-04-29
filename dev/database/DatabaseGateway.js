@@ -1,20 +1,19 @@
 const fs = require('fs');
+const path = require('path');
 const { roles } = require('../lib/roles');
 
 class DatabaseGateway {
   constructor() {
     this.paths = null;
-    this.configPath = './database/config.json';
+    this.configPath = path.join(__dirname, 'config.json');
   }
 
   initialize() {
     const configString = fs.readFileSync(this.configPath);
     const config = JSON.parse(configString);
     this.paths = config.paths;
-    /* this.paths.usersPath = config.usersPath;
-        this.paths.workspacesPath = config.workspacesPath;
-        this.paths.workspaceRootFolderPath = config.workspaceRootFolderPath;
-        this.paths.fileStructurePath = config.fileStructurePath; */
+    this.paths.usersPath = path.join(__dirname, 'users/');
+    this.paths.workspacesPath = path.join(__dirname, 'workspaces/');
   }
 
   /**

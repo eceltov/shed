@@ -9,7 +9,7 @@ class Controller {
     this.app = null;
     this.database = null;
     this.port = null;
-    this.configPath = 'controller/config.json';
+    this.configPath = path.join(__dirname, 'config.json');
   }
 
   initialize() {

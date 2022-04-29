@@ -1,7 +1,5 @@
 {
     "paths": {
-        "usersPath": "./database/users/",
-        "workspacesPath": "./database/workspaces/",
         "workspaceRootFolderPath": "root/",
         "fileStructurePath": "structure.json",
         "pathMapPath": "pathMap.json"
