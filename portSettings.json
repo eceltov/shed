@@ -1,0 +1,5 @@
+{
+  "controllerServerPort": 8060,
+  "workspaceServerPort": 8080,
+  "WebSocketDomain": "ws://localhost" 
+}

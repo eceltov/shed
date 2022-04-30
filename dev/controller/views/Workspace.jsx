@@ -17,6 +17,7 @@ class Workspace extends React.Component {
           <script src="editor/ace-builds/src-noconflict/ace.js" type="text/javascript" charSet="utf-8" />
           <script src="editor/ace-builds/src-noconflict/ext-modelist.js" type="text/javascript" charSet="utf-8" />
           <script src="client/bundle.js" type="text/javascript" />
+          <script type="text/javascript" dangerouslySetInnerHTML={{__html: this.props.script}} />
         </head>
         <body>
           <div id="reactContainer" />

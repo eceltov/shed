@@ -10,7 +10,6 @@ const { msgTypes } = require('../lib/messageTypes');
 const roles = require('../lib/roles');
 const utils = require('../lib/utils');
 
-const SERVER_URL = 'ws://localhost:8080/';
 const CSLatency = 0;
 const SCLatency = 0;
 const modelist = ace.require('ace/ext/modelist');
@@ -71,7 +70,8 @@ class Workspace extends React.Component {
     const workspaceHash = urlParams.get('hash');
     const token = urlParams.get('token');
 
-    const connection = new WebSocket(SERVER_URL);
+    // WebSocketServerURL is injected into a script tag in SSR
+    const connection = new WebSocket(WebSocketServerURL);
 
     /// TODO: use hooks instead of 'that'?
     const that = this;

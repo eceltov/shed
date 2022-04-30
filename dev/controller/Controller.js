@@ -8,14 +8,12 @@ class Controller {
   constructor() {
     this.app = null;
     this.database = null;
-    this.port = null;
-    this.configPath = path.join(__dirname, 'config.json');
+    this.portSettings = null;
+    this.portSettingsPath = path.join(__dirname, '../../portSettings.json');
   }
 
   initialize() {
-    const configString = fs.readFileSync(this.configPath);
-    const config = JSON.parse(configString);
-    this.port = config.controllerPort;
+    this.portSettings = JSON.parse(fs.readFileSync(this.portSettingsPath));
     this.database = new DatabaseGateway();
     this.database.initialize();
     this.initializeHttpServer();
@@ -27,7 +25,7 @@ class Controller {
     this.app = express();
     const app = this.app;
     const database = this.database;
-    const port = this.port;
+    const port = this.portSettings.controllerServerPort;
 
     app.set('views', `${__dirname}/views`);
     app.set('view engine', 'jsx');
@@ -56,7 +54,9 @@ class Controller {
     app.get('/workspaces', (req, res) => {
       /* let workspaceHash = req.query.hash;
             console.log(workspaceHash); */
-      res.render('Workspace.jsx');
+      const WebSocketServerURL = `${this.portSettings.WebSocketDomain}:${this.portSettings.workspaceServerPort}`;
+      const script = `var WebSocketServerURL = "${WebSocketServerURL}";`;
+      res.render('Workspace.jsx', { script });
     });
 
     app.listen(port, () => {
