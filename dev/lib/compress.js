@@ -197,8 +197,10 @@ function mergeSubdifs(dif) {
             : compressionObj.newSecond);
           i -= (i > 0 ? 2 : 1);
         }
+        // both subdifs got removed
         else {
-          console.error('Error: Invalid compressionObj content');
+          dif.splice(i, 2);
+          i -= 1;
         }
       }
     }
