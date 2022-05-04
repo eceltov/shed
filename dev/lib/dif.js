@@ -483,6 +483,10 @@ function undoDifServer(wDif, document) {
   return document;
 }
 
+function documentIsAce(document) {
+  return document.constructor !== Array;
+}
+
 /**
  * @brief Applies a wDif to the document. The document can be an
  *  Ace document or an array of strings.
@@ -491,11 +495,10 @@ function undoDifServer(wDif, document) {
  * @returns Returns the new document.
  */
 function applyDif(wDif, document) {
-  if (document.constructor === Array) {
-    return applyDifServer(wDif, document);
+  if (documentIsAce(document)) {
+    return applyDifAce(wDif, document);
   }
-
-  return applyDifAce(wDif, document);
+  return applyDifServer(wDif, document);
 }
 
 /**
@@ -508,11 +511,10 @@ function applyDif(wDif, document) {
  * @returns Returns the new document.
  */
 function undoDif(wDif, document) {
-  if (document.constructor === Array) {
-    return undoDifServer(wDif, document);
+  if (documentIsAce(document)) {
+    return undoDifAce(wDif, document);
   }
-
-  return undoDifAce(wDif, document);
+  return undoDifServer(wDif, document);
 }
 
 /**
@@ -684,7 +686,14 @@ function GOTCA(wdMessage, wdHB, SO, log = false) {
 function UDR(
   dMessage, document, wdInitialHB, initialSO, log = false, cursorPosition = null,
 ) {
-  if (log) console.log('before:', document);
+  if (log) {
+    if (documentIsAce(document)) {
+      console.log('before', JSON.stringify(document.$lines));
+    }
+    else {
+      console.log('before:', document);
+    }
+  }
   let wdHB = deepCopy(wdInitialHB);
   const SO = [...initialSO, dMessage[0]];
 
@@ -795,7 +804,14 @@ function UDR(
   wdTransformedUndoneOperations.forEach((wdOperation) => wdHB.push(wdOperation));
 
   if (log) console.log('UDR full run');
-  if (log) console.log('after:', document);
+  if (log) {
+    if (documentIsAce(document)) {
+      console.log('after:', JSON.stringify(document.$lines));
+    }
+    else {
+      console.log('after:', document);
+    }
+  }
   if (log) console.log();
 
   return {
