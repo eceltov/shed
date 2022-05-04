@@ -7,7 +7,7 @@ const { msgTypes } = require('./messageTypes');
 const { GCRemove } = require('./GC');
 
 class ManagedSession {
-  constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj) {
+  constructor(session, clientID, commitSerialNumber, sendMessageToServer, initObj, setReadOnly = null) {
     this.processOperation = this.processOperation.bind(this);
     this.processIntervalBuffer = this.processIntervalBuffer.bind(this);
     this.intervalTimerStart = this.intervalTimerStart.bind(this);
@@ -42,7 +42,9 @@ class ManagedSession {
     this.firstSOMessageNumber = initObj.firstSOMessageNumber;
     this.sendMessageToServer = sendMessageToServer;
     this.handlingChanges = true;
-    this.LISTEN_INTERVAL = 500; // how long will the editor listen before sending the data to others
+    this.LISTEN_INTERVAL = 4000; // how long will the editor listen before sending the data to others
+
+    this.setReadOnly = setReadOnly;
 
     this.loggingEnabled = false;
     this.DEBUG = false;
@@ -85,9 +87,10 @@ class ManagedSession {
   }
 
   intervalTimerCallback(that, currentDependency) {
-    // if the dependency changed, the interval buffer had to already be flushed
+    //console.log('callback');
+    // if the dependency changed, the interval buffer had to be flushed already
     if (deepEqual(that.currentDependency, currentDependency)) {
-      that.measuring = false;
+      //console.log('inner', JSON.stringify(currentDependency));
       that.processIntervalBuffer();
     }
   }
@@ -103,6 +106,7 @@ class ManagedSession {
   }
 
   intervalBufClear() {
+    //console.log('preClear buf:', JSON.stringify(this.intervalBuf));
     this.intervalBuf = [];
   }
 
@@ -111,6 +115,8 @@ class ManagedSession {
      *   Clears the interval buffer.
      */
   processIntervalBuffer() {
+    //console.log('process', JSON.stringify(this.currentDependency));
+    this.measuring = false;
     if (this.intervalBuf.length === 0) {
       return;
     }
@@ -228,6 +234,11 @@ class ManagedSession {
   processOperation(operation, oldCursorPosition) {
     const authorID = operation[0][0];
 
+    // flush the interval buffer, because it contains changes dependent on the previous state
+    // it needs to be flushed before any external message is processed in order for the local
+    // changes to be present in HB
+    this.processIntervalBuffer();
+
     // own operation
     if (authorID === this.clientID) {
       this.serverOrdering.push([
@@ -240,6 +251,7 @@ class ManagedSession {
 
       /// TODO: RACE CONDITION: what about changes made by the user while
       ///   UDR is being processed with handlingChanges === false?
+      const readOnlyState = (this.setReadOnly !== null ? this.setReadOnly(true) : null);
       this.handlingChanges = false;
       const loggingCond = false;
       // this.clientID === 1 && operation[0][0] === 0 && operation[0][1] >= 2;
@@ -247,6 +259,9 @@ class ManagedSession {
         operation, document, this.HB, this.serverOrdering, loggingCond, oldCursorPosition,
       );
       this.handlingChanges = true;
+      if (this.setReadOnly !== null) {
+        this.setReadOnly(readOnlyState);
+      }
       /// TODO: RACE CONDITION END
 
       this.serverOrdering.push([
@@ -255,9 +270,7 @@ class ManagedSession {
       this.HB = finalState.HB;
     }
 
-    // flush the interval buffer, because it contains changes dependent on the previous state
-    this.processIntervalBuffer();
-    // update the dependency for new local chnages
+    // update the dependency for new local changes
     this.currentDependency = this.getCurrentDependency();
   }
 
@@ -298,12 +311,21 @@ class ManagedSession {
 
       // multiline delete
       else {
-        dif.push(del(e.start.row, e.start.column, e.lines[0].length));
+        // remove selection on first row
+        if (e.lines[0].length > 0) {
+          dif.push(del(e.start.row, e.start.column, e.lines[0].length));
+        }
         for (let i = 1; i < e.lines.length - 1; i++) {
           dif.push(del(e.start.row + i, 0, e.lines[i].length));
         }
-        dif.push(del(e.end.row, 0, e.lines[e.lines.length - 1].length));
+        // remove selection on last row
+        if (e.lines[e.lines.length - 1].length > 0) {
+          dif.push(del(e.end.row, 0, e.lines[e.lines.length - 1].length));
+        }
         dif.push(remline(e.start.row, e.start.column));
+        for (let i = 1; i < e.lines.length - 1; i++) {
+          dif.push(remline(e.start.row, e.start.column));
+        }
       }
     }
     if (this.loggingEnabled && dif.length === 0) console.log('handleChange dif is empty!');
