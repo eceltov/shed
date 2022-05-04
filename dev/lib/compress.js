@@ -107,12 +107,12 @@ function addDelCompression(addSubdif, delSubdif) {
     }
     // the del is positioned before the add
     else {
-      const newDel = del(row, posDel, delRange - posAdd - text.length);
+      const newDel = del(row, posDel, delRange - text.length);
       compressionObj = getCompressionObj(newDel, null);
     }
   }
   // deleting from the middle (not deleting edges)
-  else if (posAdd + text.length > posDel + delRange && posAdd < pos) {
+  else if (posAdd + text.length > posDel + delRange && posAdd < posDel) {
     const newText = text.substring(0, posDel) + text.substring(posDel + delRange);
     const newAdd = add(row, posAdd, newText);
     compressionObj = getCompressionObj(newAdd, null);
