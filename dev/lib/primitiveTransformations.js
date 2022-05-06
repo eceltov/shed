@@ -237,6 +237,10 @@ function IT_NR(wrap, wTransformer) {
   return wrap;
 }
 function IT_RA(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
     // disable the remline
@@ -249,6 +253,10 @@ function IT_RA(wrap, wTransformer) {
   return wrap;
 }
 function IT_RD(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
     // it is assumed that the del is valid and will always delete characters
@@ -258,6 +266,10 @@ function IT_RD(wrap, wTransformer) {
   return wrap;
 }
 function IT_RN(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (transformer[0] < wrap.sub[0]) {
     wrap.sub[0]++;
@@ -275,7 +287,7 @@ function IT_RN(wrap, wTransformer) {
 }
 function IT_RR(wrap, wTransformer) {
   // case when the remline is disabled
-  if (wTransformer.meta.informationLost) {
+  if (wTransformer.meta.informationLost || wrap.meta.informationLost) {
     return wrap;
   }
   const transformer = wTransformer.sub;
@@ -552,6 +564,10 @@ function ET_NR(wrap, wTransformer) {
   return wrap;
 }
 function ET_RA(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
     // the remline is dependent on the add, therefore it has to be positioned before the remline
@@ -561,6 +577,10 @@ function ET_RA(wrap, wTransformer) {
   return wrap;
 }
 function ET_RD(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
     // the remline is dependent on the add, therefore it has to be positioned before the remline
@@ -570,6 +590,10 @@ function ET_RD(wrap, wTransformer) {
   return wrap;
 }
 function ET_RN(wrap, wTransformer) {
+  // case when the remline is disabled
+  if (wrap.meta.informationLost) {
+    return wrap;
+  }
   const transformer = wTransformer.sub;
   if (transformer[0] < wrap.sub[0] - 1) {
     wrap.sub[0]--;
@@ -590,7 +614,7 @@ function ET_RR(wrap, wTransformer) {
     recoverLI(wrap);
     return wrap;
   }
-  if (wTransformer.meta.informationLost) {
+  if (wTransformer.meta.informationLost || wrap.meta.informationLost) {
     return wrap;
   }
   const transformer = wTransformer.sub;
