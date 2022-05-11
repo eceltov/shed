@@ -20,6 +20,7 @@ const EditSession = ace.require('ace/edit_session').EditSession;
 class Workspace extends React.Component {
   constructor(props) {
     super(props);
+    this.setReadOnly = this.setReadOnly.bind(this);
     this.sendMessageToServer = this.sendMessageToServer.bind(this);
     this.selectFile = this.selectFile.bind(this);
     this.openDocument = this.openDocument.bind(this);
@@ -97,6 +98,12 @@ class Workspace extends React.Component {
       that.serverMessageProcessor(message);
     };
   };
+
+  setReadOnly(readOnly) {
+    const state = this.editor.getOption('readOnly');
+    this.editor.setOption('readOnly', readOnly);
+    return state;
+  }
 
   /**
      * @brief Highlights the selected file in the fileStructure and makes it the active tab,
@@ -331,7 +338,7 @@ class Workspace extends React.Component {
       }
 
       const managedSession = new ManagedSession(
-        session, this.clientID, commitSerialNumber, this.sendMessageToServer, message,
+        session, this.clientID, commitSerialNumber, this.sendMessageToServer, message, this.setReadOnly,
       );
 
       this.openedDocuments.set(message.fileID, managedSession);
