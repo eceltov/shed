@@ -20,11 +20,12 @@ class DatabaseGateway {
      * @brief Creates an absolute path to a document or folder in a workspace so that
      *  it can be accessed.
      * @param {*} workspaceHash The hash of the workspace containing the document or folder.
-     * @param {*} path The relative path to the document or folder starting at the workspace root.
+     * @param {*} relativePath The relative path to the document or folder starting at
+     *  the workspace root.
      * @returns
      */
-  createPath(workspaceHash, path) {
-    return this.getWorkspaceRootPath(workspaceHash) + path;
+  createPath(workspaceHash, relativePath) {
+    return this.getWorkspaceRootPath(workspaceHash) + relativePath;
   }
 
   /**
@@ -36,8 +37,8 @@ class DatabaseGateway {
   }
 
   getUserWorkspaces(userHash) {
-    const path = `${this.paths.usersPath + userHash}.json`;
-    const JSONString = fs.readFileSync(path);
+    const userPath = `${this.paths.usersPath + userHash}.json`;
+    const JSONString = fs.readFileSync(userPath);
     const userMeta = JSON.parse(JSONString);
     return userMeta.workspaces;
   }
@@ -66,11 +67,11 @@ class DatabaseGateway {
   /**
      * @brief Reads the content of the document and returns it.
      * @param {*} workspaceHash The hash of the workspace.
-     * @param {*} path The relative workspace path of the document.
+     * @param {*} relativePath The relative workspace path of the document.
      * @returns Document content.
      */
-  getDocumentData(workspaceHash, path) {
-    const data = fs.readFileSync(this.createPath(workspaceHash, path), 'utf8');
+  getDocumentData(workspaceHash, relativePath) {
+    const data = fs.readFileSync(this.createPath(workspaceHash, relativePath), 'utf8');
     return data;
   }
 
@@ -100,11 +101,11 @@ class DatabaseGateway {
   /**
      * @brief Attempts to create a document.
      * @param {*} workspaceHash The hash of the workspace in which to create the document.
-     * @param {*} path The path of the document.
+     * @param {*} docPath The path of the document.
      * @returns Returns whether the document was created successfully.
      */
-  createDocument(workspaceHash, path) {
-    const absolutePath = this.createPath(workspaceHash, path);
+  createDocument(workspaceHash, docPath) {
+    const absolutePath = this.createPath(workspaceHash, docPath);
     try {
       fs.writeFileSync(absolutePath, '');
       return true;
@@ -118,19 +119,19 @@ class DatabaseGateway {
   /**
      * @ Attempts to create a folder.
      * @param {*} workspaceHash The hash of the workspace in which to create the folder.
-     * @param {*} path The path of the folder.
+     * @param {*} folderPath The path of the folder.
      * @returns Returns whether the folder was created successfully.
      */
   /// TODO: always returns true
-  createFolder(workspaceHash, path) {
-    const absolutePath = this.createPath(workspaceHash, path);
+  createFolder(workspaceHash, folderPath) {
+    const absolutePath = this.createPath(workspaceHash, folderPath);
     fs.mkdirSync(absolutePath);
     return true;
   }
 
   /// TODO: always returns true
-  deleteDocument(workspaceHash, path) {
-    const absolutePath = this.createPath(workspaceHash, path);
+  deleteDocument(workspaceHash, docPath) {
+    const absolutePath = this.createPath(workspaceHash, docPath);
     fs.rmSync(absolutePath);
     return true;
   }
@@ -138,12 +139,12 @@ class DatabaseGateway {
   /**
      * @brief Deletes a folder and all nested items.
      * @param {*} workspaceHash The hash of the workspace containing the folder.
-     * @param {*} path The relative path to the folder.
+     * @param {*} folderPath The relative path to the folder.
      * @returns Returns whether the folder was deleted successfully.
      */
   /// TODO: always returns true
-  deleteFolder(workspaceHash, path) {
-    const absolutePath = this.createPath(workspaceHash, path);
+  deleteFolder(workspaceHash, folderPath) {
+    const absolutePath = this.createPath(workspaceHash, folderPath);
     fs.rmSync(absolutePath, { recursive: true });
     return true;
   }
@@ -157,9 +158,9 @@ class DatabaseGateway {
     return true;
   }
 
-  writeDocumentData(workspaceHash, path, documentArray) {
+  writeDocumentData(workspaceHash, docPath, documentArray) {
     try {
-      const absolutePath = this.createPath(workspaceHash, path);
+      const absolutePath = this.createPath(workspaceHash, docPath);
       // erase file content and write first line
       fs.writeFileSync(absolutePath, documentArray[0]);
       // append the rest of lines
