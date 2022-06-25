@@ -42,7 +42,7 @@ class ManagedSession {
     this.firstSOMessageNumber = initObj.firstSOMessageNumber;
     this.sendMessageToServer = sendMessageToServer;
     this.handlingChanges = true;
-    this.LISTEN_INTERVAL = 4000; // how long will the editor listen before sending the data to others
+    this.LISTEN_INTERVAL = 200; // how long will the editor listen before sending the data to others
 
     this.setReadOnly = setReadOnly;
 

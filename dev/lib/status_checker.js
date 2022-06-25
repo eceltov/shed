@@ -4,6 +4,9 @@ class StatusChecker {
     this.checkCount = 1;
     this.status = new Array(count).fill(0);
     this.readyCallback = null;
+
+    this.debugging = false;
+    this.debugOrder = [];
   }
 
   /**
@@ -45,8 +48,13 @@ class StatusChecker {
      * @param index The index of an element to be checked.
      */
   check(index) {
+    this.debugOrder.push(index);
     this.status[index]++;
     if (this.readyCallback !== null && this.ready()) {
+      if (this.debugging) {
+        console.log('DEBUG order:', this.debugOrder);
+        this.debugOrder = [];
+      }
       this.reset();
       this.readyCallback();
     }
