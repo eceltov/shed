@@ -1,6 +1,6 @@
 const React = require('react');
-const FileStructureFolder = require('./FileStructureFolder.jsx');
-const FileOperation = require('./FileOperation.jsx');
+const FileStructureFolder = require('./FileStructureFolder');
+const FileOperation = require('./FileOperation');
 const fsOps = require('../lib/fileStructureOps');
 
 class FileStructure extends React.Component {

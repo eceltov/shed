@@ -1,6 +1,6 @@
 const React = require('react');
-const EditableFile = require('./EditableFile.jsx');
-const FileStructureDocument = require('./FileStructureDocument.jsx');
+const EditableFile = require('./EditableFile');
+const FileStructureDocument = require('./FileStructureDocument');
 const fsOps = require('../lib/fileStructureOps');
 
 class FileStructureFolder extends React.Component {

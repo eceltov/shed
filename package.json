@@ -6,7 +6,7 @@
     "test": "jest",
     "start-controller-server": "node dev/controllerServer.js",
     "start-workspace-server": "node dev/workspaceServer.js",
-    "build-client": "npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/client.jsx -o dev/client/bundle.js"
+    "build-client": "npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/client.jsx -o dev/client/bundle.js --extension=.jsx"
   },
   "jest": {
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|js?|tsx?|ts?|mjs?)$",

@@ -1,7 +1,7 @@
 const React = require('react');
-const FileStructure = require('./FileStructure.jsx');
-const WelcomeScreen = require('./WelcomeScreen.jsx');
-const TabBar = require('./TabBar.jsx');
+const FileStructure = require('./FileStructure');
+const WelcomeScreen = require('./WelcomeScreen');
+const TabBar = require('./TabBar');
 
 const fsOps = require('../lib/fileStructureOps');
 const ManagedSession = require('../lib/ManagedSession');
