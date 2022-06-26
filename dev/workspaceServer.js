@@ -2,10 +2,10 @@ const fs = require('fs');
 const path = require('path');
 const WorkspaceServer = require('./server/WorkspaceServer');
 
-const portSettingsPath = path.join(__dirname, '../portSettings.json');
-const portSettings = JSON.parse(fs.readFileSync(portSettingsPath));
+const appConfigPath = path.join(__dirname, '../config.json');
+const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
 const server = new WorkspaceServer();
 server.initialize();
 server.enableLogging();
-server.listen(portSettings.workspaceServerPort);
+server.listen(appConfig.portSettings.workspaceServerPort);

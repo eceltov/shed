@@ -19,9 +19,12 @@ class WorkspaceList extends React.Component {
 
   render() {
     return (
-      <ul>
-        {this.props.workspaces.map((workspace) => this.createItem(workspace))}
-      </ul>
+      <div className="workspaceList">
+        <h3>Workspaces</h3>
+        <ul>
+          {this.props.workspaces.map((workspace) => this.createItem(workspace))}
+        </ul>
+      </div>
     );
   }
 }

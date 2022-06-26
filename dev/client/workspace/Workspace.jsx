@@ -3,12 +3,12 @@ const FileStructure = require('./FileStructure');
 const WelcomeScreen = require('./WelcomeScreen');
 const TabBar = require('./TabBar');
 
-const fsOps = require('../lib/fileStructureOps');
-const ManagedSession = require('../lib/ManagedSession');
-const msgFactory = require('../lib/clientMessageFactory');
-const { msgTypes } = require('../lib/messageTypes');
-const roles = require('../lib/roles');
-const utils = require('../lib/utils');
+const fsOps = require('../../lib/fileStructureOps');
+const ManagedSession = require('../../lib/ManagedSession');
+const msgFactory = require('../../lib/clientMessageFactory');
+const { msgTypes } = require('../../lib/messageTypes');
+const roles = require('../../lib/roles');
+const utils = require('../../lib/utils');
 
 const CSLatency = 0;
 const SCLatency = 0;

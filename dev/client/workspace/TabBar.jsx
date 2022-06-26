@@ -1,6 +1,6 @@
 const React = require('react');
 const Tab = require('./Tab');
-const fsOps = require('../lib/fileStructureOps');
+const fsOps = require('../../lib/fileStructureOps');
 
 class TabBar extends React.Component {
   constructor(props) {
