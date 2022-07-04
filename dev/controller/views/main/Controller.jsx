@@ -1,5 +1,4 @@
 const React = require('react');
-const axios = require('axios');
 const views = require('./viewEnum');
 const SelectionBar = require('./SelectionBar');
 const Login = require('./Login');

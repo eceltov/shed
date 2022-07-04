@@ -6,8 +6,9 @@
     "test": "jest",
     "start-controller-server": "node dev/controllerServer.js",
     "start-workspace-server": "node dev/workspaceServer.js",
-    "build-client": "npm run bundle-main && npm run bundle-workspace && npm run bundle-workspace-list",
-    "bundle-main": "mkdir -p dev/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/main/main.jsx -o dev/client/bundles/main.js --extension=.jsx",
+    "init": "npm i && npm run get-editor-repo && build-client",
+    "get-editor-repo": "cd dev/editor && git clone https://github.com/ajaxorg/ace-builds.git && cd ace-builds && git checkout d979a82c6198802cfb6df5be236379d29f116b2d",
+    "build-client": "npm run bundle-workspace && npm run bundle-workspace-list",
     "bundle-workspace": "mkdir -p dev/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/workspace/main.jsx -o dev/client/bundles/workspace.js --extension=.jsx",
     "bundle-workspace-list": "mkdir -p dev/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/workspaceList/main.jsx -o dev/client/bundles/workspaceList.js --extension=.jsx"
   },
@@ -33,6 +34,7 @@
   "author": "Vojtech Kloda",
   "dependencies": {
     "@babel/preset-react": "^7.16.7",
+    "axios": "^0.27.2",
     "babelify": "^10.0.0",
     "browserify": "^17.0.0",
     "core-js": "^3.21.1",
