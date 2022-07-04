@@ -199,13 +199,7 @@ class Server {
      * @param {*} token The security token provided by the authentization service.
      */
   getUserHash(token) {
-    if (token === '0000') {
-      return '00000000';
-    }
-    if (token === '0001') {
-      return '00000001';
-    }
-    return null;
+    return token;
   }
 
   /**

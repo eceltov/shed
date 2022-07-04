@@ -1,9 +1,9 @@
 const React = require('react');
 const ReactDOM = require('react-dom');
-const Controller = require('./Controller');
+const WorkspaceList = require('./WorkspaceList');
 
 window.addEventListener('DOMContentLoaded', () => {
   ReactDOM.render(
-    <Controller />, document.getElementById('reactContainer'),
+    <WorkspaceList />, document.getElementById('reactContainer'),
   );
 });

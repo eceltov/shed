@@ -34,6 +34,18 @@ class Controller {
     app.set('view engine', 'jsx');
     app.engine('jsx', reactViews.createEngine());
 
+    app.use(express.json());
+
+    // handle bad jwt
+    app.use((err, req, res, next) => {
+      if (err.name === 'UnauthorizedError') {
+        res.status(401).send('invalid token...');
+      }
+      else {
+        next(err);
+      }
+    });
+
     app.use('/client', express.static(path.join(__dirname, '/../client')));
     app.use('/lib', express.static(path.join(__dirname, '/../lib')));
     app.use('/editor', express.static(path.join(__dirname, '/../editor')));

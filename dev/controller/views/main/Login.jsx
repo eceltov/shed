@@ -1,7 +1,6 @@
 const React = require('react');
-const views = require('./viewEnum');
 
-class SelectionBar extends React.Component {
+class Login extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
@@ -9,9 +8,9 @@ class SelectionBar extends React.Component {
 
   render() {
     return (
-      <ul />
+      <div id="loginScreen" />
     );
   }
 }
 
-module.exports = SelectionBar;
+module.exports = Login;

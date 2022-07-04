@@ -14,12 +14,6 @@ Notes: handle bigger and smaller resolutions
     --file-structure-element-height: 24px;
 }
 
-#welcomeScreen {
-    background-color: rgb(35,35,35);
-    width: 100%;
-    height: 100%;
-}
-
 #leftBar {
     height: 100%;
     position: fixed;
@@ -28,6 +22,11 @@ Notes: handle bigger and smaller resolutions
     margin-top: var(--top-bar-height);
     background: rgb(30,30,30);
     user-select: none;
+}
+
+.barLink {
+    color: var(--main-font-color);
+    font-weight: bold;
 }
 
 #fileStructure {
@@ -243,10 +242,10 @@ Notes: handle bigger and smaller resolutions
 }
 
 .content {
-    left: var(--left-side-bar-width);
-    position: relative;
-    height: 100%;
-    padding-top: var(--top-bar-height);
+    margin-left: var(--left-side-bar-width);
+    height: calc(100vh - var(--top-bar-height));
+    margin-top: var(--top-bar-height);
+    background-color: rgb(35,35,35);
 }
 
 

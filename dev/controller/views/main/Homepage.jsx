@@ -1,6 +1,6 @@
 const React = require('react');
 
-class Login extends React.Component {
+class Homepage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
@@ -8,9 +8,9 @@ class Login extends React.Component {
 
   render() {
     return (
-      <div />
+      <div className="content" />
     );
   }
 }
 
-module.exports = Login;
+module.exports = Homepage;

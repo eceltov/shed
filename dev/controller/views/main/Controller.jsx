@@ -1,48 +1,36 @@
 const React = require('react');
+const axios = require('axios');
 const views = require('./viewEnum');
 const SelectionBar = require('./SelectionBar');
 const Login = require('./Login');
 const Homepage = require('./Homepage');
-const WorkspaceList = require('./WorkspaceList');
+const selecionBarStates = require('./selectionBarStateEnum');
 
 class Controller extends React.Component {
-  constructor(props) {
-    super(props);
-    this.setView = this.setView.bind(this);
-
-    this.state = {
-      view: views.workspaces,
-    };
-  }
-
-  setView(view) {
-    this.setState((prevState) => ({
-      view,
-    }));
-  }
-
+  // eslint-disable-next-line class-methods-use-this
   renderSelectionBar() {
     return (
-      <SelectionBar setView={this.setView} />
+      <SelectionBar barState={selecionBarStates.authenticated} />
     );
   }
 
   // eslint-disable-next-line class-methods-use-this
   renderHeader() {
     return (
-      <div />
+      <div className="headerBar" />
     );
   }
 
   renderView() {
-    switch (this.state.view) {
+    switch (this.props.view) {
       case views.homepage:
         return (
           <Homepage />
         );
       case views.workspaces:
+        // workspaces are loaded dynamically
         return (
-          <WorkspaceList workspaces={this.props.data.workspaces} token={this.props.data.token} />
+          <div id="reactContainer" />
         );
       case views.login:
         return (
@@ -58,7 +46,7 @@ class Controller extends React.Component {
 
   render() {
     return (
-      <div>
+      <div className="main">
         { this.renderHeader() }
         { this.renderSelectionBar() }
         { this.renderView() }
