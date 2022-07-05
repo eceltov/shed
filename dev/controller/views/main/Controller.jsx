@@ -9,7 +9,7 @@ class Controller extends React.Component {
   // eslint-disable-next-line class-methods-use-this
   renderSelectionBar() {
     return (
-      <SelectionBar barState={selecionBarStates.authenticated} />
+      <SelectionBar barState={selecionBarStates.authenticated} activeView={this.props.activeView} />
     );
   }
 
@@ -21,7 +21,7 @@ class Controller extends React.Component {
   }
 
   renderView() {
-    switch (this.props.view) {
+    switch (this.props.activeView) {
       case views.homepage:
         return (
           <Homepage />
@@ -36,7 +36,7 @@ class Controller extends React.Component {
           <Login />
         );
       default:
-        console.error('Error: Bad view in renderView');
+        console.error('Error: Bad view in renderView:', this.props.activeView);
         return (
           <div />
         );

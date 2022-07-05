@@ -8,27 +8,34 @@ class SelectionBar extends React.Component {
     this.state = {};
   }
 
+  getLinkStyle(view) {
+    if (view === this.props.activeView) {
+      return 'barLink bold';
+    }
+    return 'barLink';
+  }
+
   renderLinkList() {
     if (this.props.barState === selecionBarStates.authenticated) {
       return (
-        <ul>
+        <ul className="selectionBar">
           <li>
-            <a href="/" className="barLink">{views.homepage}</a>
+            <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
           </li>
           <li>
-            <a href="/workspaces" className="barLink">{views.workspaces}</a>
+            <a href="/workspaces" className={this.getLinkStyle(views.workspaces)}>{views.workspaces}</a>
           </li>
         </ul>
       );
     }
     if (this.props.barState === selecionBarStates.unauthenticated) {
       return (
-        <ul>
+        <ul className="selectionBar">
           <li>
-            <a href="/" className="barLink">{views.homepage}</a>
+            <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
           </li>
           <li>
-            <a href="/login" className="barLink">{views.login}</a>
+            <a href="/login" className={this.getLinkStyle(views.login)}>{views.login}</a>
           </li>
         </ul>
       );

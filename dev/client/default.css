@@ -24,9 +24,40 @@ Notes: handle bigger and smaller resolutions
     user-select: none;
 }
 
+.selectionBar {
+    list-style: none;
+}
+
+.bold {
+    font-weight: bold;
+}
+
 .barLink {
     color: var(--main-font-color);
+}
+
+.barLink:hover, .workspaceLink:hover {
+    text-decoration: none;
+    color: var(--highlight-color);
+}
+
+.workspaceLinkContainer {
+    border-bottom: 2px solid var(--top-bar-color);
+    --link-height: 8vh;
+    min-height: var(--link-height);
+}
+
+.workspaceLink {
+    margin-left: 10px;
+    color: var(--main-font-color);
     font-weight: bold;
+    font-size: large;
+    line-height: var(--link-height);
+}
+
+.workspaceList {
+    padding-left: 0;
+    list-style: none;
 }
 
 #fileStructure {

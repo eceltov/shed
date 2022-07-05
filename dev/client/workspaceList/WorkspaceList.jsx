@@ -37,8 +37,8 @@ class WorkspaceList extends React.Component {
   // eslint-disable-next-line class-methods-use-this
   createItem(workspace) {
     return (
-      <li key={workspace.id} className="barLink">
-        <a href={`/workspace?hash=${workspace.id}&token=${USER}`}>
+      <li key={workspace.id} className="workspaceLinkContainer">
+        <a href={`/workspace?hash=${workspace.id}&token=${USER}`} className="workspaceLink">
           {`${workspace.name} (${roles.getRoleName(workspace.role)})`}
         </a>
       </li>
@@ -46,10 +46,8 @@ class WorkspaceList extends React.Component {
   }
 
   componentDidMount() {
-    console.log('mounted');
     this.getWorkspaces()
       .then((workspaces) => {
-        console.log('got workspaces:', workspaces);
         this.setState((prevState) => ({
           workspaces,
         }));
@@ -60,7 +58,7 @@ class WorkspaceList extends React.Component {
     return (
       <div className="content">
         <h3>Workspaces</h3>
-        <ul>
+        <ul className="workspaceList">
           {this.state.workspaces.map((workspace) => this.createItem(workspace))}
         </ul>
       </div>

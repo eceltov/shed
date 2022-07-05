@@ -17,13 +17,13 @@ class Main extends React.Component {
 
           {
           // load workspace script bundle
-          this.props.view !== views.workspaces ? null
+          this.props.activeView !== views.workspaces ? null
             : <script src="client/bundles/workspaceList.js" type="text/javascript" />
           }
 
         </head>
         <body>
-          <Controller view={this.props.view} />
+          <Controller activeView={this.props.activeView} />
         </body>
       </html>
     );
