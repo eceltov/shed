@@ -393,3 +393,36 @@ Implementing add on del compression:
                 b + text.length == y + z => [a, b, text'] where text' is shortened by z characters from the back
                 b + text.length < y + z => [a, b, text'], [x, b + text'.length, z + y - b - text.length] where text' is shortened by b + text.length - y characters from the back
             
+Getting the CAS adapter to work:
+    install composer: https://getcomposer.org/download/
+    php composer.phar update
+    fill out config.yaml
+
+    add 'use Exception;' to line 7 in Config.php
+
+    install this to be able to use pecl command and phpize
+    sudo apt install php-pear
+    sudo apt install php-dev
+
+    sudo apt-get -y install gcc make autoconf libc-dev pkg-config
+    sudo apt-get -y install libyaml-dev
+    sudo pecl install yaml
+    - press enter -
+    sudo bash -c "echo extension=yaml.so > /etc/php/7.4/cli/conf.d/yaml.ini"
+
+    sudo apt-get install php-curl
+
+    https://serverpilot.io/docs/how-to-install-the-php-yaml-extension/
+    https://stackoverflow.com/questions/6382539/call-to-undefined-function-curl-init
+
+Authentication and SSR:
+    The main part of the website will be completely done in SSR.
+    Authentication is done via the CAS adapter, which redirects to a route containing the JWT as a query parameter.
+    If express sees the JWT as valid, it will render the route and set the JWT cookie param to the JWT.
+    
+    Whenever a view is accessed, the cookie needs to be checked if present and validated if it is.
+    In case it is valid, the left bar will contain the workspaces option.
+    If omitted, the login option will be present.
+    If invalid, the cookie will be removed and the login will be present.
+
+    This means no REST API route for workspaces needs to be present, as they can be loaded in SSR.

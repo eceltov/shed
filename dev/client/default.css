@@ -12,6 +12,7 @@ Notes: handle bigger and smaller resolutions
     --top-bar-color: rgb(40, 40, 40);
     --main-font-color: rgb(250, 235, 215);
     --file-structure-element-height: 24px;
+    --workspace-link-margin-left: 10px;
 }
 
 #leftBar {
@@ -48,7 +49,7 @@ Notes: handle bigger and smaller resolutions
 }
 
 .workspaceLink {
-    margin-left: 10px;
+    margin-left: var(--workspace-link-margin-left);
     color: var(--main-font-color);
     font-weight: bold;
     font-size: large;
@@ -279,6 +280,19 @@ Notes: handle bigger and smaller resolutions
     background-color: rgb(35,35,35);
 }
 
+.title {
+    margin-left: var(--workspace-link-margin-left);
+    color: var(--main-font-color);
+    font-weight: bold;
+    margin-bottom: 5vh;
+}
+
+.login {
+    float: right;
+    margin-top: 5px;
+    margin-right: 1%;
+    font-size: large;
+}
 
 #editor { 
     width: 100%;

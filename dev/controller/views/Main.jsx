@@ -15,15 +15,13 @@ class Main extends React.Component {
           <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap@4.6.0/dist/css/bootstrap.min.css" integrity="sha384-B0vP5xmATw1+K9KRQjQERJvTumQW0nPEzvF6L/Z6nronJ3oUOFUFpCjEUQouq2+l" crossOrigin="anonymous" />
           <link rel="stylesheet" href="client/default.css" />
 
-          {
-          // load workspace script bundle
-          this.props.activeView !== views.workspaces ? null
-            : <script src="client/bundles/workspaceList.js" type="text/javascript" />
-          }
-
         </head>
         <body>
-          <Controller activeView={this.props.activeView} />
+          <Controller
+            activeView={this.props.activeView}
+            authenticated={this.props.authenticated}
+            workspaces={this.props.workspaces}
+          />
         </body>
       </html>
     );

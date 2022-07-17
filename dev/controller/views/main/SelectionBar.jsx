@@ -1,6 +1,5 @@
 const React = require('react');
 const views = require('./viewEnum');
-const selecionBarStates = require('./selectionBarStateEnum');
 
 class SelectionBar extends React.Component {
   constructor(props) {
@@ -16,7 +15,7 @@ class SelectionBar extends React.Component {
   }
 
   renderLinkList() {
-    if (this.props.barState === selecionBarStates.authenticated) {
+    if (this.props.authenticated) {
       return (
         <ul className="selectionBar">
           <li>
@@ -28,21 +27,14 @@ class SelectionBar extends React.Component {
         </ul>
       );
     }
-    if (this.props.barState === selecionBarStates.unauthenticated) {
-      return (
-        <ul className="selectionBar">
-          <li>
-            <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
-          </li>
-          <li>
-            <a href="/login" className={this.getLinkStyle(views.login)}>{views.login}</a>
-          </li>
-        </ul>
-      );
-    }
 
-    console.error('Error: Unknown bar state in renderLinkList');
-    return null;
+    return (
+      <ul className="selectionBar">
+        <li>
+          <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
+        </li>
+      </ul>
+    );
   }
 
   render() {

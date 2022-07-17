@@ -1,22 +1,25 @@
 const React = require('react');
 const views = require('./viewEnum');
 const SelectionBar = require('./SelectionBar');
-const Login = require('./Login');
 const Homepage = require('./Homepage');
-const selecionBarStates = require('./selectionBarStateEnum');
+const HeaderBar = require('./HeaderBar');
+const WorkspaceList = require('./WorkspaceList');
 
 class Controller extends React.Component {
   // eslint-disable-next-line class-methods-use-this
   renderSelectionBar() {
     return (
-      <SelectionBar barState={selecionBarStates.authenticated} activeView={this.props.activeView} />
+      <SelectionBar
+        authenticated={this.props.authenticated}
+        activeView={this.props.activeView}
+      />
     );
   }
 
   // eslint-disable-next-line class-methods-use-this
   renderHeader() {
     return (
-      <div className="headerBar" />
+      <HeaderBar authenticated={this.props.authenticated} />
     );
   }
 
@@ -29,7 +32,7 @@ class Controller extends React.Component {
       case views.workspaces:
         // workspaces are loaded dynamically
         return (
-          <div id="reactContainer" />
+          <WorkspaceList workspaces={this.props.workspaces} />
         );
       case views.login:
         return (

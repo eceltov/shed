@@ -1,5 +1,8 @@
 /* eslint-disable class-methods-use-this */
 const WebSocketServer = require('websocket').server;
+const jwt = require('jsonwebtoken');
+const fs = require('fs');
+const path = require('path');
 const http = require('http');
 const WorkspaceInstance = require('./WorkspaceInstance');
 const { msgTypes } = require('../lib/messageTypes');
@@ -17,6 +20,8 @@ class Server {
 
     this.database = null;
 
+    this.jwtSecret = null;
+
     // attributes for client management
     this.nextclientID = 0;
     this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
@@ -29,6 +34,10 @@ class Server {
   initialize() {
     this.database = new DatabaseGateway();
     this.database.initialize();
+
+    const appConfigPath = path.join(__dirname, '../../config.json');
+    const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
+    this.jwtSecret = appConfig.jwtSecret;
 
     const that = this;
     this.server = http.createServer((request, response) => {
@@ -192,14 +201,19 @@ class Server {
     }
   }
 
-  /// TODO: not implemented
   /**
-     * @returns Returns the hash of a user the token belongs to.
-     *          Returns null if the token is invalid.
-     * @param {*} token The security token provided by the authentization service.
+     * @returns Returns the id of a user the token belongs to.
+     *          Returns null if the token could not be verified.
+     * @param {*} token The JWT provided by the authentization service.
      */
   getUserHash(token) {
-    return token;
+    try {
+      const payload = jwt.verify(token, this.jwtSecret);
+      return payload.id;
+    }
+    catch {
+      return null;
+    }
   }
 
   /**

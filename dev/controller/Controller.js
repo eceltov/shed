@@ -1,6 +1,7 @@
 /* eslint-disable import/no-dynamic-require */
 /* eslint-disable global-require */
 const express = require('express');
+const cookieParser = require('cookie-parser');
 const path = require('path');
 const fs = require('fs');
 const walker = require('node-walker');
@@ -35,16 +36,17 @@ class Controller {
     app.engine('jsx', reactViews.createEngine());
 
     app.use(express.json());
+    app.use(cookieParser());
 
     // handle bad jwt
-    app.use((err, req, res, next) => {
+    /*app.use((err, req, res, next) => {
       if (err.name === 'UnauthorizedError') {
         res.status(401).send('invalid token...');
       }
       else {
         next(err);
       }
-    });
+    });*/
 
     app.use('/client', express.static(path.join(__dirname, '/../client')));
     app.use('/lib', express.static(path.join(__dirname, '/../lib')));

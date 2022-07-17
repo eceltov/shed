@@ -1,4 +1,5 @@
 const React = require('react');
+const Cookies = require('js-cookie');
 const FileStructure = require('./FileStructure');
 const WelcomeScreen = require('./WelcomeScreen');
 const TabBar = require('./TabBar');
@@ -63,13 +64,31 @@ class Workspace extends React.Component {
     this.savedCommitSerialNumbers = new Map();
   }
 
+  /// TODO: this is a copy pasta implementation
+  getCookie(cname) {
+    let name = cname + "=";
+    let decodedCookie = decodeURIComponent(document.cookie);
+    let ca = decodedCookie.split(';');
+    for(let i = 0; i <ca.length; i++) {
+      let c = ca[i];
+      while (c.charAt(0) == ' ') {
+        c = c.substring(1);
+      }
+      if (c.indexOf(name) == 0) {
+        return c.substring(name.length, c.length);
+      }
+    }
+    return "";
+  }
+
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
   connect = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
-    const token = urlParams.get('token');
+    /// TODO: do not connect if token invalid or handle server deny response
+    const token = this.getCookie('jwt');
 
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
