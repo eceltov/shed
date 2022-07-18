@@ -1,7 +1,7 @@
 const React = require('react');
 const views = require('./viewEnum');
 const SelectionBar = require('./SelectionBar');
-const Homepage = require('./Homepage');
+const AboutPage = require('./AboutPage');
 const HeaderBar = require('./HeaderBar');
 const WorkspaceList = require('./WorkspaceList');
 
@@ -25,9 +25,9 @@ class Controller extends React.Component {
 
   renderView() {
     switch (this.props.activeView) {
-      case views.homepage:
+      case views.about:
         return (
-          <Homepage />
+          <AboutPage />
         );
       case views.workspaces:
         // workspaces are loaded dynamically

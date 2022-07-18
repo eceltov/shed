@@ -1,6 +1,6 @@
 const views = {
-  homepage: 'Home Page',
   workspaces: 'Workspaces',
+  about: 'About',
 };
 
 module.exports = views;

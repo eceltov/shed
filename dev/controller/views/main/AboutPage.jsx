@@ -1,6 +1,6 @@
 const React = require('react');
 
-class Homepage extends React.Component {
+class AboutPage extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
@@ -13,4 +13,4 @@ class Homepage extends React.Component {
   }
 }
 
-module.exports = Homepage;
+module.exports = AboutPage;

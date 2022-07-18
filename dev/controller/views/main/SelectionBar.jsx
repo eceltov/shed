@@ -19,10 +19,10 @@ class SelectionBar extends React.Component {
       return (
         <ul className="selectionBar">
           <li>
-            <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
+            <a href="/" className={this.getLinkStyle(views.workspaces)}>{views.workspaces}</a>
           </li>
           <li>
-            <a href="/workspaces" className={this.getLinkStyle(views.workspaces)}>{views.workspaces}</a>
+            <a href="/about" className={this.getLinkStyle(views.about)}>{views.about}</a>
           </li>
         </ul>
       );
@@ -31,7 +31,7 @@ class SelectionBar extends React.Component {
     return (
       <ul className="selectionBar">
         <li>
-          <a href="/" className={this.getLinkStyle(views.homepage)}>{views.homepage}</a>
+          <a href="/about" className={this.getLinkStyle(views.about)}>{views.about}</a>
         </li>
       </ul>
     );

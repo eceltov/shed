@@ -10,6 +10,7 @@ const msgFactory = require('../../lib/clientMessageFactory');
 const { msgTypes } = require('../../lib/messageTypes');
 const roles = require('../../lib/roles');
 const utils = require('../../lib/utils');
+const HeaderBar = require('./HeaderBar');
 
 const CSLatency = 0;
 const SCLatency = 0;
@@ -64,31 +65,13 @@ class Workspace extends React.Component {
     this.savedCommitSerialNumbers = new Map();
   }
 
-  /// TODO: this is a copy pasta implementation
-  getCookie(cname) {
-    let name = cname + "=";
-    let decodedCookie = decodeURIComponent(document.cookie);
-    let ca = decodedCookie.split(';');
-    for(let i = 0; i <ca.length; i++) {
-      let c = ca[i];
-      while (c.charAt(0) == ' ') {
-        c = c.substring(1);
-      }
-      if (c.indexOf(name) == 0) {
-        return c.substring(name.length, c.length);
-      }
-    }
-    return "";
-  }
-
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
   connect = () => {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
-    /// TODO: do not connect if token invalid or handle server deny response
-    const token = this.getCookie('jwt');
+    const token = utils.getCookie('jwt');
 
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
@@ -315,9 +298,19 @@ class Workspace extends React.Component {
     else if (type === msgTypes.server.renameFile) {
       this.onRenameFile(message);
     }
+    else if (type === msgTypes.server.failedValidation) {
+      this.onFailedvalidation(message);
+    }
     else {
       console.log(`Received unknown message type: ${JSON.stringify(message)}`);
     }
+  }
+
+  onFailedvalidation(message) {
+    this.connection.close();
+    console.log('[closed] Connection closed');
+    window.alert('Error: Invalid authentication token sent to server. Please log in again.');
+    /// TODO: change the background to an error view
   }
 
   onInitWorkspace(message) {
@@ -595,7 +588,7 @@ class Workspace extends React.Component {
 
     return (
       <div className="main">
-        <div className="headerBar" />
+        <HeaderBar />
         <div id="leftBar">
           <FileStructure
             fileStructure={this.state.fileStructure}

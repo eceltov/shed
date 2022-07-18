@@ -43,6 +43,8 @@ const msgTypes = {
     deleteFolder: 59,
     // sent after file renaming: {msgType, fileID, name}
     renameFile: 60,
+    // sent after failed token verification: {msgType}
+    failedValidation: 61,
   },
 };
 

@@ -179,6 +179,8 @@ class Server {
       const userHash = this.getUserHash(message.token);
       if (userHash === null) {
         /// TODO: close the connection somehow
+        this.sendMessageToClient(clientID, JSON.stringify(msgFactory.failedValidation()));
+        console.log('JWT validation failed for client:', clientID);
       }
       else {
         const role = this.database.getUserWorkspaceRole(userHash, message.workspaceHash);

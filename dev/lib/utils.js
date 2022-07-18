@@ -75,6 +75,22 @@ function dlog(name, obj, mode = 'default') {
   }
 }
 
+function getCookie(name) {
+  const prefix = `${name}=`;
+  const decodedCookie = decodeURIComponent(document.cookie);
+  const components = decodedCookie.split(';');
+  for (let i = 0; i < components.length; i++) {
+    let c = components[i];
+    while (c.charAt(0) === ' ') {
+      c = c.substring(1);
+    }
+    if (c.indexOf(prefix) === 0) {
+      return c.substring(prefix.length, c.length);
+    }
+  }
+  return '';
+}
+
 module.exports = {
-  deepCopy, dissolveArrays, deepEqual, dlog,
+  deepCopy, dissolveArrays, deepEqual, dlog, getCookie,
 };

@@ -86,7 +86,13 @@ function renameFile(fileID, name) {
   };
 }
 
+function failedValidation() {
+  return {
+    msgType: msgTypes.server.failedValidation,
+  };
+}
+
 module.exports = {
   initialize, initWorkspace, initDocument, GCMetadataRequest, GC, createDocument,
-  createFolder, deleteDocument, deleteFolder, renameFile,
+  createFolder, deleteDocument, deleteFolder, renameFile, failedValidation,
 };
