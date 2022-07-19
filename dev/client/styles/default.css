@@ -44,7 +44,7 @@ Notes: handle bigger and smaller resolutions
 
 .workspaceLinkContainer {
     border-bottom: 2px solid var(--top-bar-color);
-    --link-height: 8vh;
+    --link-height: 6vh;
     min-height: var(--link-height);
 }
 
@@ -280,13 +280,6 @@ Notes: handle bigger and smaller resolutions
     background-color: rgb(35,35,35);
 }
 
-.title {
-    margin-left: var(--workspace-link-margin-left);
-    color: var(--main-font-color);
-    font-weight: bold;
-    margin-bottom: 5vh;
-}
-
 .login {
     float: right;
     margin-top: 5px;
@@ -306,6 +299,88 @@ Notes: handle bigger and smaller resolutions
 .logo:hover {
     text-decoration: none;
     color: var(--highlight-color);
+}
+
+.createSegment {
+    padding: 5px 0 5px 1vw;
+}
+
+.title {
+    margin-left: var(--workspace-link-margin-left);
+    margin-right: var(--workspace-link-margin-left);
+    color: var(--main-font-color);
+    font-weight: bold;
+    font-size: xx-large;
+    margin-bottom: 5vh;
+}
+
+.createInput {
+    border-radius: 4px;
+    color: var(--main-font-color);
+    background: grey;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    display: block;
+    height: 40px;
+    width: 92%;
+}
+
+.createInput:focus {
+    outline: none;
+    box-shadow: none;
+    border: none;
+}
+
+.createName {
+    color: var(--main-font-color);
+    display: block;
+    font-weight: bold;
+    font-size: larger;
+    margin: 0;
+}
+
+.workspacesTitle {
+    margin-left: var(--workspace-link-margin-left);
+    margin-right: var(--workspace-link-margin-left);
+    color: var(--main-font-color);
+    font-weight: bold;
+    margin-bottom: 5vh;
+    display: flex;
+    align-items: center;
+}
+
+.workspacesTitleText{
+    font-size: xx-large;
+    display: inline-block;
+}
+
+.newButton {
+    margin-left: 10px;
+    background: rgb(14, 216, 14);
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    /*width: 92%;*/
+}
+
+.createWorkspaceButton {
+    background: rgb(14, 216, 14);
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    margin: 5px 0 5px 0;
+    font-size: x-large;
+    width: 92%;
+    height: 50px;
+  }
+
+.inlineBlock {
+    display: inline-block;
 }
 
 #editor { 

@@ -1,7 +1,7 @@
 {
     "paths": {
         "workspaceRootFolderPath": "root/",
-        "fileStructurePath": "structure.json",
-        "pathMapPath": "pathMap.json"
-    }
+        "fileStructurePath": "structure.json"
+    },
+    "workspaceHashSalt": "some salt"
 }

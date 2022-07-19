@@ -4,6 +4,7 @@ const SelectionBar = require('./SelectionBar');
 const AboutPage = require('./AboutPage');
 const HeaderBar = require('./HeaderBar');
 const WorkspaceList = require('./WorkspaceList');
+const CreateWorkspacePage = require('./CreateWorkspacePage');
 
 class Controller extends React.Component {
   // eslint-disable-next-line class-methods-use-this
@@ -37,6 +38,10 @@ class Controller extends React.Component {
       case views.login:
         return (
           <Login />
+        );
+      case views.createWorkspace:
+        return (
+          <CreateWorkspacePage />
         );
       default:
         console.error('Error: Bad view in renderView:', this.props.activeView);

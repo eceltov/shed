@@ -35,6 +35,10 @@ function handleJWTCookie(req, res) {
   return null;
 }
 
+function renderDefaultUnauthView(res) {
+  res.render('Main.jsx', { activeView: views.about, authenticated: false });
+}
+
 /**
  * @brief Renders the users' workspaces if authenticated or the about screen otherwise.
  * @param {*} res The express res parameter.
@@ -53,7 +57,7 @@ function renderDefaultView(res, jwtPayload = null) {
     }
   }
   else {
-    res.render('Main.jsx', { activeView: views.about, authenticated: false });
+    renderDefaultUnauthView(res);
   }
 }
 
@@ -80,12 +84,32 @@ function register(app) {
 
   app.get('/logout', (req, res) => {
     res.clearCookie('jwt');
-    res.render('Main.jsx', { activeView: views.about, authenticated: false });
+    renderDefaultUnauthView(res);
   });
 
   app.get('/about', (req, res) => {
     const jwtPayload = handleJWTCookie(req, res);
     res.render('Main.jsx', { activeView: views.about, authenticated: jwtPayload !== null });
+  });
+
+  app.get('/create', (req, res) => {
+    const jwtPayload = handleJWTCookie(req, res);
+    if (jwtPayload !== null) {
+      res.render('Main.jsx', { activeView: views.createWorkspace, authenticated: true });
+    }
+    else {
+      renderDefaultUnauthView(res);
+    }
+  });
+
+  app.post('/api/createWorkspace', (req, res) => {
+    const jwtPayload = handleJWTCookie(req, res);
+    if (jwtPayload !== null && req.body !== undefined && req.body.name !== undefined) {
+      database.createWorkspace(jwtPayload.id, req.body.name);
+    }
+    else {
+      console.log('Invalid create workspace request. Body:', res.body, 'UserID:', jwtPayload.id);
+    }
   });
 }
 

@@ -21,7 +21,15 @@ class WorkspaceList extends React.Component {
   render() {
     return (
       <div className="content">
-        <h1 className="title">Workspaces</h1>
+        <div className="workspacesTitle">
+          <div className="workspacesTitleText">
+            Workspaces
+          </div>
+          <button className="newButton" type="submit" id="newWorkspaceButton">
+            New
+          </button>
+        </div>
+
         <ul className="workspaceList">
           {this.props.workspaces.map((workspace) => this.createItem(workspace))}
         </ul>

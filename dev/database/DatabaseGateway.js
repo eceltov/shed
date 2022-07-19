@@ -1,4 +1,5 @@
 const fs = require('fs');
+const crypto = require('crypto');
 const path = require('path');
 const { roles } = require('../lib/roles');
 
@@ -6,6 +7,8 @@ class DatabaseGateway {
   constructor() {
     this.paths = null;
     this.configPath = path.join(__dirname, 'config.json');
+    this.sha256Hasher = null;
+    this.workspaceHashSalt = null;
   }
 
   initialize() {
@@ -14,6 +17,7 @@ class DatabaseGateway {
     this.paths = config.paths;
     this.paths.usersPath = path.join(__dirname, 'users/');
     this.paths.workspacesPath = path.join(__dirname, 'workspaces/');
+    this.sha256Hasher = crypto.createHmac('sha256', config.workspaceHashSalt);
   }
 
   /**
@@ -36,8 +40,12 @@ class DatabaseGateway {
     return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceRootFolderPath}`;
   }
 
-  getUserWorkspaces(userHash) {
-    const userPath = `${this.paths.usersPath + userHash}.json`;
+  getFileStructurePath(workspaceHash) {
+    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.fileStructurePath}`;
+  }
+
+  getUserWorkspaces(userID) {
+    const userPath = this.getUserPath(userID);
     const JSONString = fs.readFileSync(userPath);
     const userMeta = JSON.parse(JSONString);
     return userMeta.workspaces;
@@ -46,12 +54,12 @@ class DatabaseGateway {
   /**
      * @brief Returns the role of a user in a given workspace.
      * @note The role is a number specified in 'roles.js'.
-     * @param {*} userHash The hash of the user.
+     * @param {*} userID The ID of the user.
      * @param {*} workspaceHash The hash of the workspace.
      * @returns Returns the role number.
      */
-  getUserWorkspaceRole(userHash, workspaceHash) {
-    const workspaces = this.getUserWorkspaces(userHash);
+  getUserWorkspaceRole(userID, workspaceHash) {
+    const workspaces = this.getUserWorkspaces(userID);
     let role = roles.none;
 
     for (let i = 0; i < workspaces.length; i++) {
@@ -76,12 +84,7 @@ class DatabaseGateway {
   }
 
   getFileStructureJSON(workspaceHash) {
-    const raw = fs.readFileSync(`${this.paths.workspacesPath + workspaceHash}/${this.paths.fileStructurePath}`, 'utf8');
-    return JSON.parse(raw);
-  }
-
-  getPathMapJSON(workspaceHash) {
-    const raw = fs.readFileSync(`${this.paths.workspacesPath + workspaceHash}/${this.paths.pathMapPath}`, 'utf8');
+    const raw = fs.readFileSync(this.getFileStructurePath(workspaceHash), 'utf8');
     return JSON.parse(raw);
   }
 
@@ -91,11 +94,7 @@ class DatabaseGateway {
      * @param {*} JSONString The stringified file structure JSON data.
      */
   changeFileStructure(workspaceHash, JSONString) {
-    fs.writeFileSync(`${this.paths.workspacesPath + workspaceHash}/${this.paths.fileStructurePath}`, JSONString);
-  }
-
-  changePathMap(workspaceHash, JSONString) {
-    fs.writeFileSync(`${this.paths.workspacesPath + workspaceHash}/${this.paths.pathMapPath}`, JSONString);
+    fs.writeFileSync(this.getFileStructurePath(workspaceHash), JSONString);
   }
 
   /**
@@ -170,6 +169,60 @@ class DatabaseGateway {
     }
     catch (err) {
       console.error(err);
+    }
+  }
+
+  getUserPath(userID) {
+    return `${this.paths.usersPath + userID}.json`;
+  }
+
+  addUserWorkspace(userID, workspaceHash, workspaceName, role) {
+    const userPath = this.getUserPath(userID);
+    const JSONString = fs.readFileSync(userPath);
+    const userMeta = JSON.parse(JSONString);
+    if (!userMeta.workspaces.some((workspace) => workspace.id === workspaceHash)) {
+      userMeta.workspaces.push({
+        id: workspaceHash,
+        name: workspaceName,
+        role,
+      });
+      fs.writeFileSync(userPath, JSON.stringify(userMeta));
+    }
+    else {
+      console.log('DB Error: Adding already present workspace.');
+    }
+  }
+
+  createWorkspace(ownerID, name) {
+    try {
+      const hash = this.sha256Hasher.update(name).digest('hex');
+
+      const workspacePath = this.paths.workspacesPath + hash;
+      // create workspace folder
+      fs.mkdirSync(workspacePath);
+      // create root folder
+      fs.mkdirSync(this.getWorkspaceRootPath(hash));
+
+      const defaultStructure = {
+        nextID: 1,
+        type: 1,
+        ID: 0,
+        name,
+        items: {},
+      };
+
+      // create structure.json file
+      fs.writeFileSync(this.getFileStructurePath(hash), JSON.stringify(defaultStructure));
+
+      // add workspace entry to owner
+      // this is added last so that all workspaces listed in user config are valid
+      this.addUserWorkspace(ownerID, hash, name, roles.owner);
+
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
     }
   }
 }

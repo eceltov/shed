@@ -2,6 +2,7 @@
 /* eslint-disable global-require */
 const express = require('express');
 const cookieParser = require('cookie-parser');
+const bodyParser = require('body-parser');
 const path = require('path');
 const fs = require('fs');
 const walker = require('node-walker');
@@ -37,6 +38,7 @@ class Controller {
 
     app.use(express.json());
     app.use(cookieParser());
+    app.use(bodyParser.urlencoded({ extended: true }));
 
     // handle bad jwt
     /*app.use((err, req, res, next) => {
@@ -48,9 +50,10 @@ class Controller {
       }
     });*/
 
-    app.use('/client', express.static(path.join(__dirname, '/../client')));
-    app.use('/lib', express.static(path.join(__dirname, '/../lib')));
+    app.use('/client', express.static(path.join(__dirname, '/../client/bundles')));
+    app.use('/styles', express.static(path.join(__dirname, '/../client/styles')));
     app.use('/editor', express.static(path.join(__dirname, '/../editor')));
+    app.use('/main/static', express.static(path.join(__dirname, '/views/main/static')));
 
     // load routes
     walker(this.routesFolder, (err, filename, next) => {
