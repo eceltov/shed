@@ -15,19 +15,21 @@ class HeaderBar extends React.Component {
         <a href="/" className="logo">
           ShEd
         </a>
-        {
-          this.props.authenticated
-            ? (
-              <a href="/logout" className="login barLink">
-                Log Out
-              </a>
-            )
-            : (
-              <a href={`/?token=${JWT}`} className="login barLink">
-                Log In
-              </a>
-            )
-        }
+        <div className="right">
+          {
+            this.props.authenticated
+              ? (
+                <a href="/logout" className="login barLink">
+                  Log Out
+                </a>
+              )
+              : (
+                <a href={`/?token=${JWT}`} className="login barLink">
+                  Log In
+                </a>
+              )
+          }
+        </div>
       </div>
     );
   }

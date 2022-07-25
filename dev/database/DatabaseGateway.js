@@ -7,7 +7,6 @@ class DatabaseGateway {
   constructor() {
     this.paths = null;
     this.configPath = path.join(__dirname, 'config.json');
-    this.sha256Hasher = null;
     this.workspaceHashSalt = null;
   }
 
@@ -17,7 +16,7 @@ class DatabaseGateway {
     this.paths = config.paths;
     this.paths.usersPath = path.join(__dirname, 'users/');
     this.paths.workspacesPath = path.join(__dirname, 'workspaces/');
-    this.sha256Hasher = crypto.createHmac('sha256', config.workspaceHashSalt);
+    this.workspaceHashSalt = config.workspaceHashSalt;
   }
 
   /**
@@ -42,6 +41,10 @@ class DatabaseGateway {
 
   getFileStructurePath(workspaceHash) {
     return `${this.paths.workspacesPath + workspaceHash}/${this.paths.fileStructurePath}`;
+  }
+
+  getWorkspaceUsersPath(workspaceHash) {
+    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceUsersPath}`;
   }
 
   getUserWorkspaces(userID) {
@@ -193,9 +196,24 @@ class DatabaseGateway {
     }
   }
 
+  removeUserWorkspace(userID, workspaceHash) {
+    const userPath = this.getUserPath(userID);
+    const JSONString = fs.readFileSync(userPath);
+    const userMeta = JSON.parse(JSONString);
+    const workspaceIdx = userMeta.workspaces.findIndex(
+      (workspace) => workspace.id === workspaceHash,
+    );
+
+    if (workspaceIdx !== -1) {
+      userMeta.workspaces.splice(workspaceIdx, 1);
+      fs.writeFileSync(userPath, JSON.stringify(userMeta));
+    }
+  }
+
   createWorkspace(ownerID, name) {
     try {
-      const hash = this.sha256Hasher.update(name).digest('hex');
+      const sha256Hasher = crypto.createHmac('sha256', this.workspaceHashSalt);
+      const hash = sha256Hasher.update(name).digest('hex');
 
       const workspacePath = this.paths.workspacesPath + hash;
       // create workspace folder
@@ -211,12 +229,41 @@ class DatabaseGateway {
         items: {},
       };
 
+      const defaultUsers = {
+        [ownerID]: roles.owner,
+      };
+
       // create structure.json file
       fs.writeFileSync(this.getFileStructurePath(hash), JSON.stringify(defaultStructure));
+
+      // create users.json file
+      fs.writeFileSync(this.getWorkspaceUsersPath(hash), JSON.stringify(defaultUsers));
 
       // add workspace entry to owner
       // this is added last so that all workspaces listed in user config are valid
       this.addUserWorkspace(ownerID, hash, name, roles.owner);
+
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  deleteWorkspace(workspaceHash) {
+    try {
+      const workspacePath = this.paths.workspacesPath + workspaceHash;
+
+      // get all user IDs
+      const usersData = JSON.parse(fs.readFileSync(this.getWorkspaceUsersPath(workspaceHash), 'utf8'));
+      const userIDs = Object.keys(usersData);
+
+      // remove user entries
+      userIDs.forEach((id) => this.removeUserWorkspace(id, workspaceHash));
+
+      // remove workspace folder
+      fs.rmSync(workspacePath, { recursive: true });
 
       return true;
     }

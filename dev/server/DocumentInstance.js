@@ -296,6 +296,7 @@ class DocumentInstance {
 
   /// TODO: what should happen here? Make clients unable to edit the document,
   ///   but what about messages on the way?
+  /// this should be a hard close, messages on the way will be lost
   closeInstance() {
     /* // send closing message
         let clientIterator = this.clients.values();

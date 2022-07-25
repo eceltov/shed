@@ -2,7 +2,7 @@ const DocumentInstance = require('./DocumentInstance');
 const { msgTypes } = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const fsOps = require('../lib/fileStructureOps');
-const { canManageFiles, canView } = require('../lib/roles');
+const { canManageFiles, canView, roles } = require('../lib/roles');
 
 /// TODO: save structure.json and pathMap.json regularly, else progress may be lost
 
@@ -150,6 +150,9 @@ class WorkspaceInstance {
     else if (message.msgType === msgTypes.client.closeDocument) {
       this.handleCloseDocument(message, clientID);
     }
+    else if (message.msgType === msgTypes.client.deleteWorkspace) {
+      this.handleDeleteWorkspace(message, clientID);
+    }
     // Operation, the client want to use the functionality of a document instance
     else {
       const fileID = (message.msgType === undefined) ? message[2] : message.fileID;
@@ -233,6 +236,25 @@ class WorkspaceInstance {
     else {
       /// TODO: log failure
     }
+  }
+
+  handleDeleteWorkspace(message, clientID) {
+    if (this.getClientRole(clientID) !== roles.owner) {
+      /// TODO: log deletion attempt
+      return;
+    }
+
+    // notify clients
+    this.sendMessageToClients(JSON.stringify(msgFactory.deleteWorkspace()));
+
+    // close all connections
+    const clientIterator = this.clients.values();
+    for (let i = 0; i < this.clients.size; i++) {
+      const client = clientIterator.next().value;
+      client.connection.close();
+    }
+
+    this.database.deleteWorkspace(this.workspaceHash);
   }
 
   handleRenameFile(message, clientID) {

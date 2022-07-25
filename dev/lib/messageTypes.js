@@ -19,6 +19,8 @@ const msgTypes = {
     renameFile: 7,
     // sent to stop receiving operations from that document: {msgType, fileID}
     closeDocument: 8,
+    // sent to delete a workspace: {msgType}
+    deleteWorkspace: 9,
   },
 
   // messages sent by server
@@ -45,6 +47,8 @@ const msgTypes = {
     renameFile: 60,
     // sent after failed token verification: {msgType}
     failedValidation: 61,
+    // sent before the workspace deletes: {msgType}
+    deleteWorkspace: 62,
   },
 };
 

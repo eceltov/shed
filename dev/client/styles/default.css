@@ -278,20 +278,33 @@ Notes: handle bigger and smaller resolutions
     height: calc(100vh - var(--top-bar-height));
     margin-top: var(--top-bar-height);
     background-color: rgb(35,35,35);
+    color: var(--main-font-color);
+}
+
+.right {
+    float: right;
+    white-space: nowrap;
+}
+
+.options {
+    display: inline;
+    margin-top: 5px;
+    margin-right: 1vw;
+    font-size: large;
 }
 
 .login {
-    float: right;
+    display: inline;
     margin-top: 5px;
-    margin-right: 1%;
+    margin-right: 1vw;
     font-size: large;
 }
 
 .logo {
+    display: inline-block;
     color: var(--main-font-color);
-    float: left;
     margin-top: 5px;
-    margin-left: 1%;
+    margin-left: 1vw;
     font-size: xx-large;
     font-weight: bold;
 }
@@ -377,7 +390,8 @@ Notes: handle bigger and smaller resolutions
     font-size: x-large;
     width: 92%;
     height: 50px;
-  }
+    margin-top: 5vh;
+}
 
 .inlineBlock {
     display: inline-block;

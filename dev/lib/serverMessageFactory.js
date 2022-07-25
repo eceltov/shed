@@ -92,7 +92,13 @@ function failedValidation() {
   };
 }
 
+function deleteWorkspace() {
+  return {
+    msgType: msgTypes.server.deleteWorkspace,
+  };
+}
+
 module.exports = {
   initialize, initWorkspace, initDocument, GCMetadataRequest, GC, createDocument,
-  createFolder, deleteDocument, deleteFolder, renameFile, failedValidation,
+  createFolder, deleteDocument, deleteFolder, renameFile, failedValidation, deleteWorkspace,
 };

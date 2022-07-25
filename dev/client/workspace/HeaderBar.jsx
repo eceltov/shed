@@ -4,6 +4,12 @@ class HeaderBar extends React.Component {
   constructor(props) {
     super(props);
     this.state = {};
+
+    this.handleOptionsClick = this.handleOptionsClick.bind(this);
+  }
+
+  handleOptionsClick() {
+    this.props.showOptionsView();
   }
 
   render() {
@@ -12,9 +18,14 @@ class HeaderBar extends React.Component {
         <a href="/" className="logo">
           ShEd
         </a>
-        <a href="/logout" className="login barLink">
-          Log Out
-        </a>
+        <div className="right">
+          <div role="button" tabIndex={0} className="options barLink" onClick={this.handleOptionsClick}>
+            Options
+          </div>
+          <a href="/logout" className="login barLink">
+            Log Out
+          </a>
+        </div>
       </div>
     );
   }

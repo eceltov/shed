@@ -1,48 +1,57 @@
 const { msgTypes } = require('./messageTypes');
 
-function createDocument(clientID, parentID, name) {
+function getDocument(fileID) {
+  return {
+    msgType: msgTypes.client.getDocument,
+    fileID,
+  };
+}
+
+function createDocument(parentID, name) {
   return {
     msgType: msgTypes.client.createDocument,
-    clientID,
     parentID,
     name,
   };
 }
 
-function createFolder(clientID, parentID, name) {
+function createFolder(parentID, name) {
   return {
     msgType: msgTypes.client.createFolder,
-    clientID,
     parentID,
     name,
   };
 }
 
-function deleteDocument(clientID, fileID) {
+function deleteDocument(fileID) {
   return {
     msgType: msgTypes.client.deleteDocument,
-    clientID,
     fileID,
   };
 }
 
-function deleteFolder(clientID, fileID) {
+function deleteFolder(fileID) {
   return {
     msgType: msgTypes.client.deleteFolder,
-    clientID,
     fileID,
   };
 }
 
-function renameFile(clientID, fileID, name) {
+function renameFile(fileID, name) {
   return {
     msgType: msgTypes.client.renameFile,
-    clientID,
     fileID,
     name,
+  };
+}
+
+function deleteWorkspace() {
+  return {
+    msgType: msgTypes.client.deleteWorkspace,
   };
 }
 
 module.exports = {
-  createDocument, createFolder, deleteDocument, deleteFolder, renameFile,
+  createDocument, createFolder, deleteDocument, deleteFolder, renameFile, deleteWorkspace,
+  getDocument,
 };

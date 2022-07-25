@@ -11,6 +11,7 @@ const { msgTypes } = require('../../lib/messageTypes');
 const roles = require('../../lib/roles');
 const utils = require('../../lib/utils');
 const HeaderBar = require('./HeaderBar');
+const OptionsScreen = require('./OptionsScreen');
 
 const CSLatency = 0;
 const SCLatency = 0;
@@ -33,7 +34,6 @@ class Workspace extends React.Component {
     this.onInitWorkspace = this.onInitWorkspace.bind(this);
     this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
     this.onGC = this.onGC.bind(this);
-    this.mountEditor = this.mountEditor.bind(this);
     this.getTabBar = this.getTabBar.bind(this);
     this.createDocument = this.createDocument.bind(this);
     this.createFolder = this.createFolder.bind(this);
@@ -41,11 +41,14 @@ class Workspace extends React.Component {
     this.deleteFolder = this.deleteFolder.bind(this);
     this.deleteFile = this.deleteFile.bind(this);
     this.renameFile = this.renameFile.bind(this);
+    this.showOptionsView = this.showOptionsView.bind(this);
+    this.deleteWorkspace = this.deleteWorkspace.bind(this);
     this.state = {
       role: roles.none,
       fileStructure: null,
       activeTab: null, // fileID of active document
       activeFile: null,
+      showingOptions: false,
       tabs: [], // fileIDs in the same order as the final tabs
       aceTheme: 'ace/theme/chaos',
     };
@@ -140,6 +143,7 @@ class Workspace extends React.Component {
       this.setState({
         activeTab: fileID,
         activeFile: fileID,
+        showingOptions: false,
       });
     }
     // if the document is already requested, do nothing (wait for it)
@@ -200,12 +204,14 @@ class Workspace extends React.Component {
         tabs: newTabs,
         activeTab: newActiveTab,
         activeFile: newActiveFile,
+        showingOptions: false,
       });
     }
     else {
       stateSnapshot.tabs = newTabs;
       stateSnapshot.activeTab = newActiveTab;
       stateSnapshot.activeFile = newActiveFile;
+      stateSnapshot.showingOptions = false;
     }
   }
 
@@ -253,10 +259,7 @@ class Workspace extends React.Component {
      * @param fileID The ID of a document.
      */
   requestDocument(fileID) {
-    const message = {
-      msgType: msgTypes.client.getDocument,
-      fileID,
-    };
+    const message = msgFactory.getDocument(fileID);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
@@ -357,6 +360,7 @@ class Workspace extends React.Component {
       this.setState((prevState) => ({
         tabs: [message.fileID, ...prevState.tabs],
         activeTab: message.fileID,
+        showingOptions: false,
       }));
     }
   }
@@ -415,25 +419,25 @@ class Workspace extends React.Component {
     const parentID = fsOps.getSpawnParentID(
       this.state.fileStructure, this.pathMap, this.state.activeFile,
     );
-    const message = msgFactory.createDocument(this.state.clientID, parentID, name);
+    const message = msgFactory.createDocument(parentID, name);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
   createFolder(name) {
     const parentID = fsOps.getSpawnParentID(
-      this.state.fileStructure, this.pathMap, this.state.activeFile,
+      this.state.fileStructure, this.pathMap, this.state.activeFile ?? 0, /// TODO: default fileID should not be a literal here
     );
-    const message = msgFactory.createFolder(this.state.clientID, parentID, name);
+    const message = msgFactory.createFolder(parentID, name);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
   deleteDocument() {
-    const message = msgFactory.deleteDocument(this.state.clientID, this.state.activeFile);
+    const message = msgFactory.deleteDocument(this.state.activeFile);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
   deleteFolder() {
-    const message = msgFactory.deleteFolder(this.state.clientID, this.state.activeFile);
+    const message = msgFactory.deleteFolder(this.state.activeFile);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
@@ -457,7 +461,7 @@ class Workspace extends React.Component {
       this.state.fileStructure, this.pathMap, this.state.activeFile,
     );
     if (name !== newName) {
-      const message = msgFactory.renameFile(this.state.clientID, this.state.activeFile, newName);
+      const message = msgFactory.renameFile(this.state.activeFile, newName);
       this.sendMessageToServer(JSON.stringify(message));
     }
   }
@@ -557,6 +561,18 @@ class Workspace extends React.Component {
     });
   }
 
+  deleteWorkspace() {
+    const message = msgFactory.deleteWorkspace();
+    this.sendMessageToServer(JSON.stringify(message));
+  }
+
+  showOptionsView() {
+    this.setState((prevState) => ({
+      activeTab: null,
+      showingOptions: true,
+    }));
+  }
+
   mountEditor() {
     const editor = ace.edit('editor');
     editor.setTheme(this.state.aceTheme);
@@ -571,6 +587,37 @@ class Workspace extends React.Component {
   componentDidMount() {
     this.connect();
     this.mountEditor();
+  }
+
+  renderContent() {
+    // welcome view
+    if (this.state.tabs.length === 0 && !this.state.showingOptions) {
+      return (
+        <div className="content">
+          <WelcomeScreen />
+          <div id="editor" key="0" hidden={this.state.activeTab === null} />
+        </div>
+      );
+    }
+
+    // options view
+    if (this.state.showingOptions) {
+      return (
+        <div className="content">
+          {this.state.tabs.length > 0 ? this.getTabBar() : null}
+          <OptionsScreen deleteWorkspace={this.deleteWorkspace} />
+          <div id="editor" key="0" hidden={this.state.activeTab === null} />
+        </div>
+      );
+    }
+
+    // document view
+    return (
+      <div className="content">
+        {this.getTabBar()}
+        <div id="editor" key="0" hidden={this.state.activeTab === null} />
+      </div>
+    );
   }
 
   render() {
@@ -588,7 +635,7 @@ class Workspace extends React.Component {
 
     return (
       <div className="main">
-        <HeaderBar />
+        <HeaderBar showOptionsView={this.showOptionsView} />
         <div id="leftBar">
           <FileStructure
             fileStructure={this.state.fileStructure}
@@ -602,10 +649,7 @@ class Workspace extends React.Component {
           />
         </div>
 
-        <div className="content">
-          {this.state.activeTab === null ? <WelcomeScreen /> : this.getTabBar()}
-          <div id="editor" hidden={this.state.activeTab === null} />
-        </div>
+        {this.renderContent()}
       </div>
     );
   }
