@@ -12,6 +12,7 @@ const roles = require('../../lib/roles');
 const utils = require('../../lib/utils');
 const HeaderBar = require('./HeaderBar');
 const OptionsScreen = require('./OptionsScreen');
+const Editor = require('./Editor');
 
 const CSLatency = 0;
 const SCLatency = 0;
@@ -23,7 +24,6 @@ const EditSession = ace.require('ace/edit_session').EditSession;
 class Workspace extends React.Component {
   constructor(props) {
     super(props);
-    this.setReadOnly = this.setReadOnly.bind(this);
     this.sendMessageToServer = this.sendMessageToServer.bind(this);
     this.selectFile = this.selectFile.bind(this);
     this.openDocument = this.openDocument.bind(this);
@@ -35,12 +35,6 @@ class Workspace extends React.Component {
     this.onGCMetadataRequest = this.onGCMetadataRequest.bind(this);
     this.onGC = this.onGC.bind(this);
     this.getTabBar = this.getTabBar.bind(this);
-    this.createDocument = this.createDocument.bind(this);
-    this.createFolder = this.createFolder.bind(this);
-    this.deleteDocument = this.deleteDocument.bind(this);
-    this.deleteFolder = this.deleteFolder.bind(this);
-    this.deleteFile = this.deleteFile.bind(this);
-    this.renameFile = this.renameFile.bind(this);
     this.showOptionsView = this.showOptionsView.bind(this);
     this.deleteWorkspace = this.deleteWorkspace.bind(this);
     this.state = {
@@ -55,7 +49,7 @@ class Workspace extends React.Component {
 
     // eslint-disable-next-line react/no-unused-class-component-methods
     this.connection = null;
-    this.editor = null;
+    this.editor = new Editor(this.state.aceTheme);
     this.clientID = null;
 
     /** contains fileIDs of documents requested from the server that did not arrive yet */
@@ -71,7 +65,7 @@ class Workspace extends React.Component {
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
-  connect = () => {
+  connect() {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
     const token = utils.getCookie('jwt');
@@ -102,12 +96,6 @@ class Workspace extends React.Component {
       // console.log("recv message", message.data);
       that.serverMessageProcessor(message);
     };
-  };
-
-  setReadOnly(readOnly) {
-    const state = this.editor.getOption('readOnly');
-    this.editor.setOption('readOnly', readOnly);
-    return state;
   }
 
   /**
@@ -268,44 +256,42 @@ class Workspace extends React.Component {
     console.log('Received message:', JSON.stringify(message));
     const type = message.msgType;
 
-    if (type === undefined) {
-      this.onOperation(message);
-    }
-    /* else if (type === msgTypes.server.initialize) {
-            this.onInitialize(message);
-        } */
-    else if (type === msgTypes.server.initWorkspace) {
-      this.onInitWorkspace(message);
-    }
-    else if (type === msgTypes.server.initDocument) {
-      this.onInitDocument(message);
-    }
-    else if (type === msgTypes.server.GCMetadataRequest) {
-      this.onGCMetadataRequest(message);
-    }
-    else if (type === msgTypes.server.GC) {
-      this.onGC(message);
-    }
-    else if (type === msgTypes.server.createDocument) {
-      this.onCreateDocument(message);
-    }
-    else if (type === msgTypes.server.createFolder) {
-      this.onCreateFolder(message);
-    }
-    else if (type === msgTypes.server.deleteDocument) {
-      this.onDeleteDocument(message);
-    }
-    else if (type === msgTypes.server.deleteFolder) {
-      this.onDeleteFolder(message);
-    }
-    else if (type === msgTypes.server.renameFile) {
-      this.onRenameFile(message);
-    }
-    else if (type === msgTypes.server.failedValidation) {
-      this.onFailedvalidation(message);
-    }
-    else {
-      console.log(`Received unknown message type: ${JSON.stringify(message)}`);
+    switch (type) {
+      case undefined:
+        this.onOperation(message);
+        break;
+      case msgTypes.server.initWorkspace:
+        this.onInitWorkspace(message);
+        break;
+      case msgTypes.server.initDocument:
+        this.onInitDocument(message);
+        break;
+      case msgTypes.server.GCMetadataRequest:
+        this.onGCMetadataRequest(message);
+        break;
+      case msgTypes.server.GC:
+        this.onGC(message);
+        break;
+      case msgTypes.server.createDocument:
+        this.onCreateDocument(message);
+        break;
+      case msgTypes.server.createFolder:
+        this.onCreateFolder(message);
+        break;
+      case msgTypes.server.deleteDocument:
+        this.onDeleteDocument(message);
+        break;
+      case msgTypes.server.deleteFolder:
+        this.onDeleteFolder(message);
+        break;
+      case msgTypes.server.renameFile:
+        this.onRenameFile(message);
+        break;
+      case msgTypes.server.failedValidation:
+        this.onFailedvalidation(message);
+        break;
+      default:
+        console.error('Invalid message type. Message:', JSON.stringify(message));
     }
   }
 
@@ -353,7 +339,7 @@ class Workspace extends React.Component {
       }
 
       const managedSession = new ManagedSession(
-        session, this.clientID, commitSerialNumber, this.sendMessageToServer, message, this.setReadOnly,
+        session, this.clientID, commitSerialNumber, this.sendMessageToServer, message, this.editor.setReadOnly,
       );
 
       this.openedDocuments.set(message.fileID, managedSession);
@@ -392,6 +378,7 @@ class Workspace extends React.Component {
      * @param message Operation send by the server
      */
   onOperation(message) {
+    /// TODO: unused cursor position
     const oldCursorPosition = this.editor.getCursorPosition();
 
     if (!this.openedDocuments.has(message[2])) {
@@ -413,57 +400,6 @@ class Workspace extends React.Component {
         closeDocument={this.closeDocument}
       />
     );
-  }
-
-  createDocument(name) {
-    const parentID = fsOps.getSpawnParentID(
-      this.state.fileStructure, this.pathMap, this.state.activeFile,
-    );
-    const message = msgFactory.createDocument(parentID, name);
-    this.sendMessageToServer(JSON.stringify(message));
-  }
-
-  createFolder(name) {
-    const parentID = fsOps.getSpawnParentID(
-      this.state.fileStructure, this.pathMap, this.state.activeFile ?? 0, /// TODO: default fileID should not be a literal here
-    );
-    const message = msgFactory.createFolder(parentID, name);
-    this.sendMessageToServer(JSON.stringify(message));
-  }
-
-  deleteDocument() {
-    const message = msgFactory.deleteDocument(this.state.activeFile);
-    this.sendMessageToServer(JSON.stringify(message));
-  }
-
-  deleteFolder() {
-    const message = msgFactory.deleteFolder(this.state.activeFile);
-    this.sendMessageToServer(JSON.stringify(message));
-  }
-
-  deleteFile() {
-    const fileObj = fsOps.getFileObject(
-      this.state.fileStructure, this.pathMap, this.state.activeFile,
-    );
-    if (fileObj !== null && fileObj.type === fsOps.types.document) {
-      this.deleteDocument();
-    }
-    else if (fileObj !== null && fileObj.type === fsOps.types.folder) {
-      this.deleteFolder();
-    }
-    else {
-      console.log('Deleting unknown file:', fileObj);
-    }
-  }
-
-  renameFile(newName) {
-    const name = fsOps.getFileNameFromID(
-      this.state.fileStructure, this.pathMap, this.state.activeFile,
-    );
-    if (name !== newName) {
-      const message = msgFactory.renameFile(this.state.activeFile, newName);
-      this.sendMessageToServer(JSON.stringify(message));
-    }
   }
 
   onCreateDocument(message) {
@@ -573,20 +509,9 @@ class Workspace extends React.Component {
     }));
   }
 
-  mountEditor() {
-    const editor = ace.edit('editor');
-    editor.setTheme(this.state.aceTheme);
-    editor.setReadOnly(true);
-    editor.setOptions({
-      fontSize: '12pt',
-      printMarginColumn: 100,
-    });
-    this.editor = editor;
-  }
-
   componentDidMount() {
     this.connect();
-    this.mountEditor();
+    this.editor.mount();
   }
 
   renderContent() {
@@ -622,7 +547,7 @@ class Workspace extends React.Component {
 
   render() {
     // set readonly if neccessarry and mount correct session
-    if (this.state.activeTab !== null && this.editor !== null) {
+    if (this.state.activeTab !== null && this.editor.mounted) {
       this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
 
       if (!roles.canEdit(this.state.role)) {
@@ -638,14 +563,11 @@ class Workspace extends React.Component {
         <HeaderBar showOptionsView={this.showOptionsView} />
         <div id="leftBar">
           <FileStructure
+            sendMessageToServer={this.sendMessageToServer}
             fileStructure={this.state.fileStructure}
             pathMap={this.pathMap}
             activeFile={this.state.activeFile}
             selectFile={this.selectFile}
-            createDocument={this.createDocument}
-            createFolder={this.createFolder}
-            deleteFile={this.deleteFile}
-            renameFile={this.renameFile}
           />
         </div>
 

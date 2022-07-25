@@ -2,6 +2,7 @@ const React = require('react');
 const FileStructureFolder = require('./FileStructureFolder');
 const FileOperation = require('./FileOperation');
 const fsOps = require('../../lib/fileStructureOps');
+const msgFactory = require('../../lib/clientMessageFactory');
 
 class FileStructure extends React.Component {
   constructor(props) {
@@ -66,7 +67,7 @@ class FileStructure extends React.Component {
   }
 
   onDeleteFile() {
-    this.props.deleteFile();
+    this.deleteFile();
   }
 
   onRenameFile() {
@@ -85,17 +86,59 @@ class FileStructure extends React.Component {
   // callbacks for FileStructure components
   createDocument(name) {
     this.setState({ toSpawnDocument: null });
-    this.props.createDocument(name);
+
+    const parentID = fsOps.getSpawnParentID(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile,
+    );
+    const message = msgFactory.createDocument(parentID, name);
+    this.props.sendMessageToServer(JSON.stringify(message));
   }
 
   createFolder(name) {
     this.setState({ toSpawnFolder: null });
-    this.props.createFolder(name);
+
+    const parentID = fsOps.getSpawnParentID(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile ?? 0, /// TODO: default fileID should not be a literal here
+    );
+    const message = msgFactory.createFolder(parentID, name);
+    this.props.sendMessageToServer(JSON.stringify(message));
   }
 
   renameFile(newName) {
     this.setState({ toBeRenamed: null });
-    this.props.renameFile(newName);
+
+    const name = fsOps.getFileNameFromID(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile,
+    );
+    if (name !== newName) {
+      const message = msgFactory.renameFile(this.props.activeFile, newName);
+      this.sendMessageToServer(JSON.stringify(message));
+    }
+  }
+
+  deleteDocument() {
+    const message = msgFactory.deleteDocument(this.props.activeFile);
+    this.props.sendMessageToServer(JSON.stringify(message));
+  }
+
+  deleteFolder() {
+    const message = msgFactory.deleteFolder(this.props.activeFile);
+    this.props.sendMessageToServer(JSON.stringify(message));
+  }
+
+  deleteFile() {
+    const fileObj = fsOps.getFileObject(
+      this.props.fileStructure, this.props.pathMap, this.props.activeFile,
+    );
+    if (fileObj !== null && fileObj.type === fsOps.types.document) {
+      this.deleteDocument();
+    }
+    else if (fileObj !== null && fileObj.type === fsOps.types.folder) {
+      this.deleteFolder();
+    }
+    else {
+      console.log('Deleting unknown file:', fileObj);
+    }
   }
 
   clearState() {
