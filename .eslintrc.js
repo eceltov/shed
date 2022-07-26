@@ -41,7 +41,6 @@ module.exports = {
     'no-param-reassign': 'off',
     'no-plusplus': 'off',
     'no-continue': 'off',
-    'indent': ['error', 2, { 'MemberExpression': 'off'}],
     'no-lonely-if': 'off',
   },
 };

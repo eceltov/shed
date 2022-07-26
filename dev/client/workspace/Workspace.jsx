@@ -290,9 +290,17 @@ class Workspace extends React.Component {
       case msgTypes.server.failedValidation:
         this.onFailedvalidation(message);
         break;
+      case msgTypes.server.deleteWorkspace:
+        this.onDeleteWorkspace(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
+  }
+
+  // eslint-disable-next-line class-methods-use-this
+  onDeleteWorkspace(message) {
+    window.location.href = '/';
   }
 
   onFailedvalidation(message) {
