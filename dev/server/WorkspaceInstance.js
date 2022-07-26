@@ -37,6 +37,8 @@ class WorkspaceInstance {
     this.fileStructure = null;
 
     this.loggingEnabled = false;
+
+    this.deleted = false;
   }
 
   /// TODO: not implemented
@@ -150,9 +152,6 @@ class WorkspaceInstance {
     else if (message.msgType === msgTypes.client.closeDocument) {
       this.handleCloseDocument(message, clientID);
     }
-    else if (message.msgType === msgTypes.client.deleteWorkspace) {
-      this.handleDeleteWorkspace(message, clientID);
-    }
     // Operation, the client want to use the functionality of a document instance
     else {
       const fileID = (message.msgType === undefined) ? message[2] : message.fileID;
@@ -238,11 +237,22 @@ class WorkspaceInstance {
     }
   }
 
-  handleDeleteWorkspace(message, clientID) {
+  /**
+   * @brief Deletes the workspace.
+   * @param {*} clientID The ID of the client.
+   * @returns Returns whether the deletion succeeded.
+   */
+  delete(clientID) {
+    if (!this.clients.has(clientID)) {
+      console.error('Error: Invalid clientID when deleting workspace:', clientID);
+    }
+
     if (this.getClientRole(clientID) !== roles.owner) {
       /// TODO: log deletion attempt
-      return;
+      return false;
     }
+
+    console.log('Deleting Workspace');
 
     // notify clients
     this.sendMessageToClients(JSON.stringify(msgFactory.deleteWorkspace()));
@@ -255,6 +265,9 @@ class WorkspaceInstance {
     }
 
     this.database.deleteWorkspace(this.workspaceHash);
+
+    this.deleted = true;
+    return true;
   }
 
   handleRenameFile(message, clientID) {

@@ -386,15 +386,25 @@ Notes: handle bigger and smaller resolutions
     outline: none;
     box-shadow: none;
     border: none;
-    margin: 5px 0 5px 0;
+    margin: 5vh 0 5px 0;
     font-size: x-large;
     width: 92%;
     height: 50px;
-    margin-top: 5vh;
 }
 
 .inlineBlock {
     display: inline-block;
+}
+
+.deleteWorkspaceButton {
+    background: rgb(228, 67, 4);
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    margin: 5px;
+    font-size: large;
 }
 
 #editor { 

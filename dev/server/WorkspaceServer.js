@@ -110,7 +110,7 @@ class Server {
      */
   removeConnection(clientID) {
     const client = this.clients.get(clientID);
-    if (client.workspace !== null) {
+    if (client.workspace !== null && !client.workspace.deleted) {
       client.workspace.removeConnection(clientID);
     }
     this.clients.delete(clientID);
@@ -196,10 +196,20 @@ class Server {
         }
       }
     }
+    else if (message.msgType === msgTypes.client.deleteWorkspace) {
+      this.handleDeleteWorkspace(message, clientID);
+    }
     // the client want to use the functionality of a workspace instance
     else {
       const workspace = this.clients.get(clientID).workspace;
       workspace.clientMessageProcessor(message, clientID);
+    }
+  }
+
+  handleDeleteWorkspace(message, clientID) {
+    const workspace = this.clients.get(clientID).workspace;
+    if (workspace.delete(clientID)) {
+      this.workspaces.delete(workspace.workspaceHash);
     }
   }
 
@@ -217,6 +227,7 @@ class Server {
       return null;
     }
   }
+
 
   /**
      * @brief Connects a client to a workspace. Initializes the workspace if necessary.
