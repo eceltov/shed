@@ -8,3 +8,6 @@ dev/testing/randomizedTests/indepDepIdentity/failedScenarios.json
 node_modules
 dev/client/bundles/
 dev/editor/
+dev/WebSocketServer/.vs
+dev/WebSocketServer/bin
+dev/WebSocketServer/obj

@@ -20,7 +20,7 @@ namespace Example3
 
         public static void Main(string[] args)
         {
-            var httpsv = new HttpServer("http://localhost:8080");
+            var httpsv = new HttpServer(80);
 
             // Add the WebSocket services.
             httpsv.AddWebSocketService<Echo>("/");
