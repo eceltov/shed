@@ -1,0 +1,6 @@
+{
+  "test": "sadf",
+  "JWT": {
+    "Secret": "secretsecretsecretsecretsecretsecret"
+  }
+}

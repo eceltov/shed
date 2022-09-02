@@ -3,8 +3,12 @@ version: '3.4'
 services:
   websocketserver:
     image: ${DOCKER_REGISTRY-}websocketserver
+    environment:
+      - PATH_TO_CONFIG=./Configuration/config.json
     build:
       context: .
       dockerfile: WebSocketServer/Dockerfile
     ports:
       - '8080:80'
+    volumes:
+      - ${PATH_TO_VOLUMES}/Configuration:/app/Configuration

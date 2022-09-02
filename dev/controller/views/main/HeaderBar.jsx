@@ -1,7 +1,7 @@
 const React = require('react');
 
 /// TODO: remove this
-const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpYXQiOjE1MTYyMzkwMjIsImlkIjoiMDAwMDAwMDAiLCJmaXJzdE5hbWUiOiJBZGFtIiwibGFzdE5hbWUiOiJUZXN0ZXIiLCJtYWlsIjoiYWRhbS50ZXN0ZXJAZXhhbXBsZS5jb20iLCJyb2xlIjoidGVzdCJ9.h3DpEIzH9voWwGLTSpMJICornCx0OEIMnvW_zXepW64";
+const JWT = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMDAwMDAwIiwiZmlyc3ROYW1lIjoiQWRhbSIsImxhc3ROYW1lIjoiVGVzdGVyIiwibWFpbCI6ImFkYW0udGVzdGVyQGV4YW1wbGUuY29tIiwicm9sZSI6InRlc3QiLCJuYmYiOjE2NjIxMzg2NzEsImV4cCI6MTY2MjE0MjI3MSwiaWF0IjoxNjYyMTM4NjcxfQ.WiyQ9AAZXZBr_8R2Jx1U-EPm7D_28fy2MUrcM1U60DM";
 
 class HeaderBar extends React.Component {
   constructor(props) {

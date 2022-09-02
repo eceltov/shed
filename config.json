@@ -5,5 +5,5 @@
     "WebSocketDomain": "ws://localhost" 
   },
 
-  "jwtSecret": "secret"
+  "jwtSecret": "secretsecretsecretsecretsecretsecret"
 }
