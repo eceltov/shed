@@ -3,20 +3,37 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WebSocketServer.Data;
 using WebSocketServer.MessageProcessing;
+using WebSocketServer.Parsers.DatabaseParsers;
 
 namespace WebSocketServer.Model
 {
     internal class Client
     {
-        public string Id { get; }
-        public ClientInterface Connection { get; } 
+        public int ID { get; }
+        public ClientInterface Connection { get; }
         public Workspace? Workspace { get; }
 
-        public Client(string id, ClientInterface connection)
+        public UserParser User { get; }
+
+        private static int nextID = 0;
+
+        public static Client? CreateClient(string userID, ClientInterface connection)
         {
-            Id = id;
+            var user = DatabaseProvider.Database.GetUser(userID);
+
+            if (user == null)
+                return null;
+
+            return new Client(user, connection);
+        }
+
+        Client(UserParser user, ClientInterface connection)
+        {
+            ID = Interlocked.Increment(ref nextID);
             Connection = connection;
+            User = user;
         }
     }
 }

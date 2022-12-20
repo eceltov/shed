@@ -3,6 +3,7 @@ using System.Configuration;
 using System.Security.Cryptography.X509Certificates;
 using System.Text;
 using WebSocketServer.Configuration;
+using WebSocketServer.Database;
 using WebSocketServer.MessageProcessing;
 using WebSocketServer.Model;
 using WebSocketServer.Parsers.MessageParsers;
@@ -16,6 +17,7 @@ namespace Example3
     {
         public static void Main(string[] args)
         {
+            Console.WriteLine(MessageProcessor.GenerateTestToken());
             WorkspaceServer workspaceServer = new WorkspaceServer();
             workspaceServer.Start();
         }

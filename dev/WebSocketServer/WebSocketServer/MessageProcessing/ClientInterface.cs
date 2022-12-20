@@ -18,18 +18,26 @@ namespace WebSocketServer.MessageProcessing
         protected override void OnMessage(MessageEventArgs e)
         {
             var genericMessage = new ClientMessage(e.Data);
+            Console.WriteLine(e.Data);
             switch (genericMessage.msgType)
             {
-                case 0:
+                case ClientMessageTypes.Connect:
                     var message = new ClientConnectMessage(e.Data);
-                    string? clientId = messageProcessor.AcceptConnection(message);
-                    if (clientId != null)
+                    string? userID = messageProcessor.AcceptConnection(message);
+                    if (userID != null)
                     {
-                        Clients.AddClient(new Client(clientId, this));
+
+                        Client? client = Client.CreateClient(userID, this);
+                        if (client != null)
+                        {
+                            Clients.Add(client);
+                            Console.WriteLine("added client");
+                            client.Connection.Send("test");
+                        }
                     }
                     break;
                 default:
-                    Console.WriteLine("Received unknown message type: {0}", genericMessage.msgType);
+                    Console.WriteLine($"Received unknown message type: {genericMessage.msgType}");
                     break;
             }
         }

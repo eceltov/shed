@@ -2,5 +2,19 @@
   "test": "sadf",
   "JWT": {
     "Secret": "secretsecretsecretsecretsecretsecret"
+  },
+  "Database": {
+    "paths": {
+      "workspacesPath": "workspaces",
+      "usersPath": "users",
+      "workspaceRootFolderPath": "root/",
+      "fileStructurePath": "structure.json",
+      "workspaceUsersPath": "users.json"
+    },
+    "fileTypes": {
+      "document": 0,
+      "folder": 1
+    },
+    "workspaceHashSalt": "some salt"
   }
 }

@@ -1,7 +1,7 @@
 {
   "portSettings": {
     "controllerServerPort": 8060,
-    "workspaceServerPort": 8080,
+    "workspaceServerPort": 8061,
     "WebSocketDomain": "ws://localhost" 
   },
 

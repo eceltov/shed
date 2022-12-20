@@ -9,5 +9,6 @@ namespace WebSocketServer.Configuration
     internal static class EnvironmentVariables
     {
         public static readonly string ConfigurationPath = Environment.GetEnvironmentVariable("PATH_TO_CONFIG");
+        public static readonly string DataPath = Environment.GetEnvironmentVariable("PATH_TO_DATA");
     }
 }

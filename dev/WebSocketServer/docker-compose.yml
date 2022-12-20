@@ -5,10 +5,12 @@ services:
     image: ${DOCKER_REGISTRY-}websocketserver
     environment:
       - PATH_TO_CONFIG=./Configuration/config.json
+      - PATH_TO_DATA=./Data/
     build:
       context: .
       dockerfile: WebSocketServer/Dockerfile
     ports:
-      - '8080:80'
+      - '8061:80'
     volumes:
       - ${PATH_TO_VOLUMES}/Configuration:/app/Configuration
+      - ${PATH_TO_VOLUMES}/Data:/app/Data

@@ -9,16 +9,20 @@ namespace WebSocketServer.Data
 {
     internal static class Clients
     {
-        static List<Client> clients;
+        ///TODO: this should by a synchronized structure
+        static Dictionary<int, Client> clients;
 
         static Clients()
         {
-            clients = new List<Client>();
+            clients = new();
         }
 
-        public static void AddClient(Client client)
+        public static void Add(Client client)
         {
-            clients.Add(client);
+            if (clients.ContainsKey(client.ID))
+                throw new Exception("Adding a client that is already present.");
+
+            clients[client.ID] = client;
         }
     }
 }

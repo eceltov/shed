@@ -2,6 +2,7 @@
 using System.Globalization;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using WebSocketServer.Model;
 
 namespace WebSocketServer.Parsers.MessageParsers
 {
@@ -15,6 +16,6 @@ namespace WebSocketServer.Parsers.MessageParsers
             msgType = source.msgType;
         }
 
-        [JsonProperty("msgType")] public int msgType { get; set; }
+        [JsonProperty("msgType")] public ClientMessageTypes msgType { get; set; }
     }
 }

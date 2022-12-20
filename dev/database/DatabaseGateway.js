@@ -119,7 +119,7 @@ class DatabaseGateway {
   }
 
   /**
-     * @ Attempts to create a folder.
+     * @brief Attempts to create a folder.
      * @param {*} workspaceHash The hash of the workspace in which to create the folder.
      * @param {*} folderPath The path of the folder.
      * @returns Returns whether the folder was created successfully.

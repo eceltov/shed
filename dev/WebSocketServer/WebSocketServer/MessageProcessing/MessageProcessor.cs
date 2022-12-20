@@ -15,9 +15,13 @@ namespace WebSocketServer.MessageProcessing
 {
     class MessageProcessor
     {
+        /// <summary>
+        /// Validates the request JWT and accepts the connection if valid.
+        /// </summary>
+        /// <param name="clientConnectMessage">The connection message.</param>
+        /// <returns>Returns the userID if JWT validation passed, else null.</returns>
         public string? AcceptConnection(ClientConnectMessage clientConnectMessage)
         {
-            string token = GenerateTestToken();
             IdentityModelEventSource.ShowPII = true;
             if (clientConnectMessage.token == null)
                 return null;
@@ -27,7 +31,7 @@ namespace WebSocketServer.MessageProcessing
             var key = Encoding.ASCII.GetBytes(ConfigurationManager.Configuration.JWT.Secret);
             try
             {
-                tokenHandler.ValidateToken(token, new TokenValidationParameters
+                tokenHandler.ValidateToken(clientConnectMessage.token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
