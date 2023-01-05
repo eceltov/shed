@@ -191,7 +191,7 @@ function removeFileRecursion(pathMap, folderObj) {
  * @param {*} fileStructure The root of the file structure.
  * @param {*} pathMap The map of fileIDs to filePaths.
  * @param {*} fileID The ID of the file to be deleted.
- * @returns Returns whether the deletion was successfull.
+ * @returns Returns whether the deletion was successful.
  */
 function removeFile(fileStructure, pathMap, fileID) {
   if (fileID === 0 || !pathMap.has(fileID)) {
