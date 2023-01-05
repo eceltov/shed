@@ -13,9 +13,9 @@ namespace WebSocketServer.Configuration
         {
             using var sr = new StreamReader(EnvironmentVariables.ConfigurationPath);
             string jsonString = sr.ReadToEnd();
-            Configuration = new AppConfigurationParser(jsonString);
+            Configuration = new AppConfiguration(jsonString);
         }
 
-        public static AppConfigurationParser Configuration { get; private set; }
+        public static AppConfiguration Configuration { get; private set; }
     }
 }

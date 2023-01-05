@@ -13,9 +13,9 @@ namespace WebSocketServer.Parsers.MessageParsers
         public ClientMessage(string jsonString)
         {
             var source = JsonConvert.DeserializeObject<ClientMessage>(jsonString);
-            msgType = source.msgType;
+            MsgType = source.MsgType;
         }
 
-        [JsonProperty("msgType")] public ClientMessageTypes msgType { get; set; }
+        [JsonProperty("msgType")] public ClientMessageTypes MsgType { get; set; }
     }
 }

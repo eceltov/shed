@@ -10,20 +10,20 @@ namespace WebSocketServer.Database
 {
     internal interface IDatabase
     {
-        UserParser? GetUser(string userID);
+        User? GetUser(string userID);
 
         Roles GetUserWorkspaceRole(string userID, string workspaceHash);
 
         string GetDocumentData(string workspaceHash, string relativePath);
 
-        FileStructureParser? GetFileStructure(string workspaceHash);
+        FileStructure? GetFileStructure(string workspaceHash);
 
         /// <summary>
         /// Replaces the old file structure with a new one.
         /// </summary>
         /// <param name="workspaceHash">The hash of the workspace of the file structure.</param>
         /// <param name="fileStructure">The data to be written.</param>
-        void UpdateFileStructure(string workspaceHash, FileStructureParser fileStructure);
+        void UpdateFileStructure(string workspaceHash, FileStructure fileStructure);
 
         /// <summary>
         /// Attempts to create a document.
@@ -91,8 +91,8 @@ namespace WebSocketServer.Database
 
         bool DeleteWorkspace(string workspaceHash);
 
-        WorkspaceUsersParser GetWorkspaceUsers(string workspaceHash);
+        WorkspaceUsers GetWorkspaceUsers(string workspaceHash);
 
-        void UpdateWorkspaceUsers(string workspaceHash, WorkspaceUsersParser workspaceUsers);
+        void UpdateWorkspaceUsers(string workspaceHash, WorkspaceUsers workspaceUsers);
     }
 }

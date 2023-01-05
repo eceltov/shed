@@ -22,12 +22,12 @@ namespace WebSocketServer.Database
         {
             WorkspacesPath = Path.Combine(
                 EnvironmentVariables.DataPath,
-                ConfigurationManager.Configuration.Database.paths.workspacesPath
+                ConfigurationManager.Configuration.Database.Paths.WorkspacesPath
             );
 
             UsersPath = Path.Combine(
                 EnvironmentVariables.DataPath,
-                ConfigurationManager.Configuration.Database.paths.usersPath
+                ConfigurationManager.Configuration.Database.Paths.UsersPath
             );
         }
 
@@ -43,7 +43,7 @@ namespace WebSocketServer.Database
         {
             return Path.Combine(
                 GetWorkspacePath(workspaceHash),
-                ConfigurationManager.Configuration.Database.paths.workspaceRootFolderPath
+                ConfigurationManager.Configuration.Database.Paths.WorkspaceRootFolderPath
             );
         }
 
@@ -66,13 +66,13 @@ namespace WebSocketServer.Database
             );
         }
 
-        public UserParser? GetUser(string userID)
+        public User? GetUser(string userID)
         {
             try
             {
                 using var sr = new StreamReader(GetUserPath(userID));
                 string jsonString = sr.ReadToEnd();
-                var user = new UserParser(jsonString);
+                var user = new User(jsonString);
                 return user;
             }
             catch
@@ -84,13 +84,13 @@ namespace WebSocketServer.Database
         public Roles GetUserWorkspaceRole(string userID, string workspaceHash)
         {
             var user = GetUser(userID);
-            Roles role = Roles.none;
+            Roles role = Roles.None;
 
-            foreach (var workspace in user.workspaces)
+            foreach (var workspace in user.Workspaces)
             {
-                if (workspace.id == workspaceHash)
+                if (workspace.ID == workspaceHash)
                 {
-                    role = workspace.role;
+                    role = workspace.Role;
                     break;
                 }
             }
@@ -109,17 +109,17 @@ namespace WebSocketServer.Database
             return Path.Combine(
                 WorkspacesPath,
                 workspaceHash,
-                ConfigurationManager.Configuration.Database.paths.fileStructurePath
+                ConfigurationManager.Configuration.Database.Paths.FileStructurePath
             );
         }
 
-        public FileStructureParser? GetFileStructure(string workspaceHash)
+        public FileStructure? GetFileStructure(string workspaceHash)
         {
             try
             {
                 using var sr = new StreamReader(GetFileStructurePath(workspaceHash));
                 string jsonString = sr.ReadToEnd();
-                var fileStructure = new FileStructureParser(jsonString);
+                var fileStructure = new FileStructure(jsonString);
                 return fileStructure;
             }
             catch
@@ -133,7 +133,7 @@ namespace WebSocketServer.Database
         /// </summary>
         /// <param name="workspaceHash">The hash of the workspace of the file structure.</param>
         /// <param name="fileStructure">The data to be written.</param>
-        public void UpdateFileStructure(string workspaceHash, FileStructureParser fileStructure)
+        public void UpdateFileStructure(string workspaceHash, FileStructure fileStructure)
         {
             string jsonString = JsonConvert.SerializeObject(fileStructure);
             using var sw = new StreamWriter(GetFileStructurePath(workspaceHash));
@@ -279,17 +279,17 @@ namespace WebSocketServer.Database
         public bool AddUserWorkspace(string userID, string workspaceHash, string workspaceName, Roles role)
         {
             var user = GetUser(userID);
-            bool workspacePresent = user.workspaces.Any((workspace) => workspace.id == workspaceHash);
+            bool workspacePresent = user.Workspaces.Any((workspace) => workspace.ID == workspaceHash);
 
             if (workspacePresent)
                 return true;
 
             var workspace = new Parsers.DatabaseParsers.Workspace {
-                id = workspaceHash,
-                name = workspaceName,
-                role = role
+                ID = workspaceHash,
+                Name = workspaceName,
+                Role = role
             };
-            user.workspaces.Add(workspace);
+            user.Workspaces.Add(workspace);
 
             try
             {
@@ -307,12 +307,12 @@ namespace WebSocketServer.Database
         public bool RemoveUserWorkspace(string userID, string workspaceHash)
         {
             var user = GetUser(userID);
-            int workspaceIdx = user.workspaces.FindIndex((workspace) => workspace.id == workspaceHash);
+            int workspaceIdx = user.Workspaces.FindIndex((workspace) => workspace.ID == workspaceHash);
 
             if (workspaceIdx == -1)
                 throw new InvalidOperationException("Attempting to delete a workspace that is not present.");
 
-            user.workspaces.RemoveAt(workspaceIdx);
+            user.Workspaces.RemoveAt(workspaceIdx);
 
             try
             {
@@ -335,7 +335,7 @@ namespace WebSocketServer.Database
             {
                 Encoding enc = Encoding.UTF8;
                 string hashInput = workspaceName + ownerID
-                    + ConfigurationManager.Configuration.Database.workspaceHashSalt;
+                    + ConfigurationManager.Configuration.Database.WorkspaceHashSalt;
                 byte[] bytes = sha256.ComputeHash(enc.GetBytes(hashInput));
 
                 foreach (byte b in bytes)
@@ -360,8 +360,8 @@ namespace WebSocketServer.Database
                 // create root folder
                 System.IO.Directory.CreateDirectory(GetWorkspaceRootPath(workspaceID));
 
-                var defaultFileStructure = FileStructureParser.GetDefault(name);
-                var defaultUsers = WorkspaceUsersParser.GetDefault(ownerID);
+                var defaultFileStructure = FileStructure.GetDefault(name);
+                var defaultUsers = WorkspaceUsers.GetDefault(ownerID);
 
                 // create structure.json file
                 UpdateFileStructure(workspaceID, defaultFileStructure);
@@ -371,7 +371,7 @@ namespace WebSocketServer.Database
 
                 // add workspace entry to owner
                 // this is added last so that all workspaces listed in user config are valid
-                AddUserWorkspace(ownerID, workspaceID, name, Roles.owner);
+                AddUserWorkspace(ownerID, workspaceID, name, Roles.Owner);
 
                 return true;
             }
@@ -389,7 +389,7 @@ namespace WebSocketServer.Database
 
                 // get all user IDs
                 var workspaceUsers = GetWorkspaceUsers(workspaceHash);
-                var userIDs = workspaceUsers.users.Keys.ToArray();
+                var userIDs = workspaceUsers.Users.Keys.ToArray();
 
                 // remove user entries
                 foreach (string userID in userIDs)
@@ -411,21 +411,21 @@ namespace WebSocketServer.Database
             return Path.Combine(
                 WorkspacesPath,
                 workspaceHash,
-                ConfigurationManager.Configuration.Database.paths.workspaceUsersPath
+                ConfigurationManager.Configuration.Database.Paths.WorkspaceUsersPath
             );
         }
 
-        public WorkspaceUsersParser GetWorkspaceUsers(string workspaceHash)
+        public WorkspaceUsers GetWorkspaceUsers(string workspaceHash)
         {
             string path = GetWorkspaceUsersPath(workspaceHash);
 
             using var sr = new StreamReader(path);
             string jsonString = sr.ReadToEnd();
-            var workspaceUsers = new WorkspaceUsersParser(jsonString);
+            var workspaceUsers = new WorkspaceUsers(jsonString);
             return workspaceUsers;
         }
 
-        public void UpdateWorkspaceUsers(string workspaceHash, WorkspaceUsersParser workspaceUsers)
+        public void UpdateWorkspaceUsers(string workspaceHash, WorkspaceUsers workspaceUsers)
         {
             string jsonString = JsonConvert.SerializeObject(workspaceUsers);
             using var sw = new StreamWriter(GetWorkspaceUsersPath(workspaceHash));

@@ -17,7 +17,7 @@ namespace WebSocketServer.Data
             workspaces = new();
         }
 
-        public static Workspace GetWorkspace(string workspaceID)
+        public static Workspace? GetWorkspace(string workspaceID)
         {
             if (workspaces.ContainsKey(workspaceID))
             {
@@ -26,16 +26,22 @@ namespace WebSocketServer.Data
 
             ///TODO: check if workspace exists
             var workspace = LoadWorkspace(workspaceID);
-            workspaces[workspaceID] = workspace;
+
+            if (workspace != null)
+                workspaces[workspaceID] = workspace;
+
             return workspace;
         }
 
-        static Workspace LoadWorkspace(string workspaceID)
+        static Workspace? LoadWorkspace(string workspaceID)
         {
             var fileStructure = DatabaseProvider.Database.GetFileStructure(workspaceID);
             var users = DatabaseProvider.Database.GetWorkspaceUsers(workspaceID);
-            string name = fileStructure.name;
-            return new Workspace(workspaceID, name, fileStructure, users);
+
+            if (fileStructure == null || users == null)
+                return null;
+
+            return new Workspace(workspaceID, fileStructure.Name, fileStructure, users);
         }
     }
 }

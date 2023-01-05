@@ -11,10 +11,6 @@
       "fileStructurePath": "structure.json",
       "workspaceUsersPath": "users.json"
     },
-    "fileTypes": {
-      "document": 0,
-      "folder": 1
-    },
     "workspaceHashSalt": "some salt"
   }
 }

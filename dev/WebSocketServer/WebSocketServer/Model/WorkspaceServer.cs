@@ -14,8 +14,6 @@ namespace WebSocketServer.Model
         {
             var httpsv = new HttpServer(80);
 
-            string newJWT = MessageProcessor.GenerateTestToken();
-
             httpsv.AddWebSocketService<ClientInterface>("/");
 
             httpsv.Start();

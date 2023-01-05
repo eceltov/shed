@@ -13,17 +13,17 @@ using WebSocketServer.Parsers.MessageParsers;
 
 namespace WebSocketServer.MessageProcessing
 {
-    class MessageProcessor
+    static class MessageProcessor
     {
         /// <summary>
         /// Validates the request JWT and accepts the connection if valid.
         /// </summary>
         /// <param name="clientConnectMessage">The connection message.</param>
         /// <returns>Returns the userID if JWT validation passed, else null.</returns>
-        public string? AcceptConnection(ClientConnectMessage clientConnectMessage)
+        public static string? AcceptConnection(ConnectMessage clientConnectMessage)
         {
             IdentityModelEventSource.ShowPII = true;
-            if (clientConnectMessage.token == null)
+            if (clientConnectMessage.Token == null)
                 return null;
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -31,7 +31,7 @@ namespace WebSocketServer.MessageProcessing
             var key = Encoding.ASCII.GetBytes(ConfigurationManager.Configuration.JWT.Secret);
             try
             {
-                tokenHandler.ValidateToken(clientConnectMessage.token, new TokenValidationParameters
+                tokenHandler.ValidateToken(clientConnectMessage.Token, new TokenValidationParameters
                 {
                     ValidateIssuerSigningKey = true,
                     IssuerSigningKey = new SymmetricSecurityKey(key),
@@ -55,7 +55,7 @@ namespace WebSocketServer.MessageProcessing
             }
         }
 
-        public static string GenerateTestToken()
+        public static string GenerateTestToken1()
         {
             // generate token that is valid for 7 days
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -69,7 +69,28 @@ namespace WebSocketServer.MessageProcessing
                     new Claim("mail", "adam.tester@example.com"),
                     new Claim("role", "test")
                 }),
-                //Expires = DateTime.UtcNow.AddDays(7),
+                Expires = DateTime.UtcNow.AddDays(7),
+                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
+            };
+            var token = tokenHandler.CreateToken(tokenDescriptor);
+            return tokenHandler.WriteToken(token);
+        }
+
+        public static string GenerateTestToken2()
+        {
+            // generate token that is valid for 7 days
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var key = Encoding.ASCII.GetBytes(ConfigurationManager.Configuration.JWT.Secret);
+            var tokenDescriptor = new SecurityTokenDescriptor
+            {
+                Subject = new ClaimsIdentity(new[] {
+                    new Claim("id", "00000001"),
+                    new Claim("firstName", "Adam2"),
+                    new Claim("lastName", "Tester2"),
+                    new Claim("mail", "adam.tester2@example.com"),
+                    new Claim("role", "test2")
+                }),
+                Expires = DateTime.UtcNow.AddDays(7),
                 SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
             };
             var token = tokenHandler.CreateToken(tokenDescriptor);

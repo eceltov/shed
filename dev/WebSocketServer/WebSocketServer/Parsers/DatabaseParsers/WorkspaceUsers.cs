@@ -6,27 +6,27 @@ using WebSocketServer.Model;
 
 namespace WebSocketServer.Parsers.DatabaseParsers
 {
-    public class WorkspaceUsersParser
+    public class WorkspaceUsers
     {
-        public WorkspaceUsersParser() { }
+        public WorkspaceUsers() { }
 
-        public WorkspaceUsersParser(string jsonString)
+        public WorkspaceUsers(string jsonString)
         {
             var source = JsonConvert.DeserializeObject<Dictionary<string, int>>(jsonString);
-            users = source;
+            Users = source;
         }
 
-        public static WorkspaceUsersParser GetDefault(string ownerID)
+        public static WorkspaceUsers GetDefault(string ownerID)
         {
             var users = new Dictionary<string, int>();
-            users.Add(ownerID, (int)Roles.owner);
+            users.Add(ownerID, (int)Roles.Owner);
 
-            return new WorkspaceUsersParser(ownerID)
+            return new WorkspaceUsers(ownerID)
             {
-                users = users,
+                Users = users,
             };
         }
 
-        public Dictionary<string, int> users { get; set; }
+        public Dictionary<string, int> Users { get; set; }
     }
 }

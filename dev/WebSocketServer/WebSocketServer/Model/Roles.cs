@@ -8,12 +8,12 @@ namespace WebSocketServer.Model
 {
     public enum Roles
     {
-        none = 0,
-        viewer = 1,
-        editor = 2, // cannot create/delete/rename files
-        workspaceEditor = 3, // can create/delete/rename files
-        admin = 4,
-        owner = 5,
+        None = 0,
+        Viewer = 1,
+        Editor = 2, // cannot create/delete/rename files
+        WorkspaceEditor = 3, // can create/delete/rename files
+        Admin = 4,
+        Owner = 5,
     }
 
     internal static class RoleHandler
@@ -25,22 +25,22 @@ namespace WebSocketServer.Model
             string roleName;
             switch (role)
             {
-                case Roles.none:
+                case Roles.None:
                     roleName = "None";
                     break;
-                case Roles.viewer:
+                case Roles.Viewer:
                     roleName = "Viewer";
                     break;
-                case Roles.editor:
+                case Roles.Editor:
                     roleName = "Editor";
                     break;
-                case Roles.workspaceEditor:
+                case Roles.WorkspaceEditor:
                     roleName = "Workspace Editor";
                     break;
-                case Roles.admin:
+                case Roles.Admin:
                     roleName = "Admin";
                     break;
-                case Roles.owner:
+                case Roles.Owner:
                     roleName = "Owner";
                     break;
                 default:
@@ -54,30 +54,30 @@ namespace WebSocketServer.Model
         /// <returns>Returns true if the role can view documents, else returns false.</returns>
         public static bool CanView(Roles role)
         {
-            return (role == Roles.viewer)
-              || (role == Roles.editor)
-              || (role == Roles.workspaceEditor)
-              || (role == Roles.admin)
-              || (role == Roles.owner);
+            return (role == Roles.Viewer)
+              || (role == Roles.Editor)
+              || (role == Roles.WorkspaceEditor)
+              || (role == Roles.Admin)
+              || (role == Roles.Owner);
         }
 
         /// <param name="role">The role of some entity.</param>
         /// <returns>Returns true if the role can edit documents, else returns false.</returns>
         public static bool CanEdit(Roles role)
         {
-            return (role == Roles.editor)
-              || (role == Roles.workspaceEditor)
-              || (role == Roles.admin)
-              || (role == Roles.owner);
+            return (role == Roles.Editor)
+              || (role == Roles.WorkspaceEditor)
+              || (role == Roles.Admin)
+              || (role == Roles.Owner);
         }
 
         /// <param name="role">The role of some entity.</param>
         /// <returns>Returns true if the role can create/delete/rename files, else returns false.</returns>
         public static bool CanManageFiles(Roles role)
         {
-            return (role == Roles.workspaceEditor)
-              || (role == Roles.admin)
-              || (role == Roles.owner);
+            return (role == Roles.WorkspaceEditor)
+              || (role == Roles.Admin)
+              || (role == Roles.Owner);
         }
     }
 }

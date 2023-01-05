@@ -12,28 +12,38 @@ namespace WebSocketServer.Model
     internal class Client
     {
         public int ID { get; }
-        public ClientInterface Connection { get; }
-        public Workspace? Workspace { get; }
+        public User User { get; }
+        public ClientInterface ClientInterface { get; }
 
-        public UserParser User { get; }
+        static int nextID = 0;
+        Dictionary<string, Roles> workspaceRoles = new();
 
-        private static int nextID = 0;
+        Client(User user, ClientInterface clientInterface)
+        {
+            ID = Interlocked.Increment(ref nextID);
+            User = user;
+            ClientInterface = clientInterface;
 
-        public static Client? CreateClient(string userID, ClientInterface connection)
+            foreach (var workspace in User.Workspaces)
+                workspaceRoles.Add(workspace.ID, workspace.Role);
+        }
+
+        public static Client? CreateClient(string userID, ClientInterface clientInterface)
         {
             var user = DatabaseProvider.Database.GetUser(userID);
 
             if (user == null)
                 return null;
 
-            return new Client(user, connection);
+            return new Client(user, clientInterface);
         }
 
-        Client(UserParser user, ClientInterface connection)
+        public Roles GetWorkspaceRole(string workspaceID)
         {
-            ID = Interlocked.Increment(ref nextID);
-            Connection = connection;
-            User = user;
+            if (workspaceRoles.ContainsKey(workspaceID))
+                return workspaceRoles[workspaceID];
+
+            return Roles.None;
         }
     }
 }

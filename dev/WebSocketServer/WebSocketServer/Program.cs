@@ -17,7 +17,8 @@ namespace Example3
     {
         public static void Main(string[] args)
         {
-            Console.WriteLine(MessageProcessor.GenerateTestToken());
+            Console.WriteLine(MessageProcessor.GenerateTestToken1());
+            Console.WriteLine(MessageProcessor.GenerateTestToken2());
             WorkspaceServer workspaceServer = new WorkspaceServer();
             workspaceServer.Start();
         }
