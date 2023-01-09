@@ -42,15 +42,16 @@ namespace WebSocketServer.MessageProcessing
             if (userID != null)
             {
 
-                Client? newClient = Client.CreateClient(userID, this);
                 Workspace? workspace = Workspaces.GetWorkspace(message.WorkspaceHash);
-                if (newClient != null && workspace != null)
-                {
-                    client = newClient;
-                    Clients.Add(client);
-                    Console.WriteLine($"Added client {client.ID}");
-                    workspace.ScheduleAction(new ConnectClientDescriptor(client));
-                }
+                if (workspace == null) return;
+
+                Client? newClient = Client.CreateClient(userID, workspace, this);
+                if (newClient == null) return;
+
+                client = newClient;
+                Clients.Add(client);
+                Console.WriteLine($"Added client {client.ID}");
+                workspace.ScheduleAction(new ConnectClientDescriptor(client));
             }
         }
 
@@ -60,6 +61,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new GetDocumentMessage(e.Data);
+            client?.Workspace.ScheduleAction(new GetDocumentDescriptor(client, message.FileID));
 
         }
 

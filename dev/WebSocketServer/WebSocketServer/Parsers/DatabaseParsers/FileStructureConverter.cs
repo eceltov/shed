@@ -34,6 +34,13 @@ namespace WebSocketServer.Parsers.DatabaseParsers
                 JObject items = (JObject)fileObject["items"];
                 folder.Items = items.ToObject<Dictionary<string, File>>();
                 file = folder;
+
+                if (folder.ID == 0)
+                {
+                    FileStructure fileStructure = new FileStructure(folder);
+                    fileStructure.NextID = (int)fileObject["nextID"];
+                    file = fileStructure;
+                }
             }
 
             return file;

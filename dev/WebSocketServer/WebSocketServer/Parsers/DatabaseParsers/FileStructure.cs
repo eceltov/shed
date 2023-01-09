@@ -67,11 +67,16 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         /// <summary>
         /// Maps file IDs to their paths in the file structure. The path tokens are file IDs, not their names.
         /// </summary>
-        public Dictionary<int, string> PathMap { get; private set; }
+        Dictionary<int, string> pathMap;
 
         const string fileNameRegex = "^[^\\/:*?\"<>|]*$";
 
         public FileStructure() { }
+
+        public FileStructure(Folder folder) : base(folder)
+        {
+            Items = folder.Items;
+        }
 
         public FileStructure(string jsonString)
         {
@@ -115,7 +120,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
             foreach (var (stringID, file) in folder.Items)
             {
                 string currentPath = parentPath + stringID;
-                PathMap.Add(file.ID, currentPath);
+                pathMap.Add(file.ID, currentPath);
                 if (file.Type == FileTypes.Folder)
                 {
                     string folderPath = $"{currentPath}/";
@@ -126,9 +131,9 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         void InitIDPathMap()
         {
-            PathMap = new();
+            pathMap = new();
             string path = "";
-            PathMap.Add(ID, path); // path to root
+            pathMap.Add(ID, path); // path to root
             InitIDPathMapRecursion(this, path);
         }
 
@@ -156,22 +161,22 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public File? GetFileFromID(int fileID)
         {
-            if (!PathMap.ContainsKey(fileID))
+            if (!pathMap.ContainsKey(fileID))
                 return null;
 
-            return GetFileFromPath(PathMap[fileID]);
+            return GetFileFromPath(pathMap[fileID]);
         }
 
         public Folder? GetParentFolder(int fileID)
         {
-            if (!PathMap.ContainsKey(fileID))
+            if (!pathMap.ContainsKey(fileID))
                 return null;
 
             // the parent of the root is the root
             if (fileID == ID)
                 return this;
 
-            string path = PathMap[fileID];
+            string path = pathMap[fileID];
 
             int parentFolderEndIndex = path.LastIndexOf('/');
             if (parentFolderEndIndex == -1)
@@ -184,7 +189,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         public string? GetFileNameFromPath(string path)
         {
             File? file = GetFileFromPath(path);
-            return file != null ? file.Name : null;
+            return file?.Name;
         }
 
         public string? GetFileNameFromID(int fileID)
@@ -205,7 +210,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public bool AddFile(int parentID, File file)
         {
-            if (!PathMap.ContainsKey(parentID))
+            if (!pathMap.ContainsKey(parentID))
                 return false;
 
             Folder? parent = GetFileFromID(parentID) as Folder;
@@ -214,8 +219,8 @@ namespace WebSocketServer.Parsers.DatabaseParsers
                 return false;
 
             parent.Items[file.ID.ToString()] = file;
-            string filePath = (parentID == ID ? "" : $"{PathMap[parentID]}/") + file.ID.ToString();
-            PathMap.Add(file.ID, filePath);
+            string filePath = (parentID == ID ? "" : $"{pathMap[parentID]}/") + file.ID.ToString();
+            pathMap.Add(file.ID, filePath);
 
             return true;
         }
@@ -230,7 +235,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
             {
                 if (file is Folder nestedFolder)
                     RemoveFileRecursion(folder);
-                PathMap.Remove(file.ID);
+                pathMap.Remove(file.ID);
             }
         }
 
@@ -241,7 +246,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         /// <returns>Returns whether the deletion was successful.</returns>
         public bool RemoveFile(int fileID)
         {
-            if (fileID == ID || !PathMap.ContainsKey(fileID))
+            if (fileID == ID || !pathMap.ContainsKey(fileID))
                 return false;
 
             Folder parentFolderObj = GetParentFolder(fileID)!;
@@ -253,14 +258,14 @@ namespace WebSocketServer.Parsers.DatabaseParsers
             if (fileObj is Folder folder)
                 RemoveFileRecursion(folder);
 
-            PathMap.Remove(fileID);
+            pathMap.Remove(fileID);
             parentFolderObj.Items.Remove(fileID.ToString());
             return true;
         }
 
         public bool RenameFile(int fileID, string newName)
         {
-            if (fileID == ID || !PathMap.ContainsKey(fileID))
+            if (fileID == ID || !pathMap.ContainsKey(fileID))
                 return false;
 
             Folder parentFolder = GetParentFolder(fileID)!;
@@ -276,10 +281,10 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public bool IsDocument(int fileID)
         {
-            if (!PathMap.ContainsKey(fileID))
+            if (!pathMap.ContainsKey(fileID))
                 return false;
 
-            string path = PathMap[fileID];
+            string path = pathMap[fileID];
             return GetFileFromPath(path) is Document;
         }
 
@@ -309,6 +314,16 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
             File lastFile = currentFolder.Items[tokens[^1]];
             return absolutePath + lastFile.Name;
+        }
+
+        public string? GetAbsolutePath(int fileID)
+        {
+            if (!pathMap.ContainsKey(fileID))
+            {
+                return null;
+            }
+
+            return GetAbsolutePathFromIDPath(pathMap[fileID]);
         }
 
         /// <param name="fileID">An ID of a document or folder.</param>
