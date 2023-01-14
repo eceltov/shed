@@ -29,15 +29,30 @@ namespace WebSocketServer.MessageProcessing
                 case ClientMessageTypes.GetDocument:
                     HandleGetDocument(e);
                     break;
+                case ClientMessageTypes.CreateDocument:
+                    HandleCreateDocument(e);
+                    break;
+                case ClientMessageTypes.CreateFolder:
+                    HandleCreateFolder(e);
+                    break;
+                case ClientMessageTypes.DeleteDocument:
+                    HandleDeleteDocument(e);
+                    break;
+                case ClientMessageTypes.DeleteFolder:
+                    HandleDeleteFolder(e);
+                    break;
+                case ClientMessageTypes.RenameFile:
+                    HandleRenameFile(e);
+                    break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
             }
         }
 
-        public void HandleConnect(MessageEventArgs e)
+        void HandleConnect(MessageEventArgs e)
         {
-            var message = new ConnectMessage(e.Data);
+            var message = new ClientConnectMessage(e.Data);
             string? userID = MessageProcessor.AcceptConnection(message);
             if (userID != null)
             {
@@ -55,14 +70,59 @@ namespace WebSocketServer.MessageProcessing
             }
         }
 
-        public void HandleGetDocument(MessageEventArgs e)
+        void HandleGetDocument(MessageEventArgs e)
         {
             if (client == null)
                 return;
 
-            var message = new GetDocumentMessage(e.Data);
-            client?.Workspace.ScheduleAction(new GetDocumentDescriptor(client, message.FileID));
+            var message = new ClientGetDocumentMessage(e.Data);
+            client.Workspace.ScheduleAction(new GetDocumentDescriptor(client, message.FileID));
 
+        }
+
+        void HandleCreateDocument(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientCreateDocumentMessage(e.Data);
+            client.Workspace.ScheduleAction(new CreateDocumentDescriptor(client, message.ParentID, message.Name));
+        }
+
+        void HandleCreateFolder(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientCreateFolderMessage(e.Data);
+            client.Workspace.ScheduleAction(new CreateFolderDescriptor(client, message.ParentID, message.Name));
+        }
+
+        void HandleDeleteDocument(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientDeleteDocumentMessage(e.Data);
+            client.Workspace.ScheduleAction(new DeleteDocumentDescriptor(client, message.FileID));
+        }
+
+        void HandleDeleteFolder(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientDeleteFolderMessage(e.Data);
+            client.Workspace.ScheduleAction(new DeleteFolderDescriptor(client, message.FileID));
+        }
+
+        void HandleRenameFile(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientRenameFileMessage(e.Data);
+            client.Workspace.ScheduleAction(new RenameFileDescriptor(client, message.FileID, message.Name));
         }
 
         protected override void OnClose(CloseEventArgs e)

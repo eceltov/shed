@@ -5,13 +5,13 @@ using Newtonsoft.Json.Converters;
 
 namespace WebSocketServer.Parsers.MessageParsers
 {
-    public class ConnectMessage : ClientMessage
+    public class ClientConnectMessage : ClientMessage
     {
-        public ConnectMessage() { }
+        public ClientConnectMessage() { }
 
-        public ConnectMessage(string jsonString)
+        public ClientConnectMessage(string jsonString)
         {
-            var source = JsonConvert.DeserializeObject<ConnectMessage>(jsonString);
+            var source = JsonConvert.DeserializeObject<ClientConnectMessage>(jsonString);
             MsgType = source.MsgType;
             Token = source.Token;
             WorkspaceHash = source.WorkspaceHash;

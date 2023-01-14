@@ -9,9 +9,9 @@ using WebSocketServer.Parsers.DatabaseParsers;
 
 namespace WebSocketServer.MessageProcessing
 {
-    public class InitWorkspaceMessage
+    internal class InitWorkspaceMessage
     {
-        public ServerMessageTypes msgType { get; } = ServerMessageTypes.InitWorkspace;
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.InitWorkspace;
         [JsonProperty("clientID")] public int ClientID { get; set; }
         [JsonProperty("fileStructure")] public FileStructure FileStructure { get; set; }
         [JsonProperty("role")] public Roles Role { get; set; }
@@ -24,9 +24,9 @@ namespace WebSocketServer.MessageProcessing
         }
     }
 
-    public class InitDocumentMessage
+    internal class InitDocumentMessage
     {
-        public ServerMessageTypes msgType { get; } = ServerMessageTypes.InitDocument;
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.InitDocument;
         [JsonProperty("serverDocument")] public List<string> ServerDocument { get; set; }
         [JsonProperty("fileID")] public int FileID { get; set; }
         ///TODO: change type
@@ -41,6 +41,71 @@ namespace WebSocketServer.MessageProcessing
             ServerHB = serverHB;
             ServerOrdering = serverOrdering;
             FirstSOMessageNumber = firstSOMessageNumber;
+        }
+    }
+
+    internal class CreateDocumentMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.CreateDocument;
+        [JsonProperty("parentID")] public int ParentID { get; set; }
+        [JsonProperty("fileID")] public int FileID { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+
+        public CreateDocumentMessage(int parentID, int fileID, string name)
+        {
+            ParentID = parentID;
+            FileID = fileID;
+            Name = name;
+        }
+    }
+
+    internal class CreateFolderMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.CreateFolder;
+        [JsonProperty("parentID")] public int ParentID { get; set; }
+        [JsonProperty("fileID")] public int FileID { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+
+        public CreateFolderMessage(int parentID, int fileID, string name)
+        {
+            ParentID = parentID;
+            FileID = fileID;
+            Name = name;
+        }
+    }
+
+    internal class DeleteDocumentMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.DeleteDocument;
+        [JsonProperty("fileID")] public int FileID { get; set; }
+
+        public DeleteDocumentMessage(int fileID)
+        {
+            FileID = fileID;
+        }
+    }
+
+    internal class DeleteFolderMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.DeleteFolder;
+        [JsonProperty("fileID")] public int FileID { get; set; }
+
+        public DeleteFolderMessage(int fileID)
+        {
+            FileID = fileID;
+        }
+    }
+
+    internal class RenameFileMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.DeleteFolder;
+        [JsonProperty("fileID")] public int FileID { get; set; }
+        [JsonProperty("name")] public string Name { get; set; }
+
+        public RenameFileMessage(int fileID, string name)
+        {
+            FileID = fileID;
+            Name = name;
         }
     }
 }

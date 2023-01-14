@@ -68,5 +68,11 @@ namespace WebSocketServer.Model
             var initMsg = new InitDocumentMessage(content, document.ID, serverHB, serverOrdering, firstSOMessageNumber);
             client.ClientInterface.Send(initMsg);
         }
+
+        public void Delete()
+        {
+            ///TODO
+            throw new NotImplementedException();
+        }
     }
 }

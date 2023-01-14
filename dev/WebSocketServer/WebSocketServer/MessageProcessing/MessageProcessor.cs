@@ -20,7 +20,7 @@ namespace WebSocketServer.MessageProcessing
         /// </summary>
         /// <param name="clientConnectMessage">The connection message.</param>
         /// <returns>Returns the userID if JWT validation passed, else null.</returns>
-        public static string? AcceptConnection(ConnectMessage clientConnectMessage)
+        public static string? AcceptConnection(ClientConnectMessage clientConnectMessage)
         {
             IdentityModelEventSource.ShowPII = true;
             if (clientConnectMessage.Token == null)

@@ -5,13 +5,13 @@ using Newtonsoft.Json.Converters;
 
 namespace WebSocketServer.Parsers.MessageParsers
 {
-    public class GetDocumentMessage : ClientMessage
+    public class ClientDeleteDocumentMessage : ClientMessage
     {
-        public GetDocumentMessage() { }
+        public ClientDeleteDocumentMessage() { }
 
-        public GetDocumentMessage(string jsonString)
+        public ClientDeleteDocumentMessage(string jsonString)
         {
-            var source = JsonConvert.DeserializeObject<GetDocumentMessage>(jsonString);
+            var source = JsonConvert.DeserializeObject<ClientDeleteDocumentMessage>(jsonString);
             MsgType = source.MsgType;
             FileID = source.FileID;
         }
