@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
-    internal class GetDocumentDescriptor : WorkspaceActionDescriptor
+    internal class GetDocumentDescriptor : IWorkspaceActionDescriptor
     {
         public Client Client { get; set; }
         public int FileID { get; set; }
@@ -15,6 +15,11 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
         {
             Client = client;
             FileID = fileID;
+        }
+
+        public bool Execute(Workspace workspace)
+        {
+            return workspace.HandleGetDocument(Client, FileID);
         }
     }
 }

@@ -6,13 +6,18 @@ using System.Threading.Tasks;
 
 namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
-    internal class ConnectClientDescriptor : WorkspaceActionDescriptor
+    internal class ConnectClientDescriptor : IWorkspaceActionDescriptor
     {
         public Client Client { get; set; }
 
         public ConnectClientDescriptor(Client client)
         {
             Client = client;
+        }
+
+        public bool Execute(Workspace workspace)
+        {
+            return workspace.HandleConnectClient(Client);
         }
     }
 }

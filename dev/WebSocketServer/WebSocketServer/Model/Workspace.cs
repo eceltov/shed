@@ -31,7 +31,7 @@ namespace WebSocketServer.Model
         /// </summary>
         public Dictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
-        BlockingCollection<WorkspaceActionDescriptor> actionDescriptors;
+        BlockingCollection<IWorkspaceActionDescriptor> actionDescriptors;
         Thread workerThread;
 
 
@@ -49,7 +49,7 @@ namespace WebSocketServer.Model
             workerThread.Start();
         }
 
-        public void ScheduleAction(WorkspaceActionDescriptor actionDescriptor)
+        public void ScheduleAction(IWorkspaceActionDescriptor actionDescriptor)
         {
             actionDescriptors.Add(actionDescriptor);
         }
@@ -66,20 +66,7 @@ namespace WebSocketServer.Model
         {
             foreach (var actionDescriptor in actionDescriptors.GetConsumingEnumerable(cancellationToken))
             {
-                if (actionDescriptor is ConnectClientDescriptor connectClientDescriptor)
-                    HandleConnectClient(connectClientDescriptor.Client);
-                else if (actionDescriptor is GetDocumentDescriptor getDocumentDescriptor)
-                    HandleGetDocument(getDocumentDescriptor.Client, getDocumentDescriptor.FileID);
-                else if (actionDescriptor is CreateDocumentDescriptor createDocumentDescriptor)
-                    HandleCreateDocument(createDocumentDescriptor.Client, createDocumentDescriptor.ParentID, createDocumentDescriptor.Name);
-                else if (actionDescriptor is CreateFolderDescriptor createFolderDescriptor)
-                    HandleCreateFolder(createFolderDescriptor.Client, createFolderDescriptor.ParentID, createFolderDescriptor.Name);
-                else if (actionDescriptor is DeleteDocumentDescriptor deleteDocumentDescriptor)
-                    HandleDeleteDocument(deleteDocumentDescriptor.Client, deleteDocumentDescriptor.FileID);
-                else if (actionDescriptor is DeleteFolderDescriptor deleteFolderDescriptor)
-                    HandleDeleteFolder(deleteFolderDescriptor.Client, deleteFolderDescriptor.FileID);
-                else if (actionDescriptor is RenameFileDescriptor renameFileDescriptor)
-                    HandleRenameFile(renameFileDescriptor.Client, renameFileDescriptor.FileID, renameFileDescriptor.Name);
+                actionDescriptor.Execute(this);
             }
         }
 
@@ -303,7 +290,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleConnectClient(Client client)
+        public bool HandleConnectClient(Client client)
         {
             if (!ClientCanJoin(client))
                 return false;
@@ -314,7 +301,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleGetDocument(Client client, int fileID)
+        public bool HandleGetDocument(Client client, int fileID)
         {
             if (FileStructure.IsDocument(fileID))
             {
@@ -325,7 +312,7 @@ namespace WebSocketServer.Model
             return false;
         }
 
-        bool HandleCreateDocument(Client client, int parentID, string name)
+        public bool HandleCreateDocument(Client client, int parentID, string name)
         {
             if (CreateDocument(client, parentID, name) is not int documentID)
             {
@@ -338,7 +325,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleCreateFolder(Client client, int parentID, string name)
+        public bool HandleCreateFolder(Client client, int parentID, string name)
         {
             if (CreateFolder(client, parentID, name) is not int folderID)
             {
@@ -351,7 +338,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleDeleteDocument(Client client, int fileID)
+        public bool HandleDeleteDocument(Client client, int fileID)
         {
             if (!DeleteDocument(client, fileID))
             {
@@ -364,7 +351,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleDeleteFolder(Client client, int fileID)
+        public bool HandleDeleteFolder(Client client, int fileID)
         {
             if (!DeleteFolder(client, fileID))
             {
@@ -377,7 +364,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool HandleRenameFile(Client client, int fileID, string newName)
+        public bool HandleRenameFile(Client client, int fileID, string newName)
         {
             if (!RenameFile(client, fileID, newName))
             {

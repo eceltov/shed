@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
-    internal class RenameFileDescriptor : WorkspaceActionDescriptor
+    internal class RenameFileDescriptor : IWorkspaceActionDescriptor
     {
         public Client Client { get; set; }
         public int FileID { get; set; }
@@ -17,6 +17,11 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
             Client = client;
             FileID = fileID;
             Name = name;
+        }
+
+        public bool Execute(Workspace workspace)
+        {
+            return workspace.HandleRenameFile(Client, FileID, Name);
         }
     }
 }

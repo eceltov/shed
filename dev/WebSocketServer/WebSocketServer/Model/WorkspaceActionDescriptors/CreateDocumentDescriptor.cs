@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
-    internal class CreateDocumentDescriptor : WorkspaceActionDescriptor
+    internal class CreateDocumentDescriptor : IWorkspaceActionDescriptor
     {
         public Client Client { get; set; }
         public int ParentID { get; set; }
@@ -17,6 +17,11 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
             Client = client;
             ParentID = parentID;
             Name = name;
+        }
+
+        public bool Execute(Workspace workspace)
+        {
+            return workspace.HandleCreateDocument(Client, ParentID, Name);
         }
     }
 }
