@@ -147,7 +147,7 @@ function addDelCompression(addSubdif, delSubdif) {
       const overlap = posAdd + text.length - posDel;
       const newText = text.substring(0, text.length - overlap);
       const newAdd = add(row, posAdd, newText);
-      const newDel = del(row, posAdd + newText, delRange - overlap);
+      const newDel = del(row, posAdd + newText.length, delRange - overlap);
       compressionObj = getCompressionObj(newAdd, newDel);
     }
   }
@@ -160,9 +160,9 @@ function addDelCompression(addSubdif, delSubdif) {
 
 /// TODO: the cycle will not do anything in the second run, remove it
 function mergeSubdifs(dif) {
-  let changeOccured = true;
-  while (changeOccured) {
-    changeOccured = false;
+  let changeOccurred = true;
+  while (changeOccurred) {
+    changeOccurred = false;
     for (let i = 0; i < dif.length - 1; ++i) { // so that there is a next entry
       const first = dif[i];
       const second = dif[i + 1];
@@ -182,7 +182,7 @@ function mergeSubdifs(dif) {
       }
 
       if (compressionObj !== null) {
-        changeOccured = true;
+        changeOccurred = true;
         if (compressionObj.newFirst !== null && compressionObj.newSecond !== null) {
           dif[i] = compressionObj.newFirst;
           dif[i + 1] = compressionObj.newSecond;
@@ -200,6 +200,7 @@ function mergeSubdifs(dif) {
         // both subdifs got removed
         else {
           dif.splice(i, 2);
+          ///TODO: should the index be moved by 2 instead? So that the previous subdif can be processed with the next one.
           i -= 1;
         }
       }
