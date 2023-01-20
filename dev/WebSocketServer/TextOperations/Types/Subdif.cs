@@ -12,5 +12,12 @@ namespace TextOperations.Types
         public int Position;
 
         public abstract Subdif Copy();
+        
+        public virtual bool SameAs(Subdif? other)
+        {
+            return other != null
+                && Row == other.Row
+                && Position == other.Position;
+        }
     }
 }

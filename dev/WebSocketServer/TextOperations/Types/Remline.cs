@@ -18,5 +18,11 @@ namespace TextOperations.Types
         {
             return new Remline(Row, Position);
         }
+
+        public override bool SameAs(Subdif? other)
+        {
+            return other is Remline remline
+                && base.SameAs(remline);
+        }
     }
 }

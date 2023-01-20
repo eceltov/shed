@@ -76,5 +76,42 @@ namespace TextOperations.Types
                 Siblings = Siblings,
             };
         }
+
+        bool BothNullOrBothNotNull(object? obj1, object? obj2)
+        {
+            return ((obj1 == null) && (obj2 == null)) || ((obj1 != null) && obj2 != null);
+        }
+
+        public bool SameAs(SubdifWrap? other)
+        {
+            if (other == null
+                || ID != other.ID
+                || !Sub.SameAs(other.Sub)
+                || InformationLost != other.InformationLost
+                || Relative != other.Relative)
+                return false;
+
+            if (!BothNullOrBothNotNull(Original, other!.Original)
+                || !BothNullOrBothNotNull(wTransformer, other!.wTransformer)
+                || !BothNullOrBothNotNull(Addresser, other!.Addresser))
+                return false;
+
+            if (Original != null && !Original.SameAs(other.Original))
+                return false;
+            if (wTransformer != null && !wTransformer.SameAs(other.wTransformer))
+                return false;
+            if (Addresser != null && !Addresser.SameAs(other.Addresser))
+                return false;
+
+            if (Siblings.Count != other.Siblings.Count)
+                return false;
+            for (int i = 0; i < Siblings.Count; i++)
+            {
+                if (Siblings[i] != other.Siblings[i])
+                    return false;
+            }
+
+            return true;
+        }
     }
 }

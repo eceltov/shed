@@ -21,5 +21,12 @@ namespace TextOperations.Types
         {
             return new Add(Row, Position, Content);
         }
+
+        public override bool SameAs(Subdif? other)
+        {
+            return other is Add add
+                && base.SameAs(add)
+                && Content == add.Content;
+        }
     }
 }

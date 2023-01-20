@@ -21,5 +21,12 @@ namespace TextOperations.Types
         {
             return new Del(Row, Position, Count);
         }
+
+        public override bool SameAs(Subdif? other)
+        {
+            return other is Del del
+                && base.SameAs(del)
+                && Count == del.Count;
+        }
     }
 }

@@ -23,6 +23,11 @@ namespace TextOperations.Types
             return SubdifWrap.FromDif(dif);
         }
 
+        public static List<Subdif> Unwrap(this List<SubdifWrap> wDif)
+        {
+            return SubdifWrap.UnwrapDif(wDif);
+        }
+
         public static List<Subdif> DeepCopy(this List<Subdif> dif)
         {
             List<Subdif> newDif = new(dif.Count);

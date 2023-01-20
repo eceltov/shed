@@ -18,5 +18,11 @@ namespace TextOperations.Types
         {
             return new Newline(Row, Position);
         }
+
+        public override bool SameAs(Subdif? other)
+        {
+            return other is Newline newline
+                && base.SameAs(newline);
+        }
     }
 }
