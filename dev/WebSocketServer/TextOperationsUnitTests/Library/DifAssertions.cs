@@ -55,15 +55,13 @@ namespace TextOperationsUnitTests.Library
 
     internal class DifTest
     {
-        public string Name;
         public Dif Dif;
         public Dif Transformer;
         public Dif Expected;
         public List<SubdifMeta>? MetaList;
 
-        public DifTest(string name, Dif dif, Dif transformer, Dif expected, List<SubdifMeta>? metaList = null)
+        public DifTest(Dif dif, Dif transformer, Dif expected, List<SubdifMeta>? metaList = null)
         {
-            Name = name;
             Dif = dif;
             Transformer = transformer;
             Expected = expected;
@@ -137,7 +135,6 @@ namespace TextOperationsUnitTests.Library
 
         public static void TestLIT(DifTest test)
         {
-            Console.WriteLine(test.Name);
             var wiDif = test.Dif.Wrap().MakeIndependent();
             var wTransformer = test.Transformer.Wrap();
             var wTransformed = wiDif.LIT(wTransformer);

@@ -515,7 +515,7 @@ const tests = [
     [newline(0, 1)],
     [del(0, 0, 2)],
     [newline(0, 0)],
-    [createMetaArr(true, false, 1)],
+    [createMetaArr(true, false, 1)], // the idx should be 0 not 1
   ],
   [
     'Including [del] to [newline] 8.',
@@ -697,6 +697,11 @@ const tests = [
     [del(0, 0, 1)],
     [remline(1, 0)],
   ],
+  /*[
+    'Complex include 1.',
+    [del(0, 0, 5), del(1, 3, 2), remline(0, 5), newline(0, 0), newline(1, 2), add(0, 0, ' and more text')],
+    [del(0, 2, 5), del(1, 2, 5), remline(0, 5), newline(0, 0), newline(1, 7), add(0, 0, 'text')],
+  ],*/
   
 ];
 
