@@ -28,5 +28,10 @@ namespace TextOperations.Types
                 && base.SameAs(del)
                 && Count == del.Count;
         }
+
+        public override string ToString()
+        {
+            return $"del({Row}, {Position}, {Count})";
+        }
     }
 }

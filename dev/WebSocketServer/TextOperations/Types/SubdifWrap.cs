@@ -115,5 +115,23 @@ namespace TextOperations.Types
 
             return true;
         }
+
+        public override string ToString()
+        {
+            string result = $"w[{Sub}, ID:{ID}";
+            if (InformationLost)
+                result += ", IL";
+            if (Relative)
+                result += ", R";
+            if (Siblings.Count > 0)
+            {
+                result += $", S{{{Siblings[0]}";
+                for (int i = 1; i < Siblings.Count; i++)
+                    result += $",{Siblings[i]}";
+                result += "}";
+            }
+            result += "]";
+            return result;
+        }
     }
 }

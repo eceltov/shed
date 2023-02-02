@@ -24,5 +24,10 @@ namespace TextOperations.Types
             return other is Newline newline
                 && base.SameAs(newline);
         }
+
+        public override string ToString()
+        {
+            return $"newline({Row}, {Position})";
+        }
     }
 }

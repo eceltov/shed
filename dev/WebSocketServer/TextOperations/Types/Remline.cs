@@ -24,5 +24,10 @@ namespace TextOperations.Types
             return other is Remline remline
                 && base.SameAs(remline);
         }
+
+        public override string ToString()
+        {
+            return $"remline({Row}, {Position})";
+        }
     }
 }

@@ -28,5 +28,10 @@ namespace TextOperations.Types
                 && base.SameAs(add)
                 && Content == add.Content;
         }
+
+        public override string ToString()
+        {
+            return $"add({Row}, {Position}, {Content})";
+        }
     }
 }
