@@ -163,6 +163,20 @@ namespace TextOperationsUnitTests.Library
             tests.ForEach((test) => TestLIT(test));
         }
 
+        public static void TestLET(DifTest test)
+        {
+            var wiDif = test.Dif.Wrap().MakeIndependent();
+            var wTransformer = test.Transformer.Wrap();
+            var wTransformed = wiDif.LET(wTransformer);
+            var transformed = wTransformed.Unwrap();
+            Assert.IsTrue(DifsEqual(test.Expected, transformed));
+
+            if (test.MetaList != null)
+                FitSubdifMetas(test.Dif, wTransformer, wTransformed, test.MetaList);
+
+            AssertSubdifMetaCorrect(wTransformed, test.MetaList);
+        }
+
         public static void TestIndepDep(Dif testDif, List<SubdifMeta>? metaList = null)
         {
             WrappedDif wiDif = testDif.Wrap().MakeIndependent();
