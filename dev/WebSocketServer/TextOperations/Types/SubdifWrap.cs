@@ -17,6 +17,7 @@ namespace TextOperations.Types
         public SubdifWrap? wTransformer = null;
         public SubdifWrap? Addresser = null;
         public List<int> Siblings = new();
+        public bool ConsumedSibling = false;
 
         /// <summary>
         /// Wraps should only be produced from the factory methods.
@@ -88,6 +89,7 @@ namespace TextOperations.Types
                 || ID != other.ID
                 || !Sub.SameAs(other.Sub)
                 || InformationLost != other.InformationLost
+                || ConsumedSibling != other.ConsumedSibling
                 || Relative != other.Relative)
                 return false;
 

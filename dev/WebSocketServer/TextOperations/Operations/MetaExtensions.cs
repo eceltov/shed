@@ -153,6 +153,7 @@ namespace TextOperations.Operations
             {
                 dif.Add(wSibling.Sub);
                 wSibling.Siblings = new();
+                wSibling.ConsumedSibling = true;
 
                 // siblings should not have lost information or be relative, because they will be deleted
                 if (wSibling.InformationLost || wSibling.Relative)
@@ -176,14 +177,18 @@ namespace TextOperations.Operations
             for (int i = 0; i < wDif.Count; i++)
             {
                 SubdifWrap wrap = wDif[i];
-                List<int> siblings = wrap.Siblings;
-                if (siblings.Count > 0)
+                // consumed siblings will have their ConsumedSibling attribute set to true
+                if (!wrap.ConsumedSibling)
                 {
-                    ///TODO: this differs from the js implementation
-                    ///TODO: slicing the list may be too slow
-                    wrap = InternalJoinSiblings(wDif.GetRange(i, wDif.Count - i));
+                    List<int> siblings = wrap.Siblings;
+                    if (siblings.Count > 0)
+                    {
+                        ///TODO: this differs from the js implementation
+                        ///TODO: slicing the list may be too slow
+                        wrap = InternalJoinSiblings(wDif.GetRange(i, wDif.Count - i));
+                    }
+                    wNewDif.Add(wrap);
                 }
-                wNewDif.Add(wrap);
             }
 
             return wNewDif;

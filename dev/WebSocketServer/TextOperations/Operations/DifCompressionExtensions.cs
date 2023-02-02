@@ -70,7 +70,7 @@ namespace TextOperations.Operations
         {
             List<Subdif> result = new();
 
-            if (first.Row != second.Row)
+            if (first.Row == second.Row)
             {
                 if (first.Position == second.Position)
                 {

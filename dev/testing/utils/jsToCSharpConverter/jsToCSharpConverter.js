@@ -1,18 +1,31 @@
 const fs = require('fs');
-const sourceFilePath = './in.js';
-const firstTestLineIdx = 1;
+const sourceFilePath = '../../indepDepIdentity.test.js';
+const firstTestLineIdx = 4;
 
-console.log(process(sourceFilePath, firstTestLineIdx));
+console.log(processIndepDep(sourceFilePath, firstTestLineIdx));
 
-// converts files in format similar to LIT.test.js
-// meta lines with more than one row are not supported, as well as sibling arrays
-function process(path, firstTestLineIdx) {
+function processIndepDep(path, firstTestLineIdx) {
   const lines = getFileLines(path);
   let output = '';
   let startIdx = firstTestLineIdx;
   let endIdx = findTestEndIdx(lines, startIdx + 1);
   while (endIdx !== -1) {
-    output += getMethod(lines.slice(startIdx, endIdx));
+    output += getMethodIndepDep(lines.slice(startIdx, endIdx));
+    startIdx = endIdx + 1;
+    endIdx = findTestEndIdx(lines, startIdx + 1);
+  }
+  return output;
+}
+
+// converts files in format similar to LIT.test.js
+// meta lines with more than one row are not supported, as well as sibling arrays
+function processLIT(path, firstTestLineIdx) {
+  const lines = getFileLines(path);
+  let output = '';
+  let startIdx = firstTestLineIdx;
+  let endIdx = findTestEndIdx(lines, startIdx + 1);
+  while (endIdx !== -1) {
+    output += getMethodLIT(lines.slice(startIdx, endIdx));
     startIdx = endIdx + 1;
     endIdx = findTestEndIdx(lines, startIdx + 1);
   }
@@ -34,14 +47,30 @@ function getFileLines(path) {
 }
 
 // first line is '  [', last line is '  ],'
-function getMethod(jsTestLines) {
+function getMethodIndepDep(jsTestLines) {
   const testNameQuoteIdx = jsTestLines[1].indexOf("'");
   const testName = jsTestLines[1].slice(testNameQuoteIdx + 1, -2);
 
   return (
-`${getMethodHeader(testName)}
+`${getMethodHeaderIndepDep(testName)}
 {
-${getTestObject(jsTestLines.slice(2))}
+${getTestObjectIndepDep(jsTestLines[2])}
+    DifAssertions.TestIndepDep(testDif);
+}
+
+`
+  );
+}
+
+// first line is '  [', last line is '  ],'
+function getMethodLIT(jsTestLines) {
+  const testNameQuoteIdx = jsTestLines[1].indexOf("'");
+  const testName = jsTestLines[1].slice(testNameQuoteIdx + 1, -2);
+
+  return (
+`${getMethodHeaderLIT(testName)}
+{
+${getTestObjectLIT(jsTestLines.slice(2))}
 
     DifAssertions.TestLIT(test);
 }
@@ -50,8 +79,14 @@ ${getTestObject(jsTestLines.slice(2))}
   );
 }
 
+function getTestObjectIndepDep(jsLine) {
+  return (
+`    Dif testDif = ${getDifLine(jsLine, true)};`
+  );
+}
+
 // gets dif and meta lines (without test name)
-function getTestObject(lines) {
+function getTestObjectLIT(lines) {
   const hasMeta = lines.length > 3;
   let output = (
 `    DifTest test = new(
@@ -72,7 +107,7 @@ function getTestObject(lines) {
   return output;
 }
 
-function getMethodHeader(jsTestName) {
+function getMethodHeaderLIT(jsTestName) {
   const tokens = jsTestName.split(' ');
   tokens[1] = extractSubdifTypeFromBrackets(tokens[1]);
   tokens[3] = extractSubdifTypeFromBrackets(tokens[3]);
@@ -82,6 +117,19 @@ function getMethodHeader(jsTestName) {
   }
 
   const methodName = tokens.join("");
+
+  return (
+`[TestMethod]
+public void ${methodName}()`
+  );
+}
+
+function getMethodHeaderIndepDep(jsTestName) {
+  const openingSquareIdx = jsTestName.indexOf('[');
+  const closingSquareIdx = jsTestName.indexOf(']');
+  const subdifs = jsTestName.slice(openingSquareIdx + 1, closingSquareIdx).split(', ');
+  const number = jsTestName.slice(closingSquareIdx + 2, -1);
+  const methodName = subdifs.map(subdif => capitalize(subdif)).join('') + number;
 
   return (
 `[TestMethod]

@@ -37,11 +37,14 @@ namespace TextOperationsUnitTests.Library
             this.siblingIndices = siblingIndices;
         }
 
-        public void Fit(Dif dif, WrappedDif wTransformer, WrappedDif wTransformed)
+        public void Fit(Dif dif, WrappedDif? wTransformer, WrappedDif wTransformed)
         {
             Original = originalIndex == null ? null : dif[originalIndex.Value];
-            this.wTransformer = transformerIndex == null ? null : wTransformer[transformerIndex.Value];
-            Addresser = addresserIndex == null ? null : wTransformer[addresserIndex.Value];
+            if (wTransformer != null)
+            {
+                this.wTransformer = transformerIndex == null ? null : wTransformer[transformerIndex.Value];
+                Addresser = addresserIndex == null ? null : wTransformer[addresserIndex.Value];
+            }
 
             if (siblingIndices != null)
             {
@@ -71,7 +74,15 @@ namespace TextOperationsUnitTests.Library
 
     internal static class DifAssertions
     {
-        static List<SubdifMeta> FitSubdifMetas(Dif dif, WrappedDif wTransformer, WrappedDif wTransformed, List<SubdifMeta> metaList)
+        /// <summary>
+        /// Fits SubdifMeta objects with specific data derived from the other parameters.
+        /// </summary>
+        /// <param name="dif">The original dif, used to fit the Original attribute.</param>
+        /// <param name="wTransformer">The transformer wDif, used to fit the wTransformer and Addresser attributes.</param>
+        /// <param name="wTransformed">The resulting wDif, used to fit the Siblings attribute.</param>
+        /// <param name="metaList">The list of SubdifMetas to be fitted.</param>
+        /// <returns></returns>
+        static List<SubdifMeta> FitSubdifMetas(Dif dif, WrappedDif? wTransformer, WrappedDif wTransformed, List<SubdifMeta> metaList)
         {
             metaList.ForEach((meta) => meta.Fit(dif, wTransformer, wTransformed));
             return metaList;
@@ -150,6 +161,21 @@ namespace TextOperationsUnitTests.Library
         public static void TestLITList(List<DifTest> tests)
         {
             tests.ForEach((test) => TestLIT(test));
+        }
+
+        public static void TestIndepDep(Dif testDif, List<SubdifMeta>? metaList = null)
+        {
+            WrappedDif wiDif = testDif.Wrap().MakeIndependent();
+            WrappedDif wdDif = wiDif.MakeDependent();
+            /// TODO add joinSiblings to the actual implementation
+            WrappedDif wdJoinedDif = wdDif.JoinSiblings();
+            Dif result = wdJoinedDif.Unwrap();
+            Assert.IsTrue(DifsEqual(result, testDif));
+
+            if (metaList != null)
+                FitSubdifMetas(testDif, null, wiDif, metaList);
+
+            AssertSubdifMetaCorrect(wdJoinedDif, metaList);
         }
     }
 }

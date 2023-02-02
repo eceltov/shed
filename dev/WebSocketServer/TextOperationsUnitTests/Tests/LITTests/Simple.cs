@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 using TextOperations.Types;
 using TextOperationsUnitTests.Library;
 
-namespace TextOperationsUnitTests.LITTests
+namespace TextOperationsUnitTests.Tests.LITTests
 {
     [TestClass]
     public class Simple
