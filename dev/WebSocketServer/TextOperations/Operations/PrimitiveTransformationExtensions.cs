@@ -70,7 +70,8 @@ namespace TextOperations.Operations
             }
             else if (transformer.Row == wrap.Sub.Row)
             {
-                throw new NotImplementedException("IT_AR not implemented.");
+                // do nothing
+                //throw new NotImplementedException("IT_AR not implemented.");
                 /**
                  * In order to preserve the intention of adding characters,
                    a new line has to be added and those characters will be added here.

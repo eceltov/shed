@@ -15,10 +15,7 @@ namespace TextOperationsUnitTests.Tests.UDRTests
         [TestMethod]
         public void SingleOperation()
         {
-            int initialNextWrapID = SubdifWrap.nextWrapID;
-            WrappedHB wHB = new();
-            SO SO = new();
-            List<string> document = new() { "" };
+            var (localNextWrapID, wHB, SO, document) = UDRUtilities.GetInitialState();
             Operation operation = new(
                 new OperationMetadata(0, 0, -1, -1),
                 new Dif() { new Add(0, 0, "123456789") }
@@ -27,7 +24,7 @@ namespace TextOperationsUnitTests.Tests.UDRTests
             var (newDocument, wNewHB) = operation.UDR(document, wHB, SO);
 
             List<string> correctDocument = new() { "123456789" };
-            WrappedOperation wCorrectOperation = new(operation.Metadata, operation.Dif.Wrap(new() { initialNextWrapID }));
+            WrappedOperation wCorrectOperation = new(operation.Metadata, operation.Dif.Wrap(new() { localNextWrapID }));
             WrappedHB wCorrectHB = new() { wCorrectOperation };
 
             Assert.IsTrue(newDocument.SameAs(correctDocument));
