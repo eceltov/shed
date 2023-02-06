@@ -13,6 +13,11 @@ namespace TextOperations.Types
             return SubdifWrap.FromSubdif(subdif);
         }
 
+        public static SubdifWrap Wrap(this Subdif subdif, int id)
+        {
+            return SubdifWrap.FromSubdif(subdif, id);
+        }
+
         public static SubdifWrap Wrap(this Subdif subdif, int id, List<int> siblings)
         {
             return SubdifWrap.FromSubdif(subdif, id, siblings);
@@ -21,6 +26,18 @@ namespace TextOperations.Types
         public static List<SubdifWrap> Wrap(this List<Subdif> dif)
         {
             return SubdifWrap.FromDif(dif);
+        }
+
+        /// <summary>
+        /// Creates a Wrapped Dif from a Dif and a List of specified ids.
+        /// </summary>
+        /// <param name="dif">The source dif.</param>
+        /// <param name="ids">List of ids which will be assigned to the individual wraps.</param>
+        /// <returns>Returns a Wrapped Dif.</returns>
+        /// <exception cref="ArgumentException">Thrown when the counts of dif and ids do not equal.</exception>
+        public static List<SubdifWrap> Wrap(this List<Subdif> dif, List<int> ids)
+        {
+            return SubdifWrap.FromDif(dif, ids);
         }
 
         public static List<Subdif> Unwrap(this List<SubdifWrap> wDif)

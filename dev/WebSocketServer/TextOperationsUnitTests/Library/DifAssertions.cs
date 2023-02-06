@@ -129,19 +129,7 @@ namespace TextOperationsUnitTests.Library
             }
         }
 
-        static bool DifsEqual(Dif dif1, Dif dif2)
-        {
-            if (dif1.Count != dif2.Count)
-                return false;
-
-            for (int i = 0; i < dif1.Count; i++)
-            {
-                if (!dif1[i].SameAs(dif2[i]))
-                    return false;
-            }
-
-            return true;
-        }
+        
 
 
         public static void TestLIT(DifTest test)
@@ -150,7 +138,7 @@ namespace TextOperationsUnitTests.Library
             var wTransformer = test.Transformer.Wrap();
             var wTransformed = wiDif.LIT(wTransformer);
             var transformed = wTransformed.Unwrap();
-            Assert.IsTrue(DifsEqual(test.Expected, transformed));
+            Assert.IsTrue(test.Expected.SameAs(transformed));
 
             if (test.MetaList != null)
                 FitSubdifMetas(test.Dif, wTransformer, wTransformed, test.MetaList);
@@ -169,7 +157,7 @@ namespace TextOperationsUnitTests.Library
             var wTransformer = test.Transformer.Wrap();
             var wTransformed = wiDif.LET(wTransformer);
             var transformed = wTransformed.Unwrap();
-            Assert.IsTrue(DifsEqual(test.Expected, transformed));
+            Assert.IsTrue(test.Expected.SameAs(transformed));
 
             if (test.MetaList != null)
                 FitSubdifMetas(test.Dif, wTransformer, wTransformed, test.MetaList);
@@ -184,7 +172,7 @@ namespace TextOperationsUnitTests.Library
             /// TODO add joinSiblings to the actual implementation
             WrappedDif wdJoinedDif = wdDif.JoinSiblings();
             Dif result = wdJoinedDif.Unwrap();
-            Assert.IsTrue(DifsEqual(result, testDif));
+            Assert.IsTrue(result.SameAs(testDif));
 
             if (metaList != null)
                 FitSubdifMetas(testDif, null, wiDif, metaList);

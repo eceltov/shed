@@ -8,7 +8,7 @@ namespace TextOperations.Types
 {
     internal class SubdifWrap
     {
-        static int nextWrapID = 0; ///TODO: this should either by Interlocked or instanced to document
+        public static int nextWrapID { get; private set; } = 0; ///TODO: this should either by Interlocked or instanced to document
         public int ID;
         public Subdif Sub;
         public bool InformationLost = false;
@@ -33,6 +33,15 @@ namespace TextOperations.Types
             };
         }
 
+        public static SubdifWrap FromSubdif(Subdif subdif, int id)
+        {
+            return new SubdifWrap()
+            {
+                ID = id,
+                Sub = subdif,
+            };
+        }
+
         public static SubdifWrap FromSubdif(Subdif subdif, int id, List<int> siblings)
         {
             return new SubdifWrap()
@@ -49,6 +58,27 @@ namespace TextOperations.Types
             foreach (var subdif in dif)
             {
                 wDif.Add(FromSubdif(subdif));
+            }
+            return wDif;
+        }
+
+        /// <summary>
+        /// Creates a Wrapped Dif from a Dif and a List of specified ids.
+        /// </summary>
+        /// <param name="dif">The source dif.</param>
+        /// <param name="ids">List of ids which will be assigned to the individual wraps.</param>
+        /// <returns>Returns a Wrapped Dif.</returns>
+        /// <exception cref="ArgumentException">Thrown when the counts of dif and ids do not equal.</exception>
+        public static List<SubdifWrap> FromDif(List<Subdif> dif, List<int> ids)
+        {
+            if (dif.Count != ids.Count)
+                throw new ArgumentException("Error: FromDif: dif.Count and ids.Count must be equal.");
+
+            List<SubdifWrap> wDif = new List<SubdifWrap>(dif.Count);
+            for (int i = 0; i < dif.Count; i++)
+            {
+                var subdif = dif[i];
+                wDif.Add(FromSubdif(subdif, ids[i]));
             }
             return wDif;
         }
