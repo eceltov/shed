@@ -16,7 +16,7 @@ namespace TextOperationsUnitTests.Tests.UDRTests
         /// Tests a situation when the first user adds four lines to an empty document
         /// (the first line being "1234", the second line being "abcd", the rest being empty),
         /// a second user merges the first three rows (using two remlines) and a third user
-        /// makes some changes to the text before the remlines from the second user is received.
+        /// makes some changes to the text before the remlines from the second user are received.
         /// </summary>
         /// <param name="dif">The dif the third user made.</param>
         /// <param name="transformedDif">The third user's dif after transformation.</param>
@@ -167,6 +167,28 @@ namespace TextOperationsUnitTests.Tests.UDRTests
             Dif dif = new() { new Add(0, 4, "i"), new Add(1, 0, "k"), new Add(1, 0, "j") };
             Dif transformedDif = new() { new Add(0, 4, "i"), new Add(0, 5, "k"), new Add(0, 5, "j") };
             List<string> correctDocument = new() { "1234ijkabcd", "" };
+            IncludingRemlinesToDifScenario(dif, transformedDif, correctDocument);
+        }
+
+        /// <summary>
+        /// Adds characters to the starts and ends of lines.
+        /// </summary>
+        [TestMethod]
+        public void MultilineAdd3()
+        {
+            Dif dif = new()
+            {
+                new Add(0, 0, "i"), new Add(0, 5, "j"), new Add(1, 0, "l"),
+                new Add(1, 0, "k"), new Add(1, 6, "m"), new Add(2, 0, "o"),
+                new Add(2, 0, "n"), new Add(3, 0, "q"), new Add(3, 0, "p"),
+            };
+            Dif transformedDif = new()
+            {
+                new Add(0, 0, "i"), new Add(0, 5, "j"), new Add(0, 6, "l"),
+                new Add(0, 6, "k"), new Add(0, 12, "m"), new Add(0, 13, "o"),
+                new Add(0, 13, "n"), new Add(1, 0, "q"), new Add(1, 0, "p"),
+            };
+            List<string> correctDocument = new() { "i1234jklabcdmno", "pq" };
             IncludingRemlinesToDifScenario(dif, transformedDif, correctDocument);
         }
     }
