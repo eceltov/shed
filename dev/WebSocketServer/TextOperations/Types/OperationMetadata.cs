@@ -33,5 +33,10 @@ namespace TextOperations.Types
                 && PrevClientID == other.PrevClientID
                 && PrevCommitSerialNumber == other.PrevCommitSerialNumber;
         }
+
+        public override string ToString()
+        {
+            return $"[{ClientID}, {CommitSerialNumber}, {PrevClientID}, {PrevCommitSerialNumber}]";
+        }
     }
 }
