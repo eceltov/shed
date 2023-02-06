@@ -60,6 +60,7 @@ namespace TextOperations.Operations
                 if (wAddresser.Sub is Add || wAddresser.Sub is Del)
                 {
                     // add the position of the addresser to the relative offset of the wrap
+                    wrap.Sub.Row = wAddresser.Sub.Row;
                     wrap.Sub.Position += wAddresser.Sub.Position;
                     wrap.Relative = false;
                     wrap.Addresser = null;
@@ -80,6 +81,7 @@ namespace TextOperations.Operations
             {
                 if (wAddresser.Sub is Add)
                 {
+                    wrap.Sub.Row = wAddresser.Sub.Row;
                     wrap.Sub.Position += wAddresser.Sub.Position;
                     wrap.Relative = false;
                     wrap.Addresser = null;

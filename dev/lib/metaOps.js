@@ -55,6 +55,7 @@ function convertAA(wrap, wAddresser) {
   if (isAdd(wrap) || isDel(wrap)) {
     if (isAdd(wAddresser) || isDel(wAddresser)) {
       // add the position of the addresser to the relative offset of the wrap
+      wrap.sub[0] = wAddresser.sub[0];
       wrap.sub[1] += wAddresser.sub[1];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
@@ -71,6 +72,7 @@ function convertAA(wrap, wAddresser) {
   }
   else if (isNewline(wrap)) {
     if (isAdd(wAddresser)) {
+      wrap.sub[0] = wAddresser.sub[0];
       wrap.sub[1] += wAddresser.sub[1];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
