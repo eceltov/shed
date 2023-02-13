@@ -4,6 +4,7 @@ using System.Linq;
 using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading.Tasks;
+using TextOperations.Operations;
 using TextOperations.Types;
 using WebSocketServer.Data;
 using WebSocketServer.Extensions;
@@ -93,6 +94,29 @@ namespace WebSocketServer.Model
         {
             ///TODO
             throw new NotImplementedException();
+        }
+
+        public void HandleOperation(Client client, Operation operation)
+        {
+            if (client == null || !ClientPresent(client.ID) || !RoleHandler.CanEdit(client.Role))
+            {
+                Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
+                return;
+            }
+
+            var message = new OperationMessage(operation, documentFile.ID);
+
+            clients.SendMessage(message);
+            ProcessOperation(operation);
+            StartGC();
+        }
+
+        void ProcessOperation(Operation operation)
+        {
+            var (newDocument, wNewHB) = operation.UDR(document, wHB, serverOrdering);
+            serverOrdering.Add(operation.Metadata);
+            wHB = wNewHB;
+            document = newDocument;
         }
 
         /// <summary>

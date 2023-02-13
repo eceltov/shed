@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class Operation
+    public class Operation
     {
         public OperationMetadata Metadata;
         public List<Subdif> Dif;

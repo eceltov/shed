@@ -11,6 +11,7 @@ using WebSocketServer.MessageProcessing;
 using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.DatabaseParsers;
 using WebSocketServer.Extensions;
+using TextOperations.Types;
 
 namespace WebSocketServer.Model
 {
@@ -29,11 +30,12 @@ namespace WebSocketServer.Model
         /// <summary>
         /// Maps document file IDs to active DocumentInstances.
         /// Active documents are those that are currently opened by at least
+        /// one client.
         /// </summary>
         public Dictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
-        BlockingCollection<IWorkspaceActionDescriptor> actionDescriptors;
-        Thread workerThread;
+        readonly BlockingCollection<IWorkspaceActionDescriptor> actionDescriptors;
+        readonly Thread workerThread;
 
 
         public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users)
@@ -80,6 +82,35 @@ namespace WebSocketServer.Model
             if (Clients.ContainsKey(client.ID))
             {
                 Console.WriteLine($"Error in ClientCanJoin: client {client.ID} already present.");
+                return false;
+            }
+
+            return true;
+        }
+
+        bool ClientCanEdit(Client client, int documentID)
+        {
+            if (client == null)
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
+                return false;
+            }
+
+            if (!RoleHandler.CanEdit(client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
+                return false;
+            }
+
+            if (!ActiveDocuments.TryGetValue(documentID, out var activeDocument))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit an inactive document.");
+                return false;
+            }
+
+            if (!activeDocument.ClientPresent(client.ID))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
                 return false;
             }
 
@@ -367,6 +398,18 @@ namespace WebSocketServer.Model
 
             RenameFileMessage message = new(fileID, newName);
             Clients.SendMessage(message);
+            return true;
+        }
+
+        public bool HandleOperation(Client client, Operation operation, int documentID)
+        {
+            if (!ClientCanEdit(client, documentID))
+            {
+                Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
+                return false;
+            }
+
+            ActiveDocuments[documentID].HandleOperation(client, operation);
             return true;
         }
     }

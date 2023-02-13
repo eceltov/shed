@@ -19,6 +19,8 @@ namespace WebSocketServer.MessageProcessing
 
         protected override void OnMessage(MessageEventArgs e)
         {
+            Console.WriteLine(e.Data);
+
             // only an operation uses JSON arrays
             if (e.Data[0] == '[')
             {
@@ -26,7 +28,6 @@ namespace WebSocketServer.MessageProcessing
                 return;
             }
 
-            Console.WriteLine(e.Data);
             var genericMessage = new ClientMessage(e.Data);
             switch (genericMessage.MsgType)
             {
@@ -137,7 +138,8 @@ namespace WebSocketServer.MessageProcessing
             if (client == null)
                 return;
 
-
+            var message = new ClientOperationMessage(e.Data);
+            client.Workspace.ScheduleAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
         }
 
         protected override void OnClose(CloseEventArgs e)

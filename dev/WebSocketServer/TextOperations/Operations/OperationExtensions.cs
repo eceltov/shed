@@ -7,7 +7,7 @@ using TextOperations.Types;
 
 namespace TextOperations.Operations
 {
-    internal static class OperationExtensions
+    public static class OperationExtensions
     {
         static List<T> JoinLists<T>(List<List<T>> lists)
         {
@@ -37,7 +37,7 @@ namespace TextOperations.Operations
             return new(operation.Metadata, operation.Dif.Wrap());
         }
 
-        public static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
+        static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
         {
             /**
             *  @note Due to the fact that all operations are being received by all clients in the same

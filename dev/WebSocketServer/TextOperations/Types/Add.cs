@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class Add : Subdif
+    public class Add : Subdif
     {
         public string Content;
 

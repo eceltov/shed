@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class Del : Subdif
+    public class Del : Subdif
     {
         public int Count;
 

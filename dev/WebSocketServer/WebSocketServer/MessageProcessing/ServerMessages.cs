@@ -133,4 +133,66 @@ namespace WebSocketServer.MessageProcessing
             this.GCOldestMessageNumber = GCOldestMessageNumber;
         }
     }
+
+    [JsonConverter(typeof(ServerOperationMessageConverter))]
+    internal class OperationMessage
+    {
+        public Operation Operation { get; set; }
+        public int DocumentID { get; set; }
+
+        public OperationMessage(Operation operation, int documentID)
+        {
+            Operation = operation;
+            DocumentID = documentID;
+        }
+    }
+
+    internal class ServerOperationMessageConverter : JsonConverter
+    {
+        public override bool CanConvert(Type objectType)
+        {
+            return objectType == typeof(ServerOperationMessageConverter);
+        }
+
+        public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
+        {
+            throw new NotImplementedException();
+        }
+
+        public override void WriteJson(JsonWriter writer, object? value, JsonSerializer serializer)
+        {
+            OperationMessage message = (OperationMessage)value;
+
+            writer.WriteStartArray();
+
+            // metadata
+            writer.WriteStartArray();
+            writer.WriteValue(message.Operation.Metadata.ClientID);
+            writer.WriteValue(message.Operation.Metadata.CommitSerialNumber);
+            writer.WriteValue(message.Operation.Metadata.PrevClientID);
+            writer.WriteValue(message.Operation.Metadata.PrevCommitSerialNumber);
+            writer.WriteEndArray();
+
+            // dif
+            writer.WriteStartArray();
+            foreach (Subdif subdif in message.Operation.Dif)
+            {
+                writer.WriteStartArray();
+                writer.WriteValue(subdif.Row);
+                writer.WriteValue(subdif.Position);
+
+                if (subdif is Add add)
+                    writer.WriteValue(add.Content);
+                else if (subdif is Del del)
+                    writer.WriteValue(del.Count);
+                writer.WriteEndArray();
+            }
+            writer.WriteEndArray();
+
+            // documentID
+            writer.WriteValue(message.DocumentID);
+
+            writer.WriteEndArray();
+        }
+    }
 }

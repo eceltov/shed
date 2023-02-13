@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class Remline : Subdif
+    public class Remline : Subdif
     {
         public Remline(int row, int position)
         {
