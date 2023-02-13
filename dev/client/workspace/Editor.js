@@ -1,5 +1,9 @@
 class Editor {
   constructor(theme) {
+    this.setSession = this.setSession.bind(this);
+    this.setReadOnly = this.setReadOnly.bind(this);
+    this.getCursorPosition = this.getCursorPosition.bind(this);
+
     this.aceEditor = null;
     this.mounted = false;
     this.aceTheme = theme;
