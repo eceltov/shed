@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal abstract class Subdif
+    public abstract class Subdif
     {
         public int Row;
         public int Position;

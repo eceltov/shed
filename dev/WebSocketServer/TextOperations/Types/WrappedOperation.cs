@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class WrappedOperation
+    public class WrappedOperation
     {
         public OperationMetadata Metadata;
         public List<SubdifWrap> wDif;

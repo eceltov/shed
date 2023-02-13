@@ -19,8 +19,15 @@ namespace WebSocketServer.MessageProcessing
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            var genericMessage = new ClientMessage(e.Data);
+            // only an operation uses JSON arrays
+            if (e.Data[0] == '[')
+            {
+                HandleOperation(e);
+                return;
+            }
+
             Console.WriteLine(e.Data);
+            var genericMessage = new ClientMessage(e.Data);
             switch (genericMessage.MsgType)
             {
                 case ClientMessageTypes.Connect:
@@ -57,14 +64,14 @@ namespace WebSocketServer.MessageProcessing
             if (userID != null)
             {
 
-                Workspace? workspace = Workspaces.GetWorkspace(message.WorkspaceHash);
+                Workspace? workspace = AllWorkspaces.GetWorkspace(message.WorkspaceHash);
                 if (workspace == null) return;
 
                 Client? newClient = Client.CreateClient(userID, workspace, this);
                 if (newClient == null) return;
 
                 client = newClient;
-                Clients.Add(client);
+                AllClients.Add(client);
                 Console.WriteLine($"Added client {client.ID}");
                 workspace.ScheduleAction(new ConnectClientDescriptor(client));
             }
@@ -123,6 +130,14 @@ namespace WebSocketServer.MessageProcessing
 
             var message = new ClientRenameFileMessage(e.Data);
             client.Workspace.ScheduleAction(new RenameFileDescriptor(client, message.FileID, message.Name));
+        }
+
+        void HandleOperation(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+
         }
 
         protected override void OnClose(CloseEventArgs e)

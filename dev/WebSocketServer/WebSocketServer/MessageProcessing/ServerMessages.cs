@@ -4,6 +4,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using TextOperations.Types;
 using WebSocketServer.Model;
 using WebSocketServer.Parsers.DatabaseParsers;
 
@@ -30,11 +31,11 @@ namespace WebSocketServer.MessageProcessing
         [JsonProperty("serverDocument")] public List<string> ServerDocument { get; set; }
         [JsonProperty("fileID")] public int FileID { get; set; }
         ///TODO: change type
-        [JsonProperty("serverHB")] public List<object> ServerHB { get; set; }
-        [JsonProperty("serverOrdering")] public List<int[]> ServerOrdering { get; set; }
+        [JsonProperty("serverHB")] public List<WrappedOperation> ServerHB { get; set; }
+        [JsonProperty("serverOrdering")] public List<OperationMetadata> ServerOrdering { get; set; }
         [JsonProperty("firstSOMessageNumber")] public int FirstSOMessageNumber { get; set; }
 
-        public InitDocumentMessage(List<string> serverDocument, int fileID, List<object> serverHB, List<int[]> serverOrdering, int firstSOMessageNumber)
+        public InitDocumentMessage(List<string> serverDocument, int fileID, List<WrappedOperation> serverHB, List<OperationMetadata> serverOrdering, int firstSOMessageNumber)
         {
             ServerDocument = serverDocument;
             FileID = fileID;
@@ -106,6 +107,30 @@ namespace WebSocketServer.MessageProcessing
         {
             FileID = fileID;
             Name = name;
+        }
+    }
+
+    internal class GCMetadataRequestMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.GCMetadataRequest;
+        [JsonProperty("fileID")] public int FileID { get; set; }
+
+        public GCMetadataRequestMessage(int fileID)
+        {
+            FileID = fileID;
+        }
+    }
+
+    internal class GCMessage
+    {
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.GC;
+        [JsonProperty("fileID")] public int FileID { get; set; }
+        [JsonProperty("GCOldestMessageNumber")] public int GCOldestMessageNumber { get; set; }
+
+        public GCMessage(int fileID, int GCOldestMessageNumber)
+        {
+            FileID = fileID;
+            this.GCOldestMessageNumber = GCOldestMessageNumber;
         }
     }
 }

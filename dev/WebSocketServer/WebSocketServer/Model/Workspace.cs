@@ -10,6 +10,7 @@ using WebSocketServer.Data;
 using WebSocketServer.MessageProcessing;
 using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.DatabaseParsers;
+using WebSocketServer.Extensions;
 
 namespace WebSocketServer.Model
 {
@@ -52,14 +53,6 @@ namespace WebSocketServer.Model
         public void ScheduleAction(IWorkspaceActionDescriptor actionDescriptor)
         {
             actionDescriptors.Add(actionDescriptor);
-        }
-
-        void SendMessageToClients(object message)
-        {
-            foreach (var (clientID, client) in Clients)
-            {
-                client.ClientInterface.Send(message);
-            }
         }
 
         void ProcessActions(CancellationToken cancellationToken)
@@ -321,7 +314,7 @@ namespace WebSocketServer.Model
             }
 
             CreateDocumentMessage message = new(parentID, documentID, name);
-            SendMessageToClients(message);
+            Clients.SendMessage(message);
             return true;
         }
 
@@ -334,7 +327,7 @@ namespace WebSocketServer.Model
             }
 
             CreateFolderMessage message = new(parentID, folderID, name);
-            SendMessageToClients(message);
+            Clients.SendMessage(message);
             return true;
         }
 
@@ -347,7 +340,7 @@ namespace WebSocketServer.Model
             }
 
             DeleteDocumentMessage message = new(fileID);
-            SendMessageToClients(message);
+            Clients.SendMessage(message);
             return true;
         }
 
@@ -360,7 +353,7 @@ namespace WebSocketServer.Model
             }
 
             DeleteFolderMessage message = new(fileID);
-            SendMessageToClients(message);
+            Clients.SendMessage(message);
             return true;
         }
 
@@ -373,7 +366,7 @@ namespace WebSocketServer.Model
             }
 
             RenameFileMessage message = new(fileID, newName);
-            SendMessageToClients(message);
+            Clients.SendMessage(message);
             return true;
         }
     }

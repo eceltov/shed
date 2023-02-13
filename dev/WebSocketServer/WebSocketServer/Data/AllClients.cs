@@ -7,12 +7,12 @@ using WebSocketServer.Model;
 
 namespace WebSocketServer.Data
 {
-    internal static class Clients
+    internal static class AllClients
     {
         ///TODO: this should by a synchronized structure
         static Dictionary<int, Client> clients;
 
-        static Clients()
+        static AllClients()
         {
             clients = new();
         }

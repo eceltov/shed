@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class OperationMetadata
+    public class OperationMetadata
     {
         public int ClientID;
         public int CommitSerialNumber;

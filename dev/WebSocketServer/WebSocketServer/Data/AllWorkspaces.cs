@@ -7,12 +7,12 @@ using WebSocketServer.Model;
 
 namespace WebSocketServer.Data
 {
-    internal static class Workspaces
+    internal static class AllWorkspaces
     {
         ///TODO: this should be synchronized
         static Dictionary<string, Workspace> workspaces;
 
-        static Workspaces()
+        static AllWorkspaces()
         {
             workspaces = new();
         }

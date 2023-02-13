@@ -6,7 +6,7 @@ using System.Threading.Tasks;
 
 namespace TextOperations.Types
 {
-    internal class SubdifWrap
+    public class SubdifWrap
     {
         public static int nextWrapID { get; private set; } = 0; ///TODO: this should either by Interlocked or instanced to document
         public int ID;
