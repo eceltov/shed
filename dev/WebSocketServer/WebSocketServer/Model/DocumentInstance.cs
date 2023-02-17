@@ -152,18 +152,18 @@ namespace WebSocketServer.Model
             }
         }
 
-        void ProcessGCResponse(ClientGCMetadataMessage message)
+        public void HandleGCMetadata(Client client, int dependency)
         {
-            if (GCOldestMessageNumber == null || message.Dependancy < GCOldestMessageNumber)
-                GCOldestMessageNumber = message.Dependancy;
+            if (GCOldestMessageNumber == null || dependency < GCOldestMessageNumber)
+                GCOldestMessageNumber = dependency;
 
-            if (!garbageRoster.ContainsKey(message.ClientID))
+            if (!garbageRoster.ContainsKey(client.ID))
             {
                 Console.WriteLine("Error: ProcessGCResponse: Invalid ClientID.");
                 return;
             }
 
-            int rosterIndex = garbageRoster[message.ClientID];
+            int rosterIndex = garbageRoster[client.ID];
             try
             {
                 garbageRosterChecker.Check(rosterIndex);

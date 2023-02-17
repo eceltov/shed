@@ -7,6 +7,8 @@ using System.Threading.Tasks;
 using TextOperations.Types;
 using WebSocketServer.Model;
 using WebSocketServer.Parsers.DatabaseParsers;
+using WebSocketServer.Utilities.TextOperationsConverters;
+using WebSocketServer.Utilities.TextOperationsWriters;
 
 namespace WebSocketServer.MessageProcessing
 {
@@ -30,9 +32,8 @@ namespace WebSocketServer.MessageProcessing
         [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.InitDocument;
         [JsonProperty("serverDocument")] public List<string> ServerDocument { get; set; }
         [JsonProperty("fileID")] public int FileID { get; set; }
-        ///TODO: change type
-        [JsonProperty("serverHB")] public List<WrappedOperation> ServerHB { get; set; }
-        [JsonProperty("serverOrdering")] public List<OperationMetadata> ServerOrdering { get; set; }
+        [JsonProperty("serverHB", ItemConverterType = typeof(WOperationConverter))] public List<WrappedOperation> ServerHB { get; set; }
+        [JsonProperty("serverOrdering", ItemConverterType = typeof(OperationMetadataConverter))] public List<OperationMetadata> ServerOrdering { get; set; }
         [JsonProperty("firstSOMessageNumber")] public int FirstSOMessageNumber { get; set; }
 
         public InitDocumentMessage(List<string> serverDocument, int fileID, List<WrappedOperation> serverHB, List<OperationMetadata> serverOrdering, int firstSOMessageNumber)
@@ -151,7 +152,7 @@ namespace WebSocketServer.MessageProcessing
     {
         public override bool CanConvert(Type objectType)
         {
-            return objectType == typeof(ServerOperationMessageConverter);
+            return objectType == typeof(OperationMessage);
         }
 
         public override object ReadJson(JsonReader reader, Type objectType, object? existingValue, JsonSerializer serializer)
@@ -166,28 +167,10 @@ namespace WebSocketServer.MessageProcessing
             writer.WriteStartArray();
 
             // metadata
-            writer.WriteStartArray();
-            writer.WriteValue(message.Operation.Metadata.ClientID);
-            writer.WriteValue(message.Operation.Metadata.CommitSerialNumber);
-            writer.WriteValue(message.Operation.Metadata.PrevClientID);
-            writer.WriteValue(message.Operation.Metadata.PrevCommitSerialNumber);
-            writer.WriteEndArray();
+            OperationMetadataJsonWriter.WriteJson(writer, message.Operation.Metadata, serializer);
 
             // dif
-            writer.WriteStartArray();
-            foreach (Subdif subdif in message.Operation.Dif)
-            {
-                writer.WriteStartArray();
-                writer.WriteValue(subdif.Row);
-                writer.WriteValue(subdif.Position);
-
-                if (subdif is Add add)
-                    writer.WriteValue(add.Content);
-                else if (subdif is Del del)
-                    writer.WriteValue(del.Count);
-                writer.WriteEndArray();
-            }
-            writer.WriteEndArray();
+            DifJsonWriter.WriteJson(writer, message.Operation.Dif, serializer);
 
             // documentID
             writer.WriteValue(message.DocumentID);

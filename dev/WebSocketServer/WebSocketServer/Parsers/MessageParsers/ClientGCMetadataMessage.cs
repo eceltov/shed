@@ -14,12 +14,12 @@ namespace WebSocketServer.Parsers.MessageParsers
             var source = JsonConvert.DeserializeObject<ClientGCMetadataMessage>(jsonString);
             MsgType = source.MsgType;
             ClientID = source.ClientID;
-            FileID = source.FileID;
-            Dependancy = source.Dependancy;
+            DocumentID = source.DocumentID;
+            Dependency = source.Dependency;
         }
 
         [JsonProperty("clientID")] public int ClientID { get; set; }
-        [JsonProperty("fileID")] public int FileID { get; set; }
-        [JsonProperty("dependancy")] public int Dependancy { get; set; }
+        [JsonProperty("fileID")] public int DocumentID { get; set; }
+        [JsonProperty("dependancy")] public int Dependency { get; set; }
     }
 }

@@ -412,5 +412,11 @@ namespace WebSocketServer.Model
             ActiveDocuments[documentID].HandleOperation(client, operation);
             return true;
         }
+
+        public bool HandleGCMetadata(Client client, int documentID, int dependency)
+        {
+            ActiveDocuments[documentID].HandleGCMetadata(client, dependency);
+            return true;
+        }
     }
 }

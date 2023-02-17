@@ -52,6 +52,9 @@ namespace WebSocketServer.MessageProcessing
                 case ClientMessageTypes.RenameFile:
                     HandleRenameFile(e);
                     break;
+                case ClientMessageTypes.GCMetadataResponse:
+                    HandleGCMetadata(e);
+                    break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
@@ -140,6 +143,15 @@ namespace WebSocketServer.MessageProcessing
 
             var message = new ClientOperationMessage(e.Data);
             client.Workspace.ScheduleAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
+        }
+
+        void HandleGCMetadata(MessageEventArgs e)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientGCMetadataMessage(e.Data);
+            client.Workspace.ScheduleAction(new GCMetadataDescriptor(client, message.DocumentID, message.Dependency));
         }
 
         protected override void OnClose(CloseEventArgs e)
