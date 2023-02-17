@@ -426,3 +426,6 @@ Authentication and SSR:
     If invalid, the cookie will be removed and the login will be present.
 
     This means no REST API route for workspaces needs to be present, as they can be loaded in SSR.
+
+There is a problem when the editor does an automatic action, like when a client presses { and the } gets added automatically (the } will not be sent to server).
+There are some race conditions in the Workspace implementation (multiple ActionDescriptors can target the same document/interact with the active instances dictionary)
