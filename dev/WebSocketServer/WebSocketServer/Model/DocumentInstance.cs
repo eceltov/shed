@@ -90,6 +90,16 @@ namespace WebSocketServer.Model
             client.ClientInterface.Send(initMsg);
         }
 
+        public void RemoveConnection(Client client)
+        {
+            clients.Remove(client.ID);
+            if (clients.Count == 0)
+            {
+                throw new NotImplementedException();
+                ///TODO: close document
+            }
+        }
+
         public void Delete()
         {
             ///TODO

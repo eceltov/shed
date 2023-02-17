@@ -401,6 +401,27 @@ namespace WebSocketServer.Model
             return true;
         }
 
+        public bool HandleCloseDocument(Client client, int documentID)
+        {
+            if (client.OpenDocuments.ContainsKey(documentID))
+            {
+                client.OpenDocuments.Remove(documentID);
+
+                ///TODO: possible race condition
+                if (ActiveDocuments.ContainsKey(documentID))
+                {
+                    ActiveDocuments[documentID].RemoveConnection(client);
+                    return true;
+                }
+                
+                Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an inactive document ({documentID}).");
+                return false;
+            }
+
+            Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an unopened document ({documentID}).");
+            return false;
+        }
+
         public bool HandleOperation(Client client, Operation operation, int documentID)
         {
             if (!ClientCanEdit(client, documentID))
@@ -409,12 +430,14 @@ namespace WebSocketServer.Model
                 return false;
             }
 
+            ///TODO: unsafe, plus possible race condition
             ActiveDocuments[documentID].HandleOperation(client, operation);
             return true;
         }
 
         public bool HandleGCMetadata(Client client, int documentID, int dependency)
         {
+            ///TODO: unsafe, plus possible race condition
             ActiveDocuments[documentID].HandleGCMetadata(client, dependency);
             return true;
         }
