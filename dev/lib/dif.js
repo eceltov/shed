@@ -356,7 +356,7 @@ function textToDif(targetRow, targetPosition, content) {
 
     // add remaining lines
     for (let i = 1; i < content.length; i++) {
-      dif.push(add(targetRow + i, 0, content[1]));
+      dif.push(add(targetRow + i, 0, content[i]));
     }
   }
 
