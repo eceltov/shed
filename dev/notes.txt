@@ -429,3 +429,78 @@ Authentication and SSR:
 
 There is a problem when the editor does an automatic action, like when a client presses { and the } gets added automatically (the } will not be sent to server).
 There are some race conditions in the Workspace implementation (multiple ActionDescriptors can target the same document/interact with the active instances dictionary)
+
+A server exception occurs when clients have high CS latency (700) and the client writes something and immediately closes the document
+
+{"msgType":0,"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMDAwMDAwIiwiZmlyc3ROYW1lIjoiQWRhbSIsImxhc3ROYW1lIjoiVGVzdGVyIiwibWFpbCI6ImFkYW0udGVzdGVyQGV4YW1wbGUuY29tIiwicm9sZSI6InRlc3QiLCJuYmYiOjE2NzcwNjE4NzEsImV4cCI6MTY3NzY2NjY3MSwiaWF0IjoxNjc3MDYxODcxfQ.l84mY9PAs3FGiwr5EP48aqq3pLKd4n41qFoVjG3Is50","workspaceHash":"0xh24randomhash32rh"}
+Added client 1
+{"msgType":1,"fileID":17}
+Loaded '/app/bin/Debug/net6.0/TextOperations.dll'. Symbols loaded.
+{"msgType":0,"token":"eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMDAwMDAwIiwiZmlyc3ROYW1lIjoiQWRhbSIsImxhc3ROYW1lIjoiVGVzdGVyIiwibWFpbCI6ImFkYW0udGVzdGVyQGV4YW1wbGUuY29tIiwicm9sZSI6InRlc3QiLCJuYmYiOjE2NzcwNjE4NzEsImV4cCI6MTY3NzY2NjY3MSwiaWF0IjoxNjc3MDYxODcxfQ.l84mY9PAs3FGiwr5EP48aqq3pLKd4n41qFoVjG3Is50","workspaceHash":"0xh24randomhash32rh"}
+Added client 2
+{"msgType":1,"fileID":17}
+[[1,0,-1,-1],[[0,4,5],[0,4,"gzýo"]],17]
+[[1,1,-1,-1],[[0,8,true],[1,0,"zýg"]],17]
+[[1,2,-1,-1],[[1,3,"o"],[1,4,true]],17]
+[[2,0,-1,-1],[[0,9,"ýo"]],17]
+[[2,1,1,0],[[0,3,true]],17]
+Exception thrown: 'System.ArgumentOutOfRangeException' in System.Private.CoreLib.dll
+An unhandled exception of type 'System.ArgumentOutOfRangeException' occurred in System.Private.CoreLib.dll: 'Non-negative number required.'
+Stack trace:
+ >   at System.ThrowHelper.ThrowIndexArgumentOutOfRange_NeedNonNegNumException() in /_/src/libraries/System.Private.CoreLib/src/System/ThrowHelper.cs:line 114
+ >   at System.Collections.Generic.List`1.GetRange(Int32 index, Int32 count) in /_/src/libraries/System.Private.CoreLib/src/System/Collections/Generic/List.cs:line 610
+ >   at TextOperations.Operations.OperationExtensions.Slice[T](List`1 source, Int32 start) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 27
+ >   at TextOperations.Operations.OperationExtensions.GOTCA(WrappedOperation wdMessage, List`1 wdHB, List`1 SO) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 127
+ >   at TextOperations.Operations.OperationExtensions.UDR(Operation dMessage, List`1 document, List`1 wdInitialHB, List`1 initialSO) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 207
+ >   at WebSocketServer.Model.DocumentInstance.ProcessOperation(Operation operation) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\DocumentInstance.cs:line 126
+ >   at WebSocketServer.Model.DocumentInstance.HandleOperation(Client client, Operation operation) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\DocumentInstance.cs:line 120
+ >   at WebSocketServer.Model.Workspace.HandleOperation(Client client, Operation operation, Int32 documentID) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 434
+ >   at WebSocketServer.Model.WorkspaceActionDescriptors.ApplyOperationDescriptor.Execute(Workspace workspace) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\WorkspaceActionDescriptors\ApplyOperationDescriptor.cs:line 26
+ >   at WebSocketServer.Model.Workspace.ProcessActions(CancellationToken cancellationToken) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 64
+ >   at WebSocketServer.Model.Workspace.<.ctor>b__26_0() in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 51
+ >   at System.Threading.Thread.StartCallback() in /_/src/coreclr/System.Private.CoreLib/src/System/Threading/Thread.CoreCLR.cs:line 106
+WARNING: Could not load symbols for 'System.Diagnostics.StackTrace.dll'. '/remote_debugger/symbols/system.diagnostics.stacktrace.pdb/b995551c93e044e5b0ce67d2f5df4ac5FFFFFFFF/system.diagnostics.stacktrace.pdb' does not match the module being debugged.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.Diagnostics.StackTrace.dll'. Cannot find or open the PDB file.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.Reflection.Metadata.dll'. Symbols loaded.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.Collections.Immutable.dll'. Symbols loaded.
+WARNING: Could not load symbols for 'System.Runtime.InteropServices.dll'. '/remote_debugger/symbols/system.runtime.interopservices.pdb/7859147bc7e84ba48067974282fb074dFFFFFFFF/system.runtime.interopservices.pdb' does not match the module being debugged.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.Runtime.InteropServices.dll'. Cannot find or open the PDB file.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.IO.MemoryMappedFiles.dll'. Symbols loaded.
+WARNING: Could not load symbols for 'System.Text.Encoding.Extensions.dll'. '/remote_debugger/symbols/system.text.encoding.extensions.pdb/0f922e663e054df1817d7566b6cb7007FFFFFFFF/system.text.encoding.extensions.pdb' does not match the module being debugged.
+Loaded '/usr/share/dotnet/shared/Microsoft.NETCore.App/6.0.14/System.Text.Encoding.Extensions.dll'. Cannot find or open the PDB file.
+The thread '.NET ThreadPool Worker' (0x355) has exited with code 0 (0x0).
+The thread '.NET ThreadPool Worker' (0x35a) has exited with code 0 (0x0).
+The thread '.NET ThreadPool Worker' (0x357) has exited with code 0 (0x0).
+The thread '.NET ThreadPool Worker' (0x35b) has exited with code 0 (0x0).
+Unhandled exception. System.ArgumentOutOfRangeException: Non-negative number required. (Parameter 'index')
+   at System.Collections.Generic.List`1.GetRange(Int32 index, Int32 count)
+   at TextOperations.Operations.OperationExtensions.Slice[T](List`1 source, Int32 start) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 27
+   at TextOperations.Operations.OperationExtensions.GOTCA(WrappedOperation wdMessage, List`1 wdHB, List`1 SO) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 127
+   at TextOperations.Operations.OperationExtensions.UDR(Operation dMessage, List`1 document, List`1 wdInitialHB, List`1 initialSO) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\TextOperations\Operations\OperationExtensions.cs:line 207
+   at WebSocketServer.Model.DocumentInstance.ProcessOperation(Operation operation) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\DocumentInstance.cs:line 126
+   at WebSocketServer.Model.DocumentInstance.HandleOperation(Client client, Operation operation) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\DocumentInstance.cs:line 120
+   at WebSocketServer.Model.Workspace.HandleOperation(Client client, Operation operation, Int32 documentID) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 434
+   at WebSocketServer.Model.WorkspaceActionDescriptors.ApplyOperationDescriptor.Execute(Workspace workspace) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\WorkspaceActionDescriptors\ApplyOperationDescriptor.cs:line 26
+   at WebSocketServer.Model.Workspace.ProcessActions(CancellationToken cancellationToken) in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 64
+   at WebSocketServer.Model.Workspace.<.ctor>b__26_0() in C:\school\bp\rocnikovy_projekt\2021-kloda-shared-web-editor\dev\WebSocketServer\WebSocketServer\Model\Workspace.cs:line 51
+   at System.Threading.Thread.StartCallback()
+The program 'dotnet' has exited with code 4294967295 (0xffffffff).
+
+some js algorithm tests were deleted, restore them
+
+Sending message to server: [[1,0,-1,-1],[[0,0,9],[0,0,"so"]],17]
+workspace.js:1492 Sending message to server: [[1,1,-1,-1],[[0,2,"me"]],17]
+workspace.js:1492 Sending message to server: [[1,2,-1,-1],[[0,4," t"]],17]
+workspace.js:1408 Received message: [[1,0,-1,-1],[[0,0,9],[0,0,"so"]],17]
+workspace.js:1492 Sending message to server: [[1,3,-1,-1],[[0,6,"e"]],17]
+workspace.js:1492 Sending message to server: [[1,4,1,0],[[0,7,"xt"]],17]
+
+local dependency has a schism at the moment. Somewhere it is treated as all messages from the same client, somewhere as message chain messages.
+
+
+if HB contains local operations that were not yet received and the client receives an external operation, the external operation will be placed before the local ops (because
+it has to be ordered before it - if it could be ordered after it, that would mean that any new operation is no longer part of the chain and is not locally dependent on them)
+
+if the server receives some operation chain from a client and then receives another operation from the same client that is dependent on some message from the chain,
+although not the last, it would make it directly dependent on the message but still locally dependent on all the local messages that have a lower SO index (that were not yet
+received by the client but they are in the context of the last message)

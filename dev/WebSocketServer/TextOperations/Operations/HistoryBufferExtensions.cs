@@ -25,11 +25,7 @@ namespace TextOperations.Operations
             {
                 WrappedOperation operation = HB[i];
                 // message is part of a chain
-                if (
-                  dMessage.Metadata.ClientID == operation.Metadata.ClientID
-                  && dMessage.Metadata.PrevClientID == operation.Metadata.PrevClientID
-                  && dMessage.Metadata.PrevCommitSerialNumber == operation.Metadata.PrevCommitSerialNumber
-                )
+                if (dMessage.Metadata.PartOfSameChain(operation.Metadata))
                 {
                     totalOrderingIndex = i + 1;
                 }
@@ -58,11 +54,7 @@ namespace TextOperations.Operations
                         for (int j = 0; j < i; j++)
                         {
                             WrappedOperation chainMember = HB[j];
-                            if (
-                              chainMember.Metadata.ClientID == operation.Metadata.ClientID
-                              && chainMember.Metadata.PrevClientID == operation.Metadata.PrevClientID
-                              && chainMember.Metadata.PrevCommitSerialNumber == operation.Metadata.PrevCommitSerialNumber
-                            )
+                            if (chainMember.Metadata.PartOfSameChain(operation.Metadata))
                             {
                                 // the operation is a part of a chain, but it could be a chain that has
                                 //    not yet arrived (not a single member)
@@ -106,31 +98,16 @@ namespace TextOperations.Operations
         /// <returns>Returns the index.</returns>
         public static int FindLastDependencyIndex(this List<WrappedOperation> HB, WrappedOperation operation)
         {
-            int client = operation.Metadata.ClientID;
-            // the client the operation is directly dependent on
-            int directDependencyClient = operation.Metadata.PrevClientID;
-            // the commitSerialNumber the operation is directly dependent on
-            int directDependencyCSN = operation.Metadata.PrevCommitSerialNumber;
-
             int DDIndex = -1;
             int LDIndex = -1;
 
             // find the last locally dependent operation and the last directly dependent operation
             for (int i = 0; i < HB.Count; i++)
             {
-                WrappedOperation op = HB[i];
-                if (op.Metadata.ClientID == directDependencyClient && op.Metadata.CommitSerialNumber == directDependencyCSN)
-                {
+                if (operation.Metadata.DirectlyDependent(HB[i].Metadata))
                     DDIndex = i;
-                }
-                if (
-                  op.Metadata.ClientID == client
-                  && op.Metadata.PrevClientID == directDependencyClient
-                  && op.Metadata.PrevCommitSerialNumber == directDependencyCSN
-                )
-                {
+                if (operation.Metadata.LocallyDependent(HB[i].Metadata))
                     LDIndex = i;
-                }
             }
             return Math.Max(DDIndex, LDIndex);
         }
@@ -143,22 +120,10 @@ namespace TextOperations.Operations
         /// <returns>Returns the index.</returns>
         public static int FindFirstLocalDependencyIndex(this List<WrappedOperation> HB, WrappedOperation operation)
         {
-            int clientID = operation.Metadata.ClientID;
-            // the user the operation is directly dependent on
-            int directDependencyClient = operation.Metadata.PrevClientID;
-            // the commitSerialNumber the operation is directly dependent on
-            int directDependencyCSN = operation.Metadata.PrevCommitSerialNumber;
-
             for (int i = 0; i < HB.Count; i++)
             {
-                if (
-                  HB[i].Metadata.ClientID == clientID
-                  && HB[i].Metadata.PrevClientID == directDependencyClient
-                  && HB[i].Metadata.PrevCommitSerialNumber == directDependencyCSN
-                )
-                {
+                if (operation.Metadata.LocallyDependent(HB[i].Metadata))
                     return i;
-                }
             }
             return -1;
         }

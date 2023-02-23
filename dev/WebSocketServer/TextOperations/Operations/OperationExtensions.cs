@@ -55,27 +55,23 @@ namespace TextOperations.Operations
             int lastDirectlyDependentIndex = SO.FindIndex((meta) => (
               meta.ClientID == wdMessage.Metadata.PrevClientID && meta.CommitSerialNumber == wdMessage.Metadata.PrevCommitSerialNumber));
 
-            int lastDirectlyDependentHBIndex = -1;
+            int lastDirectlyDependentHBIndex = lastDirectlyDependentIndex;
 
             // finding independent and locally dependent operations in HB
-            for (int i = 0; i < wdHB.Count; i++)
+            for (int i = lastDirectlyDependentIndex + 1; i < wdHB.Count; i++)
             {
-                bool directlyDependent = false;
+                ///TODO: can there be a gap between directly dependant ops? (if so, what will happen with the op in the gap?)
+                /// if yes, that would mean that an op that is not in SO would be placed before an operation that was in SO
+                /// can this happen in a message chain? it can, the message chain members that are not in SO effectively share the SO of the first member
+                /// that message chain has to be local then (because it - the gap - is not in SO and only local ops could not be in SO)
+                /// but that would mean that the received operation is not part of the chain (as it is dependent on something else that is not the chain, because it is after it,
+                /// so the chain had to be wholly received already - this should be a proof in the thesis) - therefore there cannot be a gap in direct deependency
                 // filtering out directly dependent operations
-                for (int j = 0; j <= lastDirectlyDependentIndex; j++)
-                {
-                    // deep comparison between the HB operation metadata and SO operation metadata
-                    if (wdHB[i].Metadata.Equals(SO[j]))
-                    {
-                        directlyDependent = true;
-                        lastDirectlyDependentHBIndex = i;
-                        break;
-                    }
-                }
-                if (directlyDependent) continue;
+                /// TODO: it should be sufficient only to find the last SO entry and mark everything before it as direct dependency
+                /// TODO: the last direct dependent hb index should be the same as lastDirectlyDependentIndex - check this by logging when this does not occur
 
                 // locally dependent operations have the same author
-                if (wdHB[i].Metadata.ClientID == wdMessage.Metadata.ClientID)
+                if (wdHB[i].Metadata.LocallyDependent(wdMessage.Metadata))
                 {
                     locallyDependentIndices.Add(i);
                     wdLocallyDependentDifs.Add(wdHB[i].wDif);
@@ -92,7 +88,7 @@ namespace TextOperations.Operations
                 return wdMessage;
             }
 
-            var wdMessageDif = wdMessage.wDif;
+            var wdMessageDif = wdMessage.wDif.DeepCopy();
             var wiMessageDif = wdMessageDif.MakeIndependent();
 
             // there are no locally dependent operations in HB, therefore all independent

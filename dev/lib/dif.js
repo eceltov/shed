@@ -145,11 +145,7 @@ function findLastDependancyIndex(operation, HB) {
     if (op[0][0] === directDependancyUser && op[0][1] === directDependancyCSN) {
       DDIndex = i;
     }
-    if (
-      op[0][0] === user
-      && op[0][2] === directDependancyUser
-      && op[0][3] === directDependancyCSN
-    ) {
+    if (op[0][0] === user) {
       LDIndex = i;
     }
   });
@@ -164,17 +160,9 @@ function findLastDependancyIndex(operation, HB) {
  */
 function findFirstLocalDependancyIndex(operation, HB) {
   const userID = operation[0][0];
-  // the user the operation is directly dependant on
-  const directDependancyUser = operation[0][2];
-  // the commitSerialNumber the operation is directly dependant on
-  const directDependancyCSN = operation[0][3];
 
   for (let i = 0; i < HB.length; i++) {
-    if (
-      HB[i][0][0] === userID
-      && HB[i][0][2] === directDependancyUser
-      && HB[i][0][3] === directDependancyCSN
-    ) {
+    if (HB[i][0][0] === userID) {
       return i;
     }
   }
@@ -543,22 +531,10 @@ function GOTCA(wdMessage, wdHB, SO, log = false) {
   const lastDirectlyDependantIndex = SO.findIndex((operation) => (
     operation[0] === wdMessage[0][2] && operation[1] === wdMessage[0][3]));
 
-  let lastDirectlyDependantHBIndex = -1;
+  let lastDirectlyDependantHBIndex = lastDirectlyDependantIndex;
 
   // finding independant and locally dependant operations in HB
-  for (let i = 0; i < wdHB.length; i++) {
-    let directlyDependant = false;
-    // filtering out directly dependant operations
-    for (let j = 0; j <= lastDirectlyDependantIndex; j++) {
-      // deep comparison between the HB operation metadata and SO operation metadata
-      if (deepEqual(wdHB[i][0], SO[j])) {
-        directlyDependant = true;
-        lastDirectlyDependantHBIndex = i;
-        break;
-      }
-    }
-    if (directlyDependant) continue;
-
+  for (let i = lastDirectlyDependantIndex + 1; i < wdHB.length; i++) {
     // locally dependant operations have the same author
     if (wdHB[i][0][0] === wdMessage[0][0]) {
       locallyDependantIndices.push(i);

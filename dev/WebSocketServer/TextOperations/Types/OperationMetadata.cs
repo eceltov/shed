@@ -34,6 +34,24 @@ namespace TextOperations.Types
                 && PrevCommitSerialNumber == other.PrevCommitSerialNumber;
         }
 
+        public bool LocallyDependent(OperationMetadata other)
+        {
+            return ClientID == other.ClientID;
+        }
+
+        public bool DirectlyDependent(OperationMetadata other)
+        {
+            return PrevClientID == other.ClientID
+                && PrevCommitSerialNumber == other.CommitSerialNumber;
+        }
+
+        public bool PartOfSameChain(OperationMetadata other)
+        {
+            return ClientID == other.ClientID
+                && PrevClientID == other.PrevClientID
+                && PrevCommitSerialNumber == other.PrevCommitSerialNumber;
+        }
+
         public override string ToString()
         {
             return $"[{ClientID}, {CommitSerialNumber}, {PrevClientID}, {PrevCommitSerialNumber}]";

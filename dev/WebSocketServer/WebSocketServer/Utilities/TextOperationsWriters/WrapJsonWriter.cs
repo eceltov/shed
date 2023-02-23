@@ -34,11 +34,23 @@ namespace WebSocketServer.Utilities.TextOperationsWriters
             writer.WriteStartObject();
 
             writer.WritePropertyName("original");
-            writer.WriteValue(wrap.Original);
+            if (wrap.Original == null)
+                writer.WriteValue(wrap.Original);
+            else
+                SubdifJsonWriter.WriteJson(writer, wrap.Original, serializer);
+
             writer.WritePropertyName("wTransformer");
-            writer.WriteValue(wrap.wTransformer);
+            if (wrap.wTransformer == null)
+                writer.WriteValue(wrap.wTransformer);
+            else
+                WriteJson(writer, wrap.wTransformer, serializer);
+
             writer.WritePropertyName("addresser");
-            writer.WriteValue(wrap.Addresser);
+            if (wrap.Addresser == null)
+                writer.WriteValue(wrap.Addresser);
+            else
+                WriteJson(writer, wrap.Addresser, serializer);
+
             writer.WritePropertyName("siblings");
             serializer.Serialize(writer, wrap.Siblings);
 
