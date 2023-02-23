@@ -236,7 +236,7 @@ class Client {
   connect() {
     this.WSClient = new WebSocketClient();
     const workspaceHash = 'testworkspace';
-    const token = '0000';
+    const token = '00000000';
 
     const that = this;
     this.WSClient.on('connect', function(connection) {

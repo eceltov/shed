@@ -26,6 +26,10 @@ class Server {
     this.nextclientID = 0;
     this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
     this.loggingEnabled = false;
+
+    // this will disable JWT token validation and handle the token as clientHash
+    // has to be set externally
+    this.testing = false;
   }
 
   /**
@@ -219,6 +223,9 @@ class Server {
      * @param {*} token The JWT provided by the authentization service.
      */
   getUserHash(token) {
+    if (this.testing)
+      return token;
+    
     try {
       const payload = jwt.verify(token, this.jwtSecret);
       return payload.id;

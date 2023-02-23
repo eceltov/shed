@@ -28,6 +28,7 @@ function initializeClients(count) {
 beforeEach(() => {
     server = new Server();
     server.initialize();
+    server.testing = true;
     //server.enableLogging();
     server.listen(8080);
 });

@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "main": "",
   "scripts": {
-    "test": "jest",
+    "test": "npx jest",
     "start-controller-server": "node dev/controllerServer.js",
     "start-workspace-server": "node dev/workspaceServer.js",
     "init": "npm i && npm run get-editor-repo && npm run build-client",
