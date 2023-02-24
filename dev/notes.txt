@@ -504,3 +504,37 @@ it has to be ordered before it - if it could be ordered after it, that would mea
 if the server receives some operation chain from a client and then receives another operation from the same client that is dependent on some message from the chain,
 although not the last, it would make it directly dependent on the message but still locally dependent on all the local messages that have a lower SO index (that were not yet
 received by the client but they are in the context of the last message)
+
+# tend to appear
+
+GOTCA:
+    Locally dependent operations:
+        - After receiving an non-local operation, there can be some local operations in HB which were not received yet
+        - If they are in GOTCA, that means that they were not omitted by TO (undo), therefore they are part of a local message chain and
+            the beginning of the chain was already received (putting the unreceived messages directly after each other)
+            - No other local operations can be present in the HB slice in GOTCA
+
+    Directly dependent and independent operations:
+        - A directly dependent operation can be preceded by an independent operation in GOTCAs HB in these scenarios:
+            - The message originated from a client which had a gap in his HB compared to all operations in TO.
+                This can only happen if that operation was part of a message chain. Else it (the operation) would be ordered after the
+                directly dependent operation because the directly depended operation had to arrive sooner (because else the operation would
+                not be independent)
+                - This is the only scenario, because message chains are the only thing that distinguish SO from TO
+        - There can be multiple "gaps" in directly dependent operations in the HB, because each directly dependent operation could be the
+            start of a message chain
+        - The last directly dependent operation can be followed by two kinds of independent operations:
+            - Operations belonging to the same message chain as the last directly dependent operation
+            - Operations not belonging to the same message chain as the last directly dependent operation
+                - These operations were received after the message was sent out and before the message was received
+
+    Algorithm (in case there is no local dependency):
+        1) Find last directly dependent operation, that has no independent operations before it
+        2) Reduce HB so that it does not include the operation in step 1) or any earlier operations (they are not needed)
+        3) Filter out all remaining directly dependent operations in the reduced HB and convert them to their form as in the messages context
+            Note: The dependent operations have the interleaved independent operations in their context, therefore they need to be excluded
+            a) For all filtered out directly dependent operations, from newest to oldest:
+                Exclude all older operations in the reduced HB from it (from newest to oldest)
+            b) Make the transformed DD operations dependent
+        4) Exclude all the transformed directly dependent operations from the message (making it have the same context as the first message in the reduced HB)
+        5) Include all operations in the reduced HB to message (do not use the transformed DD operations, but the original operations in the reduced HB)
