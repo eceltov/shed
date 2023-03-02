@@ -39,137 +39,172 @@ namespace TextOperations.Operations
 
         static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
         {
-            /**
-            *  @note Due to the fact that all operations are being received by all clients in the same
-                order, the only independent operations from the received one can be those made by the
-                local client after the received ones generation, as all others are present in the context
-                of the received operation.
-            */
-
-            // list of difs of independent operations in HB
-            List<List<SubdifWrap>> wdIndependentDifs = new();
-            // causally preceding difs with an index higher than last_directly_dependent_index
-            List<List<SubdifWrap>> wdLocallyDependentDifs = new();
-            List<int> locallyDependentIndices = new();
-
+            // the last index in SO to look for directly dependent operations
             int lastDirectlyDependentIndex = SO.FindIndex((meta) => (
               meta.ClientID == wdMessage.Metadata.PrevClientID && meta.CommitSerialNumber == wdMessage.Metadata.PrevCommitSerialNumber));
 
-            int lastDirectlyDependentHBIndex = lastDirectlyDependentIndex;
+            // the index of the last directly dependent operation unpreceded by an independent message
+            int dependentSectionEndIdx = -1;
+            bool dependentSection = true;
 
-            // finding independent and locally dependent operations in HB
-            for (int i = lastDirectlyDependentIndex + 1; i < wdHB.Count; i++)
+            List<int> postDependentSectionDDIndices = new();
+
+            for (int i = 0; i < wdHB.Count; i++)
             {
-                ///TODO: can there be a gap between directly dependant ops? (if so, what will happen with the op in the gap?)
-                /// if yes, that would mean that an op that is not in SO would be placed before an operation that was in SO
-                /// can this happen in a message chain? it can, the message chain members that are not in SO effectively share the SO of the first member
-                /// that message chain has to be local then (because it - the gap - is not in SO and only local ops could not be in SO)
-                /// but that would mean that the received operation is not part of the chain (as it is dependent on something else that is not the chain, because it is after it,
-                /// so the chain had to be wholly received already - this should be a proof in the thesis) - therefore there cannot be a gap in direct deependency
+                bool directlyDependent = false;
                 // filtering out directly dependent operations
-                /// TODO: it should be sufficient only to find the last SO entry and mark everything before it as direct dependency
-                /// TODO: the last direct dependent hb index should be the same as lastDirectlyDependentIndex - check this by logging when this does not occur
-
-                // locally dependent operations have the same author
-                if (wdHB[i].Metadata.LocallyDependent(wdMessage.Metadata))
+                for (int j = 0; j <= lastDirectlyDependentIndex; j++)
                 {
-                    locallyDependentIndices.Add(i);
-                    wdLocallyDependentDifs.Add(wdHB[i].wDif);
-                    continue;
+                    // deep comparison between the HB operation metadata and SO operation metadata
+                    if (wdHB[i].Metadata.Equals(SO[j]))
+                    {
+                        directlyDependent = true;
+                        break;
+                    }
                 }
 
-                // the remainder must be independent
-                wdIndependentDifs.Add(wdHB[i].wDif);
+                if (directlyDependent)
+                {
+                    if (dependentSection)
+                        dependentSectionEndIdx = i;
+                    else
+                        postDependentSectionDDIndices.Add(i);
+                }
+                else
+                    dependentSection = false;
             }
 
             // there are no independent messages, therefore no transformation is needed
-            if (wdIndependentDifs.Count == 0)
+            if (dependentSection)
             {
                 return wdMessage;
             }
 
-            var wdMessageDif = wdMessage.wDif.DeepCopy();
-            var wiMessageDif = wdMessageDif.MakeIndependent();
+            // the section of DD operations are not needed by the algorithm
+            var wdReducedHB = wdHB.Slice(dependentSectionEndIdx + 1);
+            // reduce the indices by the number of elements omitted
+            for (int i = 0; i < postDependentSectionDDIndices.Count; i++)
+                postDependentSectionDDIndices[i] -= dependentSectionEndIdx + 1;
 
-            // there are no locally dependent operations in HB, therefore all independent
-            // operations can be included directly
-            /// TODO: or if all locally dependent difs are empty
-            if (wdLocallyDependentDifs.Count == 0)
+            ///TODO: this should be a function
+            List<List<SubdifWrap>> wdReversedHBDifs = new();
+            for (int i = wdReducedHB.Count - 1; i >= 0; i--)
             {
-                List<SubdifWrap> wdTransformationDif = new();
-                wdIndependentDifs.ForEach((wdDif) => wdTransformationDif.AddRange(wdDif));
-                var wTransformedMessageDif = wiMessageDif.LIT(wdTransformationDif);
-                wdMessage.wDif = wTransformedMessageDif;
-                return wdMessage;
-            }
-
-            // preparing difs for transformation
-            int dependentHBIndex = wdHB.FindLastDependencyIndex(wdMessage);
-            List<List<SubdifWrap>> wdReversedTransformerDifs = new();
-            for (int i = dependentHBIndex; i > lastDirectlyDependentIndex; i--)
-            {
-                var wdDif = wdHB[i].wDif.DeepCopy();
+                var wdDif = wdReducedHB[i].wDif.DeepCopy();
                 wdDif.Reverse();
-                wdReversedTransformerDifs.Add(wdDif);
+                wdReversedHBDifs.Add(wdDif);
             }
 
-            // if(log) console.log('wdLocallyDependentDifs:', JSON.stringify(wdLocallyDependentDifs));
-            // if(log) console.log('wdReversedTransformerDifs:', JSON.stringify(wdReversedTransformerDifs));
+            List<List<SubdifWrap>> wiExcludedDDs = new();
 
-            // [..., last_dep_index=20, indep1, indep2, loc_dep0=23, indep3, loc_dep1=25]
-
-            // transformation
-            List<List<SubdifWrap>> wdTransformedDifs = new(); // EOL' in wrapped dif form
-            List<SubdifWrap> wdLETDif = JoinLists(wdReversedTransformerDifs.Slice(
-                wdReversedTransformerDifs.Count
-                - (locallyDependentIndices[0]
-                - (lastDirectlyDependentIndex + 1))
-            ));
-            List<SubdifWrap> wdLITDif = new();
-
-            var wiFirstTransformedDif = wdLocallyDependentDifs[0].MakeIndependent().LET(wdLETDif);
-
-            // this now has mutually independent subdifs, they need to be made dependent
-            var wdFirstTransformedDif = wiFirstTransformedDif.MakeDependent();
-            wdTransformedDifs.Add(wdFirstTransformedDif);
-            for (int i = 1; i < wdLocallyDependentDifs.Count; i++)
+            // the difs in the reduced HB will be aggregated one by one from the oldest to the newest and used in
+            // a LET on remaining DD operations
+            foreach (int i in postDependentSectionDDIndices)
             {
-                wdLETDif = JoinLists(wdReversedTransformerDifs.Slice(
+                var wdLETDif = JoinLists(wdReversedHBDifs.Slice(
+                    wdReversedHBDifs.Count - i));
+
+                var wiExcludedDD = wdReducedHB[i].wDif.MakeIndependent().LET(wdLETDif);
+                wiExcludedDDs.Add(wiExcludedDD);
+            }
+
+            // make the DDs be in the same form as they were when the message was created
+            // they are all joined into a single dif for easier application
+            List<SubdifWrap> wdJoinedIncludedDDs = new();
+            foreach (var wiExcludedDD in wiExcludedDDs)
+                wdJoinedIncludedDDs.AddRange(wiExcludedDD.LIT(wdJoinedIncludedDDs));
+
+            // reverse the DDs so they can be excluded
+            wdJoinedIncludedDDs.Reverse();
+            // exclude the DDs from the message so that it has the same context as wdReducedHB[0].wDif
+            var wiExcludedMessage = wdMessage.wDif.MakeIndependent().LET(wdJoinedIncludedDDs);
+
+            // include all operations in the reduced HB
+            List<SubdifWrap> wdMergedHB = new();
+            foreach (var operation in wdReducedHB)
+                wdMergedHB.AddRange(operation.wDif);
+
+            wdMessage.wDif = wiExcludedMessage.LIT(wdMergedHB);
+            return wdMessage;
+
+
+
+            /*{
+
+                // there are no locally dependent operations in HB, therefore all independent
+                // operations can be included directly
+                /// TODO: or if all locally dependent difs are empty
+                if (wdLocallyDependentDifs.Count == 0)
+                {
+                    List<SubdifWrap> wdTransformationDif = new();
+                    wdIndependentDifs.ForEach((wdDif) => wdTransformationDif.AddRange(wdDif));
+                    var wTransformedMessageDif = wiMessageDif.LIT(wdTransformationDif);
+                    wdMessage.wDif = wTransformedMessageDif;
+                    return wdMessage;
+                }
+
+                // preparing difs for transformation
+                int dependentHBIndex = wdHB.FindLastDependencyIndex(wdMessage);
+                List<List<SubdifWrap>> wdReversedTransformerDifs = new();
+                for (int i = dependentHBIndex; i > lastDirectlyDependentIndex; i--)
+                {
+                    var wdDif = wdHB[i].wDif.DeepCopy();
+                    wdDif.Reverse();
+                    wdReversedTransformerDifs.Add(wdDif);
+                }
+
+                // if(log) console.log('wdLocallyDependentDifs:', JSON.stringify(wdLocallyDependentDifs));
+                // if(log) console.log('wdReversedTransformerDifs:', JSON.stringify(wdReversedTransformerDifs));
+
+                // [..., last_dep_index=20, indep1, indep2, loc_dep0=23, indep3, loc_dep1=25]
+
+                // transformation
+                List<List<SubdifWrap>> wdTransformedDifs = new(); // EOL' in wrapped dif form
+                List<SubdifWrap> wdLETDif = JoinLists(wdReversedTransformerDifs.Slice(
                     wdReversedTransformerDifs.Count
-                    - (locallyDependentIndices[i]
+                    - (locallyDependentIndices[0]
                     - (lastDirectlyDependentIndex + 1))
                 ));
+                List<SubdifWrap> wdLITDif = new();
 
-                // this is also mutually independent
-                var wiIndependentExcludedDif = wdLocallyDependentDifs[i].MakeIndependent().LET(wdLETDif);
-                wdLITDif.AddRange(wdTransformedDifs[i - 1]);
-                var wdTransformedDif = wiIndependentExcludedDif.LIT(wdLITDif);
-                wdTransformedDifs.Add(wdTransformedDif);
-            }
-            var wdReversedTransformedDifs = wdTransformedDifs.DeepCopy();
-            wdReversedTransformedDifs.Reverse();
-            wdReversedTransformedDifs.ForEach((wdDif) => wdDif.Reverse());
+                var wiFirstTransformedDif = wdLocallyDependentDifs[0].MakeIndependent().LET(wdLETDif);
 
-            var wiExcludedMessageDif = wiMessageDif.LET(JoinLists(wdReversedTransformedDifs));
+                // this now has mutually independent subdifs, they need to be made dependent
+                var wdFirstTransformedDif = wiFirstTransformedDif.MakeDependent();
+                wdTransformedDifs.Add(wdFirstTransformedDif);
+                for (int i = 1; i < wdLocallyDependentDifs.Count; i++)
+                {
+                    wdLETDif = JoinLists(wdReversedTransformerDifs.Slice(
+                        wdReversedTransformerDifs.Count
+                        - (locallyDependentIndices[i]
+                        - (lastDirectlyDependentIndex + 1))
+                    ));
+
+                    // this is also mutually independent
+                    var wiIndependentExcludedDif = wdLocallyDependentDifs[i].MakeIndependent().LET(wdLETDif);
+                    wdLITDif.AddRange(wdTransformedDifs[i - 1]);
+                    var wdTransformedDif = wiIndependentExcludedDif.LIT(wdLITDif);
+                    wdTransformedDifs.Add(wdTransformedDif);
+                }
+                var wdReversedTransformedDifs = wdTransformedDifs.DeepCopy();
+                wdReversedTransformedDifs.Reverse();
+                wdReversedTransformedDifs.ForEach((wdDif) => wdDif.Reverse());
+
+                var wiExcludedMessageDif = wiMessageDif.LET(JoinLists(wdReversedTransformedDifs));
 
 
-            // independent difs between the last directly and first locally dependent dif
-            ///TODO: unused
-            /*var prependingIndependentDifs = wdHB.Slice(
-              lastDirectlyDependentIndex + 1, wdHB.FindFirstLocalDependencyIndex(wdMessage));
+                // independent difs between the last directly and first locally dependent dif
+                ///TODO: unused
 
-            prependingIndependentDifs.forEach((operation, index) => {
-                prependingIndependentDifs[index] = operation[1];
-            });*/
-
-            List<SubdifWrap> wdHBLITDif = new();
-            for (int i = lastDirectlyDependentHBIndex + 1; i < wdHB.Count; i++)
-            {
-                wdHBLITDif.AddRange(wdHB[i].wDif);
-            }
-            var wdTransformedMessageDif = wiExcludedMessageDif.LIT(wdHBLITDif);
-            wdMessage.wDif = wdTransformedMessageDif;
-            return wdMessage;
+                List<SubdifWrap> wdHBLITDif = new();
+                for (int i = lastDirectlyDependentHBIndex + 1; i < wdHB.Count; i++)
+                {
+                    wdHBLITDif.AddRange(wdHB[i].wDif);
+                }
+                var wdTransformedMessageDif = wiExcludedMessageDif.LIT(wdHBLITDif);
+                wdMessage.wDif = wdTransformedMessageDif;
+                return wdMessage;
+            }*/
         }
 
         ///TODO: document is being changed and not copied
