@@ -9,17 +9,17 @@ namespace TextOperations.Operations
 {
     internal static class DifTransformationExtensions
     {
-        public static List<SubdifWrap> LIT(this List<SubdifWrap> wDif, List<SubdifWrap> wTransformationDif)
+        public static List<SubdifWrap> LIT(this List<SubdifWrap> wiDif, List<SubdifWrap> wdTransformationDif)
         {
-            if (wDif.Count == 0) return wDif;
-            if (wTransformationDif.Count == 0) return wDif;
+            if (wiDif.Count == 0) return wiDif;
+            if (wdTransformationDif.Count == 0) return wiDif.MakeDependent();
             List<SubdifWrap> wdTransformedDif = new();
             // array of wraps, updated after each applied transformer, because transformed wraps
             // may fall apart
-            List<SubdifWrap> wraps = new(wDif);
+            List<SubdifWrap> wraps = new(wiDif);
             // LIT makes dependent wraps, therefore finished wraps made in the previous steps are
             // added to the transformer. A shallow copy of the original transformer is made.
-            List<SubdifWrap> wNewTransformationDif = new(wTransformationDif);
+            List<SubdifWrap> wNewTransformationDif = new(wdTransformationDif);
             // the number of completed transformations (how many elements of the transformer have been
             // applied)
             int transformations = 0;
@@ -65,25 +65,25 @@ namespace TextOperations.Operations
         /// <summary>
         /// Excludes a dif from another dif.
         /// </summary>
-        /// <param name="wDif">The dif to be transformed.</param>
-        /// <param name="wTransformationDif">
+        /// <param name="wiDif">The dif to be transformed.</param>
+        /// <param name="wdReversedTransformationDif">
         /// The dif to be excluded.
         /// This dif should be chronologically reversed, so that the application of the first
         /// subdif of this dif resulted in the final document state from which the dif to be
         /// transformed was generated.
         /// </param>
         /// <returns>Returns the transformed dif.</returns>
-        public static List<SubdifWrap> LET(this List<SubdifWrap> wDif, List<SubdifWrap> wTransformationDif)
+        public static List<SubdifWrap> LET(this List<SubdifWrap> wiDif, List<SubdifWrap> wdReversedTransformationDif)
         {
-            if (wDif.Count == 0) return wDif;
-            if (wTransformationDif.Count == 0) return wDif;
+            if (wiDif.Count == 0) return wiDif;
+            if (wdReversedTransformationDif.Count == 0) return wiDif;
             List<SubdifWrap> wiTransformedDif = new();
-            foreach (SubdifWrap originalWrap in wDif)
+            foreach (SubdifWrap originalWrap in wiDif)
             {
                 // the originalWrap may fall apart, therefore an array is used
                 List<SubdifWrap> wraps = new() { originalWrap };
                 // apply each transformer one by one
-                foreach (SubdifWrap wTransformer in wTransformationDif)
+                foreach (SubdifWrap wTransformer in wdReversedTransformationDif)
                 {
                     // proxy array of wraps, so that newly fragmented wraps are not pushed immediately to @wraps
                     List<SubdifWrap> newWraps = new();

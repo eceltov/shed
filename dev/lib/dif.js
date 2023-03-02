@@ -205,7 +205,7 @@ function identicalSubdifs(subdif1, subdif2) {
 
 function LIT(wDif, wTransformationDif, log = false) {
   if (wDif.length === 0) return [];
-  if (wTransformationDif.length === 0) return wDif;
+  if (wTransformationDif.length === 0) return makeDependant(wDif);
   const wdTransformedDif = [];
   // array of wraps, updated after each applied transformer, because transformed wraps
   // may fall apart
