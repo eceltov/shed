@@ -507,6 +507,9 @@ received by the client but they are in the context of the last message)
 
 # tend to appear
 
+SO vs HB:
+    - message chains from different clients can be intertwined, causing a big potential difference between SO and HB
+
 GOTCA:
     Locally dependent operations:
         - After receiving an non-local operation, there can be some local operations in HB which were not received yet
@@ -538,3 +541,20 @@ GOTCA:
             b) Make the transformed DD operations dependent
         4) Exclude all the transformed directly dependent operations from the message (making it have the same context as the first message in the reduced HB)
         5) Include all operations in the reduced HB to message (do not use the transformed DD operations, but the original operations in the reduced HB)
+
+    Algorithm (in case there is local dependency):
+        Note: The locally dependent operations can be treated the same way as independent messages,
+            because the message will never be from the same author (only external operations take part in GOTCA)
+            and the locally dependent operations will never be direct dependencies of the message (because if the
+            locally dependent operations did not arrive before the message, then the message cannot have them in its
+            direct dependency, because otherwise that would be contradictory with the invariant that all client receive
+            messages in the same order).
+
+    there could be a short loop in LET/LIT that check whether all add & dels are on different lines so the transformation can be quicker (add & dels can be omitted)
+
+    >>> Make LIT return dependent wraps if the transformer is empty
+    >>> Make LIT return dependent wraps if the transformer is empty
+    >>> Make LIT return dependent wraps if the transformer is empty
+    >>> Make LIT return dependent wraps if the transformer is empty
+    >>> Make LIT return dependent wraps if the transformer is empty
+    >>> Make LIT return dependent wraps if the transformer is empty
