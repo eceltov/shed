@@ -31,12 +31,18 @@ namespace TextOperationsUnitTests.Library
         public static bool SameAs(this WrappedDif wDif1, WrappedDif wDif2)
         {
             if (!SameCount(wDif1, wDif2))
+            {
+                Console.WriteLine($"Assertion failed: wDif1.Count ({wDif1.Count}) != wDif2.Count ({wDif2.Count}).");
                 return false;
+            }
 
             for (int i = 0; i < wDif1.Count; i++)
             {
                 if (!wDif1[i].SameAs(wDif2[i]))
+                {
+                    Console.WriteLine($"Assertion failed: wDif1[{i}] ({wDif1[i]}) != wDif2[{i}] ({wDif2[i]}).");
                     return false;
+                }
             }
 
             return true;

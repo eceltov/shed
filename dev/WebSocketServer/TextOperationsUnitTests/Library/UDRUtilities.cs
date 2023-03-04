@@ -13,5 +13,41 @@ namespace TextOperationsUnitTests.Library
         {
             return (SubdifWrap.nextWrapID, new(), new(), new() { "" });
         }
+
+        public static WrappedOperation WOFactory(int clientID, int csn, int prevClientID, int prevCSN, params Subdif[] subdifs)
+        {
+            if (subdifs.Length <= 0)
+                throw new ArgumentException($"Error: {nameof(WOFactory)}: Cannot create WrappedOperation with no subdifs.");
+
+            return new(new(clientID, csn, prevClientID, prevCSN), subdifs.ToList().Wrap());
+        }
+
+        public static SO SOFromHB(WrappedHB wdHB)
+        {
+            SO SO = new();
+            foreach (var wOperation in wdHB)
+            {
+                SO.Add(wOperation.Metadata);
+            }
+
+            return SO;
+        }
+
+        internal class WrappedOperationGenerator
+        {
+            int clientID;
+            int commitSerialNumber;
+
+            public WrappedOperationGenerator(int clientID, int initialCommitSerialNumber = 0)
+            {
+                this.clientID = clientID;
+                commitSerialNumber = initialCommitSerialNumber;
+            }
+
+            public WrappedOperation Generate(int prevClientID, int prevCSN, params Subdif[] subdifs)
+            {
+                return WOFactory(clientID, commitSerialNumber++, prevClientID, prevCSN, subdifs);
+            }
+        }
     }
 }

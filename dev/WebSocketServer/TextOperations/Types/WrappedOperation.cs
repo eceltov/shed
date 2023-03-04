@@ -16,5 +16,12 @@ namespace TextOperations.Types
             Metadata = metadata;
             this.wDif = wDif;
         }
+
+        public WrappedOperation DeepCopy()
+        {
+            return new(
+                new(Metadata.ClientID, Metadata.CommitSerialNumber, Metadata.PrevClientID, Metadata.PrevCommitSerialNumber),
+                wDif.DeepCopy());
+        }
     }
 }

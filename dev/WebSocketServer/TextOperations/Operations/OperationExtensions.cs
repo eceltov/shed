@@ -37,7 +37,7 @@ namespace TextOperations.Operations
             return new(operation.Metadata, operation.Dif.Wrap());
         }
 
-        static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
+        public static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
         {
             // the last index in SO to look for directly dependent operations
             int lastDirectlyDependentIndex = SO.FindIndex((meta) => (
