@@ -9,13 +9,26 @@ using TextOperations.Types;
 namespace TextOperationsUnitTests.Library
 {
     internal record GOTCAOperationDescriptor(
-        int ClientID, int PrevClientID, int PrevCommitSerialNumber, params Subdif[] Dif);
+        int ClientID, int PrevClientID, int PrevCommitSerialNumber, params Subdif[] Dif)
+    {
+        public GOTCAOperationDescriptorWrapped Wrap()
+        {
+            return new GOTCAOperationDescriptorWrapped(
+                ClientID,
+                PrevClientID,
+                PrevCommitSerialNumber,
+                Dif.ToList().Wrap().ToArray());
+        } 
+    }
+
+    internal record GOTCAOperationDescriptorWrapped(
+        int ClientID, int PrevClientID, int PrevCommitSerialNumber, params SubdifWrap[] wDif);
 
     internal class GOTCAScenarioBuilder
     {
         int clientCount;
-        GOTCAOperationDescriptor? messageDescriptor = null;
-        GOTCAOperationDescriptor? resultDescriptor = null;
+        GOTCAOperationDescriptorWrapped? messageDescriptor = null;
+        GOTCAOperationDescriptorWrapped? resultDescriptor = null;
         List<GOTCAOperationDescriptor> HBDescriptor = new();
         SO SO = new();
         bool automaticSO = false;
@@ -53,6 +66,24 @@ namespace TextOperationsUnitTests.Library
                 throw new InvalidOperationException($"Error: {nameof(SetMessage)}: Message descriptor is already set.");
             if (descriptor.Dif == null)
                 throw new ArgumentException($"Error: {nameof(SetMessage)}: Message descriptor dif cannot be null.");
+
+            messageDescriptor = descriptor.Wrap();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the Message for the scenario.
+        /// </summary>
+        /// <param name="descriptor">An operation descriptor. The wDif must be non empty.</param>
+        /// <returns>Returns the scenario builder.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the Message was already set.</exception>
+        /// <exception cref="ArgumentException">Thrown when the wDif is empty.</exception>
+        public GOTCAScenarioBuilder SetMessageWrapped(GOTCAOperationDescriptorWrapped descriptor)
+        {
+            if (messageDescriptor != null)
+                throw new InvalidOperationException($"Error: {nameof(SetMessage)}: Message descriptor is already set.");
+            if (descriptor.wDif == null)
+                throw new ArgumentException($"Error: {nameof(SetMessage)}: Message descriptor wDif cannot be null.");
 
             messageDescriptor = descriptor;
             return this;
@@ -117,6 +148,24 @@ namespace TextOperationsUnitTests.Library
             if (descriptor.Dif == null)
                 throw new ArgumentException($"Error: {nameof(SetResult)}: Result descriptor dif cannot be null.");
 
+            resultDescriptor = descriptor.Wrap();
+            return this;
+        }
+
+        /// <summary>
+        /// Sets the expected value of the transformed Message.
+        /// </summary>
+        /// <param name="descriptor">An operation descriptor. The wDif must be non empty.></param>
+        /// <returns>Returns the scenario builder.</returns>
+        /// <exception cref="InvalidOperationException">Thrown when the Result was already set.</exception>
+        /// <exception cref="ArgumentException">Thrown when the wDif is empty.</exception>
+        public GOTCAScenarioBuilder SetResultWrapped(GOTCAOperationDescriptorWrapped descriptor)
+        {
+            if (resultDescriptor != null || resultEqualToMessage)
+                throw new InvalidOperationException($"Error: {nameof(SetResult)}: Result descriptor is already set.");
+            if (descriptor.wDif == null)
+                throw new ArgumentException($"Error: {nameof(SetResult)}: Result descriptor wDif cannot be null.");
+
             resultDescriptor = descriptor;
             return this;
         }
@@ -166,7 +215,7 @@ namespace TextOperationsUnitTests.Library
                 SO = UDRUtilities.SOFromHB(wdHB);
 
             var original = woGenerators[messageDescriptor.ClientID].Generate(
-                messageDescriptor.PrevClientID, messageDescriptor.PrevCommitSerialNumber, messageDescriptor.Dif);
+                messageDescriptor.PrevClientID, messageDescriptor.PrevCommitSerialNumber, messageDescriptor.wDif);
 
             if (resultEqualToMessage)
             {
@@ -181,7 +230,7 @@ namespace TextOperationsUnitTests.Library
                     original.Metadata.CommitSerialNumber,
                     resultDescriptor.PrevClientID,
                     resultDescriptor.PrevCommitSerialNumber,
-                    resultDescriptor.Dif);
+                    resultDescriptor.wDif);
 
                 WrappedOperation transformed = original.GOTCA(wdHB, SO);
                 Assert.IsTrue(result.SameAs(transformed, ignoreIDs));

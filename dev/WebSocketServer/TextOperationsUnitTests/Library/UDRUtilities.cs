@@ -22,6 +22,14 @@ namespace TextOperationsUnitTests.Library
             return new(new(clientID, csn, prevClientID, prevCSN), subdifs.ToList().Wrap());
         }
 
+        public static WrappedOperation WOFactory(int clientID, int csn, int prevClientID, int prevCSN, params SubdifWrap[] wraps)
+        {
+            if (wraps.Length <= 0)
+                throw new ArgumentException($"Error: {nameof(WOFactory)}: Cannot create WrappedOperation with no wraps.");
+
+            return new(new(clientID, csn, prevClientID, prevCSN), wraps.ToList());
+        }
+
         public static SO SOFromHB(WrappedHB wdHB)
         {
             SO SO = new();
@@ -47,6 +55,11 @@ namespace TextOperationsUnitTests.Library
             public WrappedOperation Generate(int prevClientID, int prevCSN, params Subdif[] subdifs)
             {
                 return WOFactory(clientID, commitSerialNumber++, prevClientID, prevCSN, subdifs);
+            }
+
+            public WrappedOperation Generate(int prevClientID, int prevCSN, params SubdifWrap[] wraps)
+            {
+                return WOFactory(clientID, commitSerialNumber++, prevClientID, prevCSN, wraps);
             }
         }
     }

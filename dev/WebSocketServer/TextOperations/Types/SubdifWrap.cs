@@ -130,9 +130,9 @@ namespace TextOperations.Types
 
             if (Original != null && !Original.SameAs(other.Original))
                 return false;
-            if (wTransformer != null && !wTransformer.SameAs(other.wTransformer))
+            if (wTransformer != null && !wTransformer.SameAs(other.wTransformer, ignoreIDs))
                 return false;
-            if (Addresser != null && !Addresser.SameAs(other.Addresser))
+            if (Addresser != null && !Addresser.SameAs(other.Addresser, ignoreIDs))
                 return false;
 
             if (Siblings.Count != other.Siblings.Count)
