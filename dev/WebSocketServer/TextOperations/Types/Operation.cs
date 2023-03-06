@@ -16,5 +16,20 @@ namespace TextOperations.Types
             Metadata = metadata;
             Dif = dif;
         }
+
+        public bool LocallyDependent(Operation other)
+        {
+            return Metadata.LocallyDependent(other.Metadata);
+        }
+
+        public bool DirectlyDependent(Operation other)
+        {
+            return Metadata.DirectlyDependent(other.Metadata);
+        }
+
+        public bool PartOfSameChain(Operation other)
+        {
+            return Metadata.PartOfSameChain(other.Metadata);
+        }
     }
 }

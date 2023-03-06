@@ -552,9 +552,10 @@ GOTCA:
 
     there could be a short loop in LET/LIT that check whether all add & dels are on different lines so the transformation can be quicker (add & dels can be omitted)
 
-    >>> Make LIT return dependent wraps if the transformer is empty
-    >>> Make LIT return dependent wraps if the transformer is empty
-    >>> Make LIT return dependent wraps if the transformer is empty
-    >>> Make LIT return dependent wraps if the transformer is empty
-    >>> Make LIT return dependent wraps if the transformer is empty
-    >>> Make LIT return dependent wraps if the transformer is empty
+    there actually can be local dependency, just on a non local client's side
+
+    >>> made ConvertAA in remline to increment position
+    >>> added in et_rn                 subdif.Position -= transformer.Position;
+    >>> Made LIT return dependent wraps if the transformer is empty
+    >>> TODO: implement new GOTCA in js lib
+    

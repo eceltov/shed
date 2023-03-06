@@ -12,18 +12,18 @@ namespace TextOperations.Operations
         /// <summary>
         /// Finds the index in HB at which a non present operation should be placed.
         /// </summary>
-        /// <param name="HB">The history buffer.</param>
+        /// <param name="wdHB">The history buffer.</param>
         /// <param name="dMessage">The operation whose TO index is being determined.</param>
         /// <param name="SO">The server ordering.</param>
         /// <returns>Returns the index.</returns>
-        public static int FindTotalOrderingHBIndex(this List<WrappedOperation> HB, Operation dMessage, List<OperationMetadata> SO)
+        public static int FindTotalOrderingHBIndex(this List<WrappedOperation> wdHB, Operation dMessage, List<OperationMetadata> SO)
         {
             int totalOrderingIndex = 0;
             // handling the case when the message is part of a 'message chain'
             // if it is, it will be placed directly after the previous message in the chain (in HB)
-            for (int i = 0; i < HB.Count; i++)
+            for (int i = 0; i < wdHB.Count; i++)
             {
-                WrappedOperation operation = HB[i];
+                WrappedOperation operation = wdHB[i];
                 // message is part of a chain
                 if (dMessage.Metadata.PartOfSameChain(operation.Metadata))
                 {
@@ -39,9 +39,9 @@ namespace TextOperations.Operations
             //   chain effectively shares it's first member's SO)
             if (totalOrderingIndex == 0)
             {
-                for (int i = HB.Count - 1; i >= 0; i--)
+                for (int i = wdHB.Count - 1; i >= 0; i--)
                 {
-                    WrappedOperation operation = HB[i];
+                    WrappedOperation operation = wdHB[i];
                     int operationSOIndex = SO.SOIndex(operation);
                     bool partOfChain = false;
 
@@ -53,8 +53,8 @@ namespace TextOperations.Operations
                         //    placed after the last message chain member
                         for (int j = 0; j < i; j++)
                         {
-                            WrappedOperation chainMember = HB[j];
-                            if (chainMember.Metadata.PartOfSameChain(operation.Metadata))
+                            WrappedOperation chainMember = wdHB[j];
+                            if (chainMember.PartOfSameChain(operation))
                             {
                                 // the operation is a part of a chain, but it could be a chain that has
                                 //    not yet arrived (not a single member)
@@ -104,9 +104,9 @@ namespace TextOperations.Operations
             // find the last locally dependent operation and the last directly dependent operation
             for (int i = 0; i < HB.Count; i++)
             {
-                if (operation.Metadata.DirectlyDependent(HB[i].Metadata))
+                if (operation.DirectlyDependent(HB[i]))
                     DDIndex = i;
-                if (operation.Metadata.LocallyDependent(HB[i].Metadata))
+                if (operation.LocallyDependent(HB[i]))
                     LDIndex = i;
             }
             return Math.Max(DDIndex, LDIndex);
@@ -122,7 +122,7 @@ namespace TextOperations.Operations
         {
             for (int i = 0; i < HB.Count; i++)
             {
-                if (operation.Metadata.LocallyDependent(HB[i].Metadata))
+                if (operation.LocallyDependent(HB[i]))
                     return i;
             }
             return -1;

@@ -604,6 +604,7 @@ function ET_RN(wrap, wTransformer) {
   }
   // the remline makes sense only in combination with the newline, it has to be made relative
   else if (transformer[0] === wrap.sub[0]) {
+    wrap.sub[1] -= transformer[1];
     saveRA(wrap, wTransformer);
   }
   return wrap;

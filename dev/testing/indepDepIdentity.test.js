@@ -303,6 +303,18 @@ const tests = [
     [del(1, 1, 1), remline(0, 1)],
   ],
   [
+    '[newline, remline] 1.',
+    [newline(0, 0), remline(0, 0)],
+  ],
+  [
+    '[newline, remline] 2.',
+    [newline(0, 1), remline(0, 1)],
+  ],
+  [
+    '[newline, remline] 1.',
+    [newline(2, 3), remline(2, 3)],
+  ],
+  [
     '[newline, newline, newline] 1.',
     [newline(0, 0), newline(0, 0), newline(0, 0)],
   ],

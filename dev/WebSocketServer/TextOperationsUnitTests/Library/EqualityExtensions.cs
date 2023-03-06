@@ -28,7 +28,7 @@ namespace TextOperationsUnitTests.Library
             return true;
         }
 
-        public static bool SameAs(this WrappedDif wDif1, WrappedDif wDif2)
+        public static bool SameAs(this WrappedDif wDif1, WrappedDif wDif2, bool ignoreIDs = false)
         {
             if (!SameCount(wDif1, wDif2))
             {
@@ -38,7 +38,7 @@ namespace TextOperationsUnitTests.Library
 
             for (int i = 0; i < wDif1.Count; i++)
             {
-                if (!wDif1[i].SameAs(wDif2[i]))
+                if (!wDif1[i].SameAs(wDif2[i], ignoreIDs))
                 {
                     Console.WriteLine($"Assertion failed: wDif1[{i}] ({wDif1[i]}) != wDif2[{i}] ({wDif2[i]}).");
                     return false;
@@ -62,12 +62,12 @@ namespace TextOperationsUnitTests.Library
             return true;
         }
 
-        public static bool SameAs(this WrappedOperation wOperation1, WrappedOperation wOperation2)
+        public static bool SameAs(this WrappedOperation wOperation1, WrappedOperation wOperation2, bool ignoreIDs = false)
         {
             if (!wOperation1.Metadata.Equals(wOperation2.Metadata))
                 return false;
 
-            if (!wOperation1.wDif.SameAs(wOperation2.wDif))
+            if (!wOperation1.wDif.SameAs(wOperation2.wDif, ignoreIDs))
                 return false;
 
             return true;

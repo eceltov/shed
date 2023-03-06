@@ -89,8 +89,8 @@ function convertAA(wrap, wAddresser) {
   }
   else if (isRemline(wrap)) {
     if (isNewline(wAddresser)) {
-      /// TODO: the position is not incremented here, is this correct?
       wrap.sub[0] = wAddresser.sub[0];
+      wrap.sub[1] += wAddresser.sub[1];
       wrap.meta.relative = false;
       wrap.meta.context.addresser = null;
     }

@@ -102,8 +102,8 @@ namespace TextOperations.Operations
             {
                 if (wAddresser.Sub is Newline)
                 {
-                    /// TODO: the position is not incremented here, is this correct?
                     wrap.Sub.Row = wAddresser.Sub.Row;
+                    wrap.Sub.Position += wAddresser.Sub.Position;
                     wrap.Relative = false;
                     wrap.Addresser = null;
                 }

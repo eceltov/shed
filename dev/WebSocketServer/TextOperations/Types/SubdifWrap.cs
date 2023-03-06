@@ -113,10 +113,10 @@ namespace TextOperations.Types
             return ((obj1 == null) && (obj2 == null)) || ((obj1 != null) && obj2 != null);
         }
 
-        public bool SameAs(SubdifWrap? other)
+        public bool SameAs(SubdifWrap? other, bool ignoreIDs = false)
         {
             if (other == null
-                || ID != other.ID
+                || (!ignoreIDs && ID != other.ID)
                 || !Sub.SameAs(other.Sub)
                 || InformationLost != other.InformationLost
                 || ConsumedSibling != other.ConsumedSibling

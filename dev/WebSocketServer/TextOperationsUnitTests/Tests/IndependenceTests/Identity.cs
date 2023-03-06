@@ -537,6 +537,27 @@ namespace TextOperationsUnitTests.Tests.IndependenceTests
         }
 
         [TestMethod]
+        public void NewlineRemline1()
+        {
+            Dif testDif = new() { new Newline(0, 0), new Remline(0, 0) };
+            DifAssertions.TestIndepDep(testDif);
+        }
+
+        [TestMethod]
+        public void NewlineRemline2()
+        {
+            Dif testDif = new() { new Newline(0, 1), new Remline(0, 1) };
+            DifAssertions.TestIndepDep(testDif);
+        }
+
+        [TestMethod]
+        public void NewlineRemline3()
+        {
+            Dif testDif = new() { new Newline(2, 3), new Remline(2, 3) };
+            DifAssertions.TestIndepDep(testDif);
+        }
+
+        [TestMethod]
         public void NewlineNewlineNewline1()
         {
             Dif testDif = new() { new Newline(0, 0), new Newline(0, 0), new Newline(0, 0) };

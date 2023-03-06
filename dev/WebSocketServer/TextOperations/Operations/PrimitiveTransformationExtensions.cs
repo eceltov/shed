@@ -783,6 +783,7 @@ namespace TextOperations.Operations
             // the remline makes sense only in combination with the newline, it has to be made relative
             else if (transformer.Row == subdif.Row)
             {
+                subdif.Position -= transformer.Position;
                 wrap.SaveRA(wTransformer);
             }
             return wrap;

@@ -71,7 +71,16 @@ namespace TextOperations.Operations
                         postDependentSectionDDIndices.Add(i);
                 }
                 else
-                    dependentSection = false;
+                {   
+                    // handle message chains
+                    if (dependentSection && wdMessage.PartOfSameChain(wdHB[i]))
+                        dependentSectionEndIdx = i;
+                    // message chains can be present after the DD section as well
+                    else if (!dependentSection && wdMessage.PartOfSameChain(wdHB[i]))
+                        postDependentSectionDDIndices.Add(i);
+                    else
+                        dependentSection = false;
+                }
             }
 
             // there are no independent messages, therefore no transformation is needed

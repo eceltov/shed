@@ -138,8 +138,9 @@ namespace TextOperationsUnitTests.Library
         /// <summary>
         /// Runs the scenario, asserting that the transformed Message is the same as the Result.
         /// </summary>
+        /// <param name="ignoreIDs">Whether wrap IDs of the Result and the Transformer shall be compared.></param>
         /// <exception cref="InvalidOperationException">Thrown when the Message or Result is not set.</exception>
-        public void Run()
+        public void Run(bool ignoreIDs = true)
         {
             if (messageDescriptor == null)
                 throw new InvalidOperationException($"Error: {nameof(Run)}: Message descriptor is not set.");
@@ -170,16 +171,20 @@ namespace TextOperationsUnitTests.Library
             if (resultEqualToMessage)
             {
                 WrappedOperation transformed = original.DeepCopy().GOTCA(wdHB, SO);
-                Assert.IsTrue(original.SameAs(transformed));
+                Assert.IsTrue(original.SameAs(transformed, ignoreIDs));
             }
             else
             {
                 ///TODO: ids will most likely not match
-                var result = woGenerators[resultDescriptor!.ClientID].Generate(
-                    resultDescriptor.PrevClientID, resultDescriptor.PrevCommitSerialNumber, resultDescriptor.Dif);
+                var result = UDRUtilities.WOFactory(
+                    resultDescriptor!.ClientID,
+                    original.Metadata.CommitSerialNumber,
+                    resultDescriptor.PrevClientID,
+                    resultDescriptor.PrevCommitSerialNumber,
+                    resultDescriptor.Dif);
 
                 WrappedOperation transformed = original.GOTCA(wdHB, SO);
-                Assert.IsTrue(result.SameAs(transformed));
+                Assert.IsTrue(result.SameAs(transformed, ignoreIDs));
             }
 
         }
