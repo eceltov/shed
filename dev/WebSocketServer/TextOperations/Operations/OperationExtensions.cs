@@ -39,45 +39,50 @@ namespace TextOperations.Operations
 
         public static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
         {
-            // the last index in SO to look for directly dependent operations
-            int lastDirectlyDependentIndex = SO.FindIndex((meta) => (
-              meta.ClientID == wdMessage.Metadata.PrevClientID && meta.CommitSerialNumber == wdMessage.Metadata.PrevCommitSerialNumber));
+            // the last index in SO to look for dependent operations
+            int DDIndex = SO.FindIndex((meta) => wdMessage.Metadata.DirectlyDependent(meta));
 
-            // the index of the last directly dependent operation unpreceded by an independent message
+            // the index of the last dependent operation unpreceded by an independent message
             int dependentSectionEndIdx = -1;
             bool dependentSection = true;
 
-            List<int> postDependentSectionDDIndices = new();
+            List<int> postDependentSectionDependentIndices = new();
 
             for (int i = 0; i < wdHB.Count; i++)
             {
-                bool directlyDependent = false;
-                // filtering out directly dependent operations
-                for (int j = 0; j <= lastDirectlyDependentIndex; j++)
+                bool dependent = false;
+                // handle local dependency
+                if (wdHB[i].LocallyDependent(wdMessage))
+                    dependent = true;
+                else
                 {
-                    // deep comparison between the HB operation metadata and SO operation metadata
-                    if (wdHB[i].Metadata.Equals(SO[j]))
+                    // filtering out directly dependent operations
+                    for (int j = 0; j <= DDIndex; j++)
                     {
-                        directlyDependent = true;
-                        break;
+                        // deep comparison between the HB operation metadata and SO operation metadata
+                        if (wdHB[i].Metadata.Equals(SO[j]))
+                        {
+                            dependent = true;
+                            break;
+                        }
                     }
                 }
 
-                if (directlyDependent)
+                if (dependent)
                 {
                     if (dependentSection)
                         dependentSectionEndIdx = i;
                     else
-                        postDependentSectionDDIndices.Add(i);
+                        postDependentSectionDependentIndices.Add(i);
                 }
                 else
                 {   
                     // handle message chains
                     if (dependentSection && wdMessage.PartOfSameChain(wdHB[i]))
                         dependentSectionEndIdx = i;
-                    // message chains can be present after the DD section as well
+                    // message chains can be present after the dependent section as well
                     else if (!dependentSection && wdMessage.PartOfSameChain(wdHB[i]))
-                        postDependentSectionDDIndices.Add(i);
+                        postDependentSectionDependentIndices.Add(i);
                     else
                         dependentSection = false;
                 }
@@ -85,15 +90,13 @@ namespace TextOperations.Operations
 
             // there are no independent messages, therefore no transformation is needed
             if (dependentSection)
-            {
                 return wdMessage;
-            }
 
-            // the section of DD operations are not needed by the algorithm
+            // the operations in the dependent section are not needed by the algorithm
             var wdReducedHB = wdHB.Slice(dependentSectionEndIdx + 1);
             // reduce the indices by the number of elements omitted
-            for (int i = 0; i < postDependentSectionDDIndices.Count; i++)
-                postDependentSectionDDIndices[i] -= dependentSectionEndIdx + 1;
+            for (int i = 0; i < postDependentSectionDependentIndices.Count; i++)
+                postDependentSectionDependentIndices[i] -= dependentSectionEndIdx + 1;
 
             ///TODO: this should be a function
             List<List<SubdifWrap>> wdReversedHBDifs = new();
@@ -104,29 +107,29 @@ namespace TextOperations.Operations
                 wdReversedHBDifs.Add(wdDif);
             }
 
-            List<List<SubdifWrap>> wiExcludedDDs = new();
+            List<List<SubdifWrap>> wiExcludedDependentOps = new();
 
             // the difs in the reduced HB will be aggregated one by one from the oldest to the newest and used in
-            // a LET on remaining DD operations
-            foreach (int i in postDependentSectionDDIndices)
+            // a LET on remaining dependent operations
+            foreach (int i in postDependentSectionDependentIndices)
             {
                 var wdLETDif = JoinLists(wdReversedHBDifs.Slice(
                     wdReversedHBDifs.Count - i));
 
-                var wiExcludedDD = wdReducedHB[i].wDif.MakeIndependent().LET(wdLETDif);
-                wiExcludedDDs.Add(wiExcludedDD);
+                var wiExcludedDependentOp = wdReducedHB[i].wDif.MakeIndependent().LET(wdLETDif);
+                wiExcludedDependentOps.Add(wiExcludedDependentOp);
             }
 
-            // make the DDs be in the same form as they were when the message was created
+            // make the dependent ops be in the same form as they were when the message was created
             // they are all joined into a single dif for easier application
-            List<SubdifWrap> wdJoinedIncludedDDs = new();
-            foreach (var wiExcludedDD in wiExcludedDDs)
-                wdJoinedIncludedDDs.AddRange(wiExcludedDD.LIT(wdJoinedIncludedDDs));
+            List<SubdifWrap> wdJoinedIncludedDependentOps = new();
+            foreach (var wiExcludedDependentOp in wiExcludedDependentOps)
+                wdJoinedIncludedDependentOps.AddRange(wiExcludedDependentOp.LIT(wdJoinedIncludedDependentOps));
 
-            // reverse the DDs so they can be excluded
-            wdJoinedIncludedDDs.Reverse();
-            // exclude the DDs from the message so that it has the same context as wdReducedHB[0].wDif
-            var wiExcludedMessage = wdMessage.wDif.MakeIndependent().LET(wdJoinedIncludedDDs);
+            // reverse the dependent operations so they can be excluded
+            wdJoinedIncludedDependentOps.Reverse();
+            // exclude the dependent ops from the message so that it has the same context as wdReducedHB[0].wDif
+            var wiExcludedMessage = wdMessage.wDif.MakeIndependent().LET(wdJoinedIncludedDependentOps);
 
             // include all operations in the reduced HB
             List<SubdifWrap> wdMergedHB = new();

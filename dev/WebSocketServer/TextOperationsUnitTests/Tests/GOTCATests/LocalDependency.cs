@@ -78,7 +78,7 @@ namespace TextOperationsUnitTests.Tests.GOTCATests
         }
 
         [TestMethod]
-        public void LocalDependency6()
+        public void DelIT1()
         {
             var HBDel = new Del(0, 0, 1);
             var messageSubdif = new Add(0, 1, "a");
@@ -99,6 +99,58 @@ namespace TextOperationsUnitTests.Tests.GOTCATests
                 .SetMessage(new(0, 0, 0, messageSubdif))
                 .CreateSOFromHB()
                 .SetResultWrapped(new(0, 0, 0, resultWrap))
+                .Run();
+        }
+
+        [TestMethod]
+        public void DelIT2()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Del(0, 1, 1)))
+                .SetMessage(new(0, 0, 0, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void NewlineIT1()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Newline(0, 0)))
+                .SetMessage(new(0, 0, 0, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, 0, 0, new Add(1, 1, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void NewlineIT2()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Newline(0, 1)))
+                .SetMessage(new(0, 0, 0, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, 0, 0, new Add(1, 0, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void NewlineIT3()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Newline(0, 2)))
+                .SetMessage(new(0, 0, 0, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
                 .Run();
         }
     }

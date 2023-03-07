@@ -12,6 +12,36 @@ namespace TextOperationsUnitTests.Tests.GOTCATests
     [TestClass]
     public class MessageChain
     {
+        /// <summary>
+        /// The following commented scenarios will never occur because it violates
+        /// the Total Ordering (message chain members are places directly after each other in UDR)
+        /// </summary>
+        /*[TestMethod]
+        public void DelIT1()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Del(0, 0, 1)))
+                .SetMessage(new(0, -1, -1, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void DelIT2()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(1, 0, 0, new Del(0, 1, 1)))
+                .SetMessage(new(0, -1, -1, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }*/
+
         [TestMethod]
         public void MessageChain1()
         {
@@ -35,5 +65,135 @@ namespace TextOperationsUnitTests.Tests.GOTCATests
                 .SetMessageAsResult()
                 .Run();
         }
+
+        [TestMethod]
+        public void MessageChain3()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, 0, 0),
+                    new(0, 0, 0))
+                .SetMessage(new(0, 0, 0, new Add(0, 1, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain4()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, -1, -1, new Add(0, 4, "a")))
+                .SetMessage(new(0, -1, -1, new Add(0, 6, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, -1, -1, new Add(0, 5, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain5()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, -1, -1, new Add(0, 4, "a")))
+                .SetMessage(new(0, -1, -1, new Add(0, 7, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, -1, -1, new Add(0, 5, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain6()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, -1, -1, new Add(0, 3, "a")),
+                    new(0, -1, -1, new Add(0, 4, "a")))
+                .SetMessage(new(0, -1, -1, new Add(0, 6, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, -1, -1, new Add(0, 5, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain7()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, -1, -1, new Add(0, 3, "a")),
+                    new(0, -1, -1, new Add(0, 4, "a")))
+                .SetMessage(new(0, -1, -1, new Add(0, 7, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, -1, -1, new Add(0, 5, "a")))
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain8()
+        {
+            GOTCAScenarioBuilder.Create(1)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, 0, 0, new Add(0, 1, "a")))
+                .SetMessage(new(0, 0, 0, new Add(0, 2, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain9()
+        {
+            GOTCAScenarioBuilder.Create(1)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1))
+                .SetMessage(new(0, 0, 0, new Add(0, 3, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void MessageChain10()
+        {
+            GOTCAScenarioBuilder.Create(1)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1),
+                    new(0, 0, 0, new Add(0, 2, "a")))
+                .SetMessage(new(0, 0, 0, new Add(0, 3, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        /*[TestMethod]
+        public void MessageChain5()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(1, -1, -1, new Del(0, 0, 1)),
+                    new(0, 0, 0, new Add(0, 3, "a")),
+                    new(0, 0, 0, new Add(0, 4, "a")))
+                .SetMessage(new(0, 0, 0, new Add(0, 7, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }*/
     }
 }

@@ -550,6 +550,16 @@ GOTCA:
             direct dependency, because otherwise that would be contradictory with the invariant that all client receive
             messages in the same order).
 
+    Algorithm update:
+        - Local dependency can occur and therefore the external operation can be from the same author
+            This happens for example when the HB contains [[0, 0, -1, -1], [add(0, 0, "a")]] and [[0, 0, -1, -1], [add(0, 1, "a")]] and the incoming message is
+            [[0, 0, 0, 0], [add(0, 2, "a")]]. The second HB message would be treated as independent in case there was no local dependency
+        - Proposal change the above algorithm to not say Direct Dependency but only Dependency and distinguish between direct and local
+
+    The code treats Direct Dependency as the one message that has the cid and csn equal to the prev cid and prev csn of the message,
+    but it is often stated that Direct Dependency contains all the messages before it as well (in SO). Change this.
+        - Proposal: Call direct dependency only the 1 message and everything before it is simply Dependent
+
     there could be a short loop in LET/LIT that check whether all add & dels are on different lines so the transformation can be quicker (add & dels can be omitted)
 
     there actually can be local dependency, just on a non local client's side
