@@ -153,5 +153,42 @@ namespace TextOperationsUnitTests.Tests.GOTCATests
                 .SetMessageAsResult()
                 .Run();
         }
+
+        [TestMethod]
+        public void LocalDependency6()
+        {
+            GOTCAScenarioBuilder.Create(5)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1),
+                    new(1, -1, -1, new Del(0, 2, 1)),
+                    new(2, -1, -1, new Del(0, 2, 1)),
+                    new(3, -1, -1, new Del(0, 2, 1)),
+                    new(4, -1, -1, new Del(0, 2, 1)),
+                    new(1, 0, 0, new Del(0, 2, 1)),
+                    new(0, 0, 0, new Add(0, 2, "a")),
+                    new(0, 0, 0, new Add(0, 3, "a")))
+                .SetMessage(new(0, 0, 2, new Add(0, 4, "a"), new Add(0, 5, "a"), new Add(0, 6, "a"), new Add(0, 7, "a")))
+                .CreateSOFromHB()
+                .SetMessageAsResult()
+                .Run();
+        }
+
+        [TestMethod]
+        public void LocalDependency7()
+        {
+            GOTCAScenarioBuilder.Create(2)
+                .AddHBOperations(
+                    new(0, -1, -1),
+                    new(0, -1, -1),
+                    new(1, -1, -1, new Newline(0, 4)),
+                    new(0, 0, 0, new Add(0, 2, "a")),
+                    new(0, 0, 0, new Add(0, 3, "a")),
+                    new(1, 0, 0, new Newline(0, 1)))
+                .SetMessage(new(0, 0, 1, new Add(0, 4, "a"), new Add(0, 5, "a"), new Add(0, 6, "a"), new Add(0, 7, "a")))
+                .CreateSOFromHB()
+                .SetResult(new(0, 0, 1, new Add(1, 3, "a"), new Add(1, 4, "a"), new Add(1, 5, "a"), new Add(1, 6, "a")))
+                .Run();
+        }
     }
 }
