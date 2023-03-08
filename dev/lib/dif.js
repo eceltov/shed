@@ -505,6 +505,117 @@ function undoDif(wDif, document) {
   return undoDifServer(wDif, document);
 }
 
+function partOfSameChain(meta1, meta2) {
+  return meta1[0] === meta2[0]
+    && meta1[2] === meta2[2]
+    && meta1[3] === meta2[3];
+}
+
+/**
+ * @brief The General Operation Transformation Control Algorithm. Transforms an operation so that
+ *        it is dependant on the last HB entry.
+ * @param {*} wdMessage A wrapped operation to be transformed.
+ * @param {*} wdHB The wrapped HB against which to transform.
+ * @param {*} SO The serverOrdering agains which to transform.
+ * @returns Returns the wrapped transformed operation.
+ */
+function GOTCA(wdMessage, wdHB, SO, log = false) {
+  // the last index in SO to look for dependent operations
+  const DDIndex = SO.findIndex((meta) => (
+    meta[0] === wdMessage[0][2] && meta[1] === wdMessage[0][3]));
+
+  // the index of the last dependent operation unpreceded by an independent message
+  let dependentSectionEndIdx = -1;
+  let dependentSection = true;
+
+  const postDependentSectionDependentIndices = [];
+
+  for (let i = 0; i < wdHB.length; i++) {
+    let dependent = false;
+    // handle local dependency
+    if (wdHB[i][0][0] === wdMessage[0][0])
+      dependent = true;
+    else {
+      // filtering out directly dependent operations
+      for (let j = 0; j <= DDIndex; j++) {
+        // deep comparison between the HB operation metadata and SO operation metadata
+        if (deepEqual(wdHB[i][0], SO[j])) {
+          dependent = true;
+          break;
+        }
+      }
+    }
+
+      if (dependent) {
+        if (dependentSection)
+          dependentSectionEndIdx = i;
+        else
+          postDependentSectionDependentIndices.push(i);
+      }
+      else {   
+        // handle message chains
+        if (dependentSection && partOfSameChain(wdMessage[0], wdHB[i][0]))
+          dependentSectionEndIdx = i;
+        // message chains can be present after the dependent section as well
+        else if (!dependentSection && partOfSameChain(wdMessage[0], wdHB[i][0]))
+          postDependentSectionDependentIndices.push(i);
+        else
+          dependentSection = false;
+      }
+  }
+
+  // there are no independent messages, therefore no transformation is needed
+  if (dependentSection)
+    return wdMessage;
+
+  // the operations in the dependent section are not needed by the algorithm
+  const wdReducedHB = wdHB.slice(dependentSectionEndIdx + 1);
+  // reduce the indices by the number of elements omitted
+  for (let i = 0; i < postDependentSectionDependentIndices.length; i++)
+      postDependentSectionDependentIndices[i] -= dependentSectionEndIdx + 1;
+
+  ///TODO: this should be a function
+  const wdReversedHBDifs = [];
+  for (let i = wdReducedHB.length - 1; i >= 0; i--) {
+      const wdDif = deepCopy(wdReducedHB[i][1]);
+      wdDif.reverse();
+      wdReversedHBDifs.push(wdDif);
+  }
+
+  const wiExcludedDependentOps = [];
+
+  // the difs in the reduced HB will be aggregated one by one from the oldest to the newest and used in
+  // a LET on remaining dependent operations
+  postDependentSectionDependentIndices.forEach(i => {
+      const wdLETDif = dissolveArrays(wdReversedHBDifs.slice(
+          wdReversedHBDifs.length - i));
+
+      const wiExcludedDependentOp = LET(makeIndependant(wdReducedHB[i][1]), wdLETDif);
+      wiExcludedDependentOps.push(wiExcludedDependentOp);
+  });
+
+  // make the dependent ops be in the same form as they were when the message was created
+  // they are all joined into a single dif for easier application
+  const wdJoinedIncludedDependentOps = [];
+  wiExcludedDependentOps.forEach(wiExcludedDependentOp => {
+    wdJoinedIncludedDependentOps.push(...LIT(wiExcludedDependentOp, wdJoinedIncludedDependentOps));
+  });
+
+  // reverse the dependent operations so they can be excluded
+  wdJoinedIncludedDependentOps.reverse();
+  // exclude the dependent ops from the message so that it has the same context as wdReducedHB[0].wDif
+  const wiExcludedMessage = LET(makeIndependant(wdMessage[1]), wdJoinedIncludedDependentOps);
+
+  // include all operations in the reduced HB
+  const wdMergedHB = [];
+  wdReducedHB.forEach(operation => {
+    wdMergedHB.push(...operation[1]);
+  });
+
+  wdMessage[1] = LIT(wiExcludedMessage, wdMergedHB);
+  return wdMessage;
+}
+
 /**
  * @brief The General Operation Transformation Control Algorithm. Transforms an operation so that
  *        it is dependant on the last HB entry.
@@ -514,7 +625,8 @@ function undoDif(wDif, document) {
  * @param {*} log Whether to print out debug messages to the console.
  * @returns Returns the wrapped transformed operation.
  */
-function GOTCA(wdMessage, wdHB, SO, log = false) {
+///TODO: remove
+function OldGOTCA_DEPRECATED(wdMessage, wdHB, SO, log = false) {
   /**
    *  @note Due to the fact that all operations are being received by all clients in the same
        order, the only independant operations from the received one can be those made by the
