@@ -401,6 +401,18 @@ namespace WebSocketServer.Model
             return true;
         }
 
+        bool SaveDocument(DocumentInstance documentInstance)
+        {
+            string? absolutePath = FileStructure.GetAbsolutePath(documentInstance.DocumentID);
+            if (absolutePath != null)
+            {
+                DatabaseProvider.Database.WriteDocumentData(ID, absolutePath, documentInstance.Document);
+                return true;
+            }
+
+            return false;
+        }
+
         public bool HandleCloseDocument(Client client, int documentID)
         {
             if (client.OpenDocuments.ContainsKey(documentID))
@@ -410,7 +422,13 @@ namespace WebSocketServer.Model
                 ///TODO: possible race condition
                 if (ActiveDocuments.ContainsKey(documentID))
                 {
-                    ActiveDocuments[documentID].RemoveConnection(client);
+                    var documentInstance = ActiveDocuments[documentID];
+                    documentInstance.RemoveConnection(client);
+
+                    // save the document is all clients left
+                    if (documentInstance.ClientCount == 0)
+                        SaveDocument(documentInstance);
+
                     return true;
                 }
                 

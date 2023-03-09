@@ -23,7 +23,7 @@ namespace WebSocketServer.Model
         Document documentFile;
 
         // attributes for document maintenance
-        List<string> document = new();
+        public List<string> Document { get; private set; } = new();
         List<WrappedOperation> wHB = new();
         List<OperationMetadata> serverOrdering = new();
         int firstSOMessageNumber = 0; // the total serial number of the first SO entry
@@ -38,10 +38,13 @@ namespace WebSocketServer.Model
         StatusChecker garbageRosterChecker; // StatusChecker for the garbageRoster
         int? GCOldestMessageNumber = null;
 
+        public int ClientCount { get { return clients.Count; } }
+        public int DocumentID { get { return documentFile.ID; } }
+
         DocumentInstance(Document documentFile, List<string> document)
         {
             this.documentFile = documentFile;
-            this.document = document;
+            Document = document;
 
             // initialize a default StatusChecker
             garbageRosterChecker = new StatusChecker(0, GC);
@@ -85,25 +88,23 @@ namespace WebSocketServer.Model
 
             clients.Add(client.ID, client);
 
-            ///TODO: write serializers for wHB and SO
-            var initMsg = new InitDocumentMessage(document, documentFile.ID, wHB, serverOrdering, firstSOMessageNumber);
+            var initMsg = new InitDocumentMessage(Document, documentFile.ID, wHB, serverOrdering, firstSOMessageNumber);
             client.ClientInterface.Send(initMsg);
         }
 
         public void RemoveConnection(Client client)
         {
             clients.Remove(client.ID);
-            if (clients.Count == 0)
-            {
-                throw new NotImplementedException();
-                ///TODO: close document
-            }
         }
 
+        /// <summary>
+        /// Prepares the instance for deletion.
+        /// Removes references to all clients and clears the state of GC.
+        /// </summary>
         public void Delete()
         {
-            ///TODO
-            throw new NotImplementedException();
+            clients = new();
+            ResetGCState();
         }
 
         public void HandleOperation(Client client, Operation operation)
@@ -123,10 +124,10 @@ namespace WebSocketServer.Model
 
         void ProcessOperation(Operation operation)
         {
-            var (newDocument, wNewHB) = operation.UDR(document, wHB, serverOrdering);
+            var (newDocument, wNewHB) = operation.UDR(Document, wHB, serverOrdering);
             serverOrdering.Add(operation.Metadata);
             wHB = wNewHB;
-            document = newDocument;
+            Document = newDocument;
         }
 
         /// <summary>
