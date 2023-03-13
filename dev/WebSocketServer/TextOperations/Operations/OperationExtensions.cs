@@ -37,6 +37,29 @@ namespace TextOperations.Operations
             return new(operation.Metadata, operation.Dif.Wrap());
         }
 
+        public static List<SubdifWrap> CopyAndReverse(this List<SubdifWrap> wDif)
+        {
+            var wReversed = wDif.DeepCopy();
+            wReversed.Reverse();
+            return wReversed;
+        }
+
+        public static List<List<SubdifWrap>> CopyAndReverse(this List<List<SubdifWrap>> wDifs)
+        {
+            List<List<SubdifWrap>> wReversed = new();
+            for (int i = wDifs.Count - 1; i >= 0; i--)
+                wReversed.Add(wDifs[i].CopyAndReverse());
+            return wReversed;
+        }
+
+        public static List<List<SubdifWrap>> CopyAndReverse(this List<WrappedOperation> wHB)
+        {
+            List<List<SubdifWrap>> wReversed = new();
+            for (int i = wHB.Count - 1; i >= 0; i--)
+                wReversed.Add(wHB[i].wDif.CopyAndReverse());
+            return wReversed;
+        }
+
         public static WrappedOperation GOTCA(this WrappedOperation wdMessage, List<WrappedOperation> wdHB, List<OperationMetadata> SO)
         {
             // the last index in SO to look for dependent operations
@@ -98,14 +121,7 @@ namespace TextOperations.Operations
             for (int i = 0; i < postDependentSectionDependentIndices.Count; i++)
                 postDependentSectionDependentIndices[i] -= dependentSectionEndIdx + 1;
 
-            ///TODO: this should be a function
-            List<List<SubdifWrap>> wdReversedHBDifs = new();
-            for (int i = wdReducedHB.Count - 1; i >= 0; i--)
-            {
-                var wdDif = wdReducedHB[i].wDif.DeepCopy();
-                wdDif.Reverse();
-                wdReversedHBDifs.Add(wdDif);
-            }
+            List<List<SubdifWrap>> wdReversedHBDifs = CopyAndReverse(wdReducedHB);
 
             List<List<SubdifWrap>> wiExcludedDependentOps = new();
 
