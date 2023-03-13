@@ -19,7 +19,7 @@ namespace TextOperations.Operations
                     string row = document[add.Row];
                     document[add.Row] = row[..add.Position] + add.Content + row[add.Position..];
                 }
-                else if (subdif is Del del)
+                else if (subdif is Del del && del.Count > 0)
                 {
                     string row = document[del.Row];
                     document[del.Row] = row[..del.Position] + row[(del.Position + del.Count)..];
@@ -36,6 +36,10 @@ namespace TextOperations.Operations
                 {
                     document[remline.Row] += document[remline.Row + 1];
                     document.RemoveAt(remline.Row + 1);
+                }
+                else if (subdif is Del del2 && del2.Count <= 0)
+                {
+                    // do nothing
                 }
                 else if (subdif is Remline && wrap.InformationLost)
                 {
@@ -60,7 +64,7 @@ namespace TextOperations.Operations
                     string row = document[add.Row];
                     document[add.Row] = row[..add.Position] + row[(add.Position + add.Content.Length)..];
                 }
-                else if (subdif is Del del)
+                else if (subdif is Del del && del.Count > 0)
                 {
                     string row = document[del.Row];
                     document[del.Row] = row[..del.Position] + new string('#', del.Count) + row[del.Position..];
@@ -76,6 +80,10 @@ namespace TextOperations.Operations
                     string trailingText = document[remline.Row][remline.Position..];
                     document[remline.Row] = prefix;
                     document.Insert(remline.Row + 1, trailingText);
+                }
+                else if (subdif is Del del2 && del2.Count <= 0)
+                {
+                    // do nothing
                 }
                 else if (subdif is Remline && wrap.InformationLost)
                 {

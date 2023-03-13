@@ -17,6 +17,7 @@
 
   <ItemGroup>
     <ProjectReference Include="..\TextOperations\TextOperations.csproj" />
+    <ProjectReference Include="..\WebSocketServer\WebSocketServer.csproj" />
   </ItemGroup>
 
 </Project>

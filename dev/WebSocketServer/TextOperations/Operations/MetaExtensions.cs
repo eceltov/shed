@@ -6,6 +6,11 @@ namespace TextOperations.Operations
     {
         public static SubdifWrap SaveLI(this SubdifWrap wrap, SubdifWrap wTransformer)
         {
+            // An Add and Newline with LI will still add its content to the document (all of the content)
+            // A Del with LI can have Count == 0, meaning that it should be ignored for the purposes of
+            //      application of the deletion to the document (as it could reference a non-existing row)
+            // A Remline with LI has to have no effect on the document and should be ignored (when applying
+            //      changes to the document)
             wrap.InformationLost = true;
             wrap.Original = wrap.Sub.Copy();
             wrap.wTransformer = wTransformer.Copy();

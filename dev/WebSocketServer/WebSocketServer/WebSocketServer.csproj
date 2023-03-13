@@ -19,4 +19,8 @@
     <ProjectReference Include="..\TextOperations\TextOperations.csproj" />
   </ItemGroup>
 
+  <ItemGroup>
+    <InternalsVisibleTo Include="TextOperationsUnitTests" />
+  </ItemGroup>
+
 </Project>

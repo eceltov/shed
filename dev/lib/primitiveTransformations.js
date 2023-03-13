@@ -326,14 +326,14 @@ function ET_AA(wrap, wTransformer) {
 }
 function ET_AD(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (!sameRow(wrap, wTransformer)) return wrap;
   if (checkLI(wrap, wTransformer)) {
     recoverLI(wrap);
+    return wrap;
   }
-  else if (wrap.sub[1] <= transformer[1]) return wrap;
-  else {
-    wrap.sub[1] += transformer[2];
-  }
+  if (!sameRow(wrap, wTransformer)) return wrap;
+  if (wrap.sub[1] <= transformer[1]) return wrap;
+
+  wrap.sub[1] += transformer[2];
   return wrap;
 }
 function ET_AN(wrap, wTransformer) {
@@ -434,12 +434,13 @@ function ET_DA(wrap, wTransformer) {
 // @note May return an array with two subdifs
 function ET_DD(wrap, wTransformer) {
   const transformer = wTransformer.sub;
-  if (!sameRow(wrap, wTransformer)) return wrap;
   if (checkLI(wrap, wTransformer)) {
     recoverLI(wrap);
+    return wrap;
   }
-  else if (transformer[1] >= wrap.sub[1] + wrap.sub[2]) return wrap;
-  else if (wrap.sub[1] >= transformer[1]) {
+  if (!sameRow(wrap, wTransformer)) return wrap;
+  if (transformer[1] >= wrap.sub[1] + wrap.sub[2]) return wrap;
+  if (wrap.sub[1] >= transformer[1]) {
     wrap.sub[1] += transformer[2];
   }
   else {
@@ -566,6 +567,9 @@ function ET_NR(wrap, wTransformer) {
 function ET_RA(wrap, wTransformer) {
   // case when the remline is disabled
   if (wrap.meta.informationLost) {
+    if (checkLI(wrap, wTransformer)) {
+      recoverLI(wrap);
+    }
     return wrap;
   }
   const transformer = wTransformer.sub;
@@ -579,6 +583,9 @@ function ET_RA(wrap, wTransformer) {
 function ET_RD(wrap, wTransformer) {
   // case when the remline is disabled
   if (wrap.meta.informationLost) {
+    if (checkLI(wrap, wTransformer)) {
+      recoverLI(wrap);
+    }
     return wrap;
   }
   const transformer = wTransformer.sub;
@@ -592,6 +599,9 @@ function ET_RD(wrap, wTransformer) {
 function ET_RN(wrap, wTransformer) {
   // case when the remline is disabled
   if (wrap.meta.informationLost) {
+    if (checkLI(wrap, wTransformer)) {
+      recoverLI(wrap);
+    }
     return wrap;
   }
   const transformer = wTransformer.sub;

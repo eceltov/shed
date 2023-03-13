@@ -569,3 +569,38 @@ GOTCA:
     >>> Made LIT return dependent wraps if the transformer is empty
     >>> TODO: implement new GOTCA in js lib
     
+[[2,9,2,8],[[1,0,3],[2,0,3],[3,0,5],[4,0,3],[5,0,1],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,"jio"],[0,3,true]],17]
+[[1,8,2,8],[[1,0,3],[2,0,3],[3,0,5],[1,0,false],[1,0,false],[1,0,"jio"],[1,3,true],[2,0,"io"]],17]
+[[1,9,2,8],[[2,2,"j"],[2,3,true],[1,1,2],[2,0,3],[1,1,false],[1,1,"i"]],17]
+[[1,10,2,8],[[1,0,1],[1,0,"j"],[4,0,1],[3,3,false],[3,3,"io"],[3,5,true]],17]
+
+[[1,8,2,7],[[0,0,3],[1,0,1],[2,0,3],[3,0,3],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,"o"],[0,1,true],[1,0,"o"]],17]
+[[1,9,2,7],[[1,1,true],[2,0,"o"]],17]
+[[2,8,2,7],[[0,0,3],[1,0,1],[2,0,3],[3,0,3],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,false],[0,0,"p"],[0,1,true],[1,0,"p"]],17]
+[[2,9,2,7],[[1,1,true],[2,0,"pp"]],17]
+[[2,10,2,7],[[2,2,true]],17]
+
+    >>>> subdifs that were transformed and now contain no change (del(0, 0, 0)) are being applied to the document, but they should not, added notes to SaveLI()
+        >> implement this in client
+    >>>> dels with LI are causing errors when they are being excluded
+        >> ET_DD RecoverLI was moved UP
+        >> Wrap copy now makes deep copies of nested wraps (Original, wTransformer, Addresser...)
+
+
+[[1,0,-1,-1],[[0,0,9],[0,0,"uíp"],[0,3,true]],17]
+[[1,1,-1,-1],[[1,0,"ií"],[1,2,true],[2,0,"u"]],17]
+[[1,2,-1,-1],[[2,1,"i"]],17]
+[[2,0,-1,-1],[[0,8,true],[1,0,"p"],[0,7,true],[1,0,"uií"],[2,2,"pu"],[2,4,true]],17]
+[[2,1,-1,-1],[[1,4,"íip"],[1,7,true],[2,0,"uí"]],17]
+[[2,2,-1,-1],[[0,3,1],[1,0,4],[0,3,false],[0,3,"u"]],17]
+[[2,3,1,0],[[4,0,"í"],[4,1,true],[5,0,"p"]],17]
+[[2,4,1,1],[[6,2,"uí"]],17]
+[[2,5,1,2],[[2,4,1],[3,0,2],[4,0,4],[5,0,1],[6,0,1],[2,4,false],[2,4,false],[2,4,false],[2,4,false],[2,4,"iu"],[2,10,"p"],[2,11,true]],17]
+
+document.md
+[[2,0,-1,-1],[[0,0,7],[1,0,6],[2,0,11],[0,0,false],[0,0,false],[0,0,"kop"],[0,3,true]],35]
+[[2,1,-1,-1],[[1,0,"kop"],[1,3,true]],35]
+[[1,0,-1,-1],[[1,5,"op"],[1,6,true],[2,0,"- ko"]],35]
+[[1,1,-1,-1],[[1,4,"p"],[1,5,true],[2,0,"- ko"]],35]
+[[1,2,-1,-1],[[2,4,"p"],[3,6,true],[4,0,"- k"]],35]
+[[1,3,-1,-1],[[2,1,6],[3,0,6],[4,0,3],[5,0,11],[2,1,false],[2,1,false],[2,1,false],[2,1,"kop"],[2,4,true],[3,0,"k"]],35]

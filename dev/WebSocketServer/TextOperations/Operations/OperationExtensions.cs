@@ -116,7 +116,7 @@ namespace TextOperations.Operations
                 var wdLETDif = JoinLists(wdReversedHBDifs.Slice(
                     wdReversedHBDifs.Count - i));
 
-                var wiExcludedDependentOp = wdReducedHB[i].wDif.MakeIndependent().LET(wdLETDif);
+                var wiExcludedDependentOp = wdReducedHB[i].DeepCopy().wDif.MakeIndependent().LET(wdLETDif);
                 wiExcludedDependentOps.Add(wiExcludedDependentOp);
             }
 

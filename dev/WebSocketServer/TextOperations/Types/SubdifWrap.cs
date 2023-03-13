@@ -101,9 +101,9 @@ namespace TextOperations.Types
                 Sub = Sub.Copy(),
                 InformationLost = InformationLost,
                 Relative = Relative,
-                Original = Original,
-                wTransformer = wTransformer,
-                Addresser = Addresser,
+                Original = Original?.Copy(),
+                wTransformer = wTransformer?.Copy(),
+                Addresser = Addresser?.Copy(),
                 Siblings = Siblings,
             };
         }

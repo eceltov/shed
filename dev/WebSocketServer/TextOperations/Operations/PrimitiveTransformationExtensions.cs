@@ -22,11 +22,16 @@ namespace TextOperations.Operations
         {
             Del transformer = (Del)wTransformer.Sub;
             if (wrap.Sub.Row != transformer.Row) return wrap;
+            // the del took place after the add
             if (wrap.Sub.Position <= transformer.Position) return wrap;
+            // the del took place before the add, the add needs to be moved to the left
             if (wrap.Sub.Position > transformer.Position + transformer.Count)
             {
                 wrap.Sub.Position -= transformer.Count;
             }
+            // the del removed the reference position of the add, meaning that excluding the del
+            // would lead to an ambiguity of where the add was originaly placed, the LI flag is
+            // therefore used
             else
             {
                 wrap.SaveLI(wTransformer);
@@ -428,16 +433,15 @@ namespace TextOperations.Operations
         {
             Add subdif = (Add)wrap.Sub;
             Del transformer = (Del)wTransformer.Sub;
-            if (subdif.Row != transformer.Row) return wrap;
             if (wrap.CheckLI(wTransformer))
             {
                 wrap.RecoverLI();
+                return wrap;
             }
-            else if (subdif.Position <= transformer.Position) return wrap;
-            else
-            {
-                subdif.Position += transformer.Count;
-            }
+            if (subdif.Row != transformer.Row) return wrap;
+            if (subdif.Position <= transformer.Position) return wrap;
+
+            subdif.Position += transformer.Count;
             return wrap;
         }
 
@@ -559,13 +563,14 @@ namespace TextOperations.Operations
         {
             Del subdif = (Del)wrap.Sub;
             Del transformer = (Del)wTransformer.Sub;
-            if (subdif.Row != transformer.Row) return new() { wrap };
             if (wrap.CheckLI(wTransformer))
             {
                 wrap.RecoverLI();
+                return new() { wrap };
             }
-            else if (transformer.Position >= subdif.Position + subdif.Count) return new() { wrap };
-            else if (subdif.Position >= transformer.Position)
+            if (subdif.Row != transformer.Row) return new() { wrap };
+            if (transformer.Position >= subdif.Position + subdif.Count) return new() { wrap };
+            if (subdif.Position >= transformer.Position)
             {
                 subdif.Position += transformer.Count;
             }
@@ -733,6 +738,8 @@ namespace TextOperations.Operations
             // case when the remline is disabled
             if (wrap.InformationLost)
             {
+                if (wrap.CheckLI(wTransformer))
+                    wrap.RecoverLI();
                 return wrap;
             }
             if (subdif.Row == transformer.Row)
@@ -751,6 +758,8 @@ namespace TextOperations.Operations
             // case when the remline is disabled
             if (wrap.InformationLost)
             {
+                if (wrap.CheckLI(wTransformer))
+                    wrap.RecoverLI();
                 return wrap;
             }
             if (subdif.Row == transformer.Row)
@@ -769,6 +778,8 @@ namespace TextOperations.Operations
             // case when the remline is disabled
             if (wrap.InformationLost)
             {
+                if (wrap.CheckLI(wTransformer))
+                    wrap.RecoverLI();
                 return wrap;
             }
             if (transformer.Row < subdif.Row - 1)

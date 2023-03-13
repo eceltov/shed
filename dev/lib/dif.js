@@ -357,7 +357,7 @@ function applyDifAce(wDif, document) {
     if (isAdd(subdif)) {
       document.insert({ row: subdif[0], column: subdif[1] }, subdif[2]);
     }
-    else if (isDel(subdif)) {
+    else if (isDel(subdif) && subdif[2] > 0) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2]);
     }
     else if (isNewline(subdif)) {
@@ -365,6 +365,9 @@ function applyDifAce(wDif, document) {
     }
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document.removeNewLine(subdif[0]);
+    }
+    else if (isDel(subdif) && subdif[2] <= 0) {
+      // do nothing
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing
@@ -385,7 +388,7 @@ function undoDifAce(wDif, document) {
     if (isAdd(subdif)) {
       document.removeInLine(subdif[0], subdif[1], subdif[1] + subdif[2].length);
     }
-    else if (isDel(subdif)) {
+    else if (isDel(subdif) && subdif[2] > 0) {
       document.insert({ row: subdif[0], column: subdif[1] }, '#'.repeat(subdif[2]));
     }
     else if (isNewline(subdif)) {
@@ -393,6 +396,9 @@ function undoDifAce(wDif, document) {
     }
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document.insertMergedLines({ row: subdif[0], column: subdif[1] }, ['', '']);
+    }
+    else if (isDel(subdif) && subdif[2] <= 0) {
+      // do nothing
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing
@@ -413,7 +419,7 @@ function applyDifServer(wDif, document) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + subdif[2] + row.substr(subdif[1]);
     }
-    else if (isDel(subdif)) {
+    else if (isDel(subdif) && subdif[2] > 0) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2]);
     }
@@ -427,6 +433,9 @@ function applyDifServer(wDif, document) {
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document[subdif[0]] += document[subdif[0] + 1];
       document.splice(subdif[0] + 1, 1);
+    }
+    else if (isDel(subdif) && subdif[2] <= 0) {
+      // do nothing
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing
@@ -447,7 +456,7 @@ function undoDifServer(wDif, document) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + row.substr(subdif[1] + subdif[2].length);
     }
-    else if (isDel(subdif)) {
+    else if (isDel(subdif) && subdif[2] > 0) {
       const row = document[subdif[0]];
       document[subdif[0]] = row.substr(0, subdif[1]) + '#'.repeat(subdif[2]) + row.substr(subdif[1]);
     }
@@ -460,6 +469,9 @@ function undoDifServer(wDif, document) {
       const trailingText = document[subdif[0]].substring(subdif[1]);
       document[subdif[0]] = prefix;
       document.splice(subdif[0] + 1, 0, trailingText);
+    }
+    else if (isDel(subdif) && subdif[2] <= 0) {
+      // do nothing
     }
     else if (isRemline(subdif) && wrap.meta.informationLost) {
       // do nothing

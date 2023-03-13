@@ -20,43 +20,48 @@ namespace WebSocketServer.MessageProcessing
         protected override void OnMessage(MessageEventArgs e)
         {
             Console.WriteLine(e.Data);
+            HandleMessage(e.Data);
+        }
 
+        ///TODO: this should not be public
+        public void HandleMessage(string messageString)
+        {
             // only an operation uses JSON arrays
-            if (e.Data[0] == '[')
+            if (messageString[0] == '[')
             {
-                HandleOperation(e);
+                HandleOperation(messageString);
                 return;
             }
 
-            var genericMessage = new ClientMessage(e.Data);
+            var genericMessage = new ClientMessage(messageString);
             switch (genericMessage.MsgType)
             {
                 case ClientMessageTypes.Connect:
-                    HandleConnect(e);
+                    HandleConnect(messageString);
                     break;
                 case ClientMessageTypes.GetDocument:
-                    HandleGetDocument(e);
+                    HandleGetDocument(messageString);
                     break;
                 case ClientMessageTypes.CreateDocument:
-                    HandleCreateDocument(e);
+                    HandleCreateDocument(messageString);
                     break;
                 case ClientMessageTypes.CreateFolder:
-                    HandleCreateFolder(e);
+                    HandleCreateFolder(messageString);
                     break;
                 case ClientMessageTypes.DeleteDocument:
-                    HandleDeleteDocument(e);
+                    HandleDeleteDocument(messageString);
                     break;
                 case ClientMessageTypes.DeleteFolder:
-                    HandleDeleteFolder(e);
+                    HandleDeleteFolder(messageString);
                     break;
                 case ClientMessageTypes.RenameFile:
-                    HandleRenameFile(e);
+                    HandleRenameFile(messageString);
                     break;
                 case ClientMessageTypes.GCMetadataResponse:
-                    HandleGCMetadata(e);
+                    HandleGCMetadata(messageString);
                     break;
                 case ClientMessageTypes.CloseDocument:
-                    HandleCloseDocument(e);
+                    HandleCloseDocument(messageString);
                     break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
@@ -64,9 +69,9 @@ namespace WebSocketServer.MessageProcessing
             }
         }
 
-        void HandleConnect(MessageEventArgs e)
+        void HandleConnect(string messageString)
         {
-            var message = new ClientConnectMessage(e.Data);
+            var message = new ClientConnectMessage(messageString);
             string? userID = MessageProcessor.AcceptConnection(message);
             if (userID != null)
             {
@@ -84,85 +89,85 @@ namespace WebSocketServer.MessageProcessing
             }
         }
 
-        void HandleGetDocument(MessageEventArgs e)
+        void HandleGetDocument(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientGetDocumentMessage(e.Data);
+            var message = new ClientGetDocumentMessage(messageString);
             client.Workspace.ScheduleAction(new GetDocumentDescriptor(client, message.FileID));
 
         }
 
-        void HandleCreateDocument(MessageEventArgs e)
+        void HandleCreateDocument(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientCreateDocumentMessage(e.Data);
+            var message = new ClientCreateDocumentMessage(messageString);
             client.Workspace.ScheduleAction(new CreateDocumentDescriptor(client, message.ParentID, message.Name));
         }
 
-        void HandleCreateFolder(MessageEventArgs e)
+        void HandleCreateFolder(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientCreateFolderMessage(e.Data);
+            var message = new ClientCreateFolderMessage(messageString);
             client.Workspace.ScheduleAction(new CreateFolderDescriptor(client, message.ParentID, message.Name));
         }
 
-        void HandleDeleteDocument(MessageEventArgs e)
+        void HandleDeleteDocument(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientDeleteDocumentMessage(e.Data);
+            var message = new ClientDeleteDocumentMessage(messageString);
             client.Workspace.ScheduleAction(new DeleteDocumentDescriptor(client, message.FileID));
         }
 
-        void HandleDeleteFolder(MessageEventArgs e)
+        void HandleDeleteFolder(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientDeleteFolderMessage(e.Data);
+            var message = new ClientDeleteFolderMessage(messageString);
             client.Workspace.ScheduleAction(new DeleteFolderDescriptor(client, message.FileID));
         }
 
-        void HandleRenameFile(MessageEventArgs e)
+        void HandleRenameFile(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientRenameFileMessage(e.Data);
+            var message = new ClientRenameFileMessage(messageString);
             client.Workspace.ScheduleAction(new RenameFileDescriptor(client, message.FileID, message.Name));
         }
 
-        void HandleCloseDocument(MessageEventArgs e)
+        void HandleCloseDocument(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientCloseDocumentMessage(e.Data);
+            var message = new ClientCloseDocumentMessage(messageString);
             client.Workspace.ScheduleAction(new CloseDocumentDescriptor(client, message.DocumentID));
         }
 
-        void HandleOperation(MessageEventArgs e)
+        void HandleOperation(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientOperationMessage(e.Data);
+            var message = new ClientOperationMessage(messageString);
             client.Workspace.ScheduleAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
         }
 
-        void HandleGCMetadata(MessageEventArgs e)
+        void HandleGCMetadata(string messageString)
         {
             if (client == null)
                 return;
 
-            var message = new ClientGCMetadataMessage(e.Data);
+            var message = new ClientGCMetadataMessage(messageString);
             client.Workspace.ScheduleAction(new GCMetadataDescriptor(client, message.DocumentID, message.Dependency));
         }
 

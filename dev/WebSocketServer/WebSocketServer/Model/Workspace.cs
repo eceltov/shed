@@ -40,6 +40,7 @@ namespace WebSocketServer.Model
 
         public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users)
         {
+            Console.WriteLine($"Creating Workspace {name}, ID {ID}");
             this.ID = ID;
             Name = name;
             FileStructure = fileStructure;
