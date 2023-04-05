@@ -8,8 +8,8 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class DeleteFolderDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int FileID { get; set; }
+        public Client Client { get; init; }
+        public int FileID { get; init; }
 
         public DeleteFolderDescriptor(Client client, int fileID)
         {

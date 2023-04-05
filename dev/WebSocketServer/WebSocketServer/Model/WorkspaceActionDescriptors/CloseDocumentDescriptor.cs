@@ -8,8 +8,8 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class CloseDocumentDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int DocumentID { get; set; }
+        public Client Client { get; init; }
+        public int DocumentID { get; init; }
 
         public CloseDocumentDescriptor(Client client, int documentID)
         {

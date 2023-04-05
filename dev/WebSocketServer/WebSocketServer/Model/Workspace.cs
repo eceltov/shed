@@ -58,6 +58,19 @@ namespace WebSocketServer.Model
             actionDescriptors.Add(actionDescriptor);
         }
 
+        public bool ScheduleDocumentAction(IDocumentActionDescriptor actionDescriptor)
+        {
+            ///TODO: accessing ActiveDocuments is not thread safe
+            if (ActiveDocuments.TryGetValue(actionDescriptor.DocumentID, out DocumentInstance? documentInstance) && documentInstance != null)
+            {
+                documentInstance.ScheduleAction(actionDescriptor);
+                return true;
+            }
+
+            Console.WriteLine($"Error in {nameof(ScheduleDocumentAction)}: Could not schedule document action.");
+            return false;
+        }
+
         void ProcessActions(CancellationToken cancellationToken)
         {
             foreach (var actionDescriptor in actionDescriptors.GetConsumingEnumerable(cancellationToken))
@@ -83,35 +96,6 @@ namespace WebSocketServer.Model
             if (Clients.ContainsKey(client.ID))
             {
                 Console.WriteLine($"Error in ClientCanJoin: client {client.ID} already present.");
-                return false;
-            }
-
-            return true;
-        }
-
-        bool ClientCanEdit(Client client, int documentID)
-        {
-            if (client == null)
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
-                return false;
-            }
-
-            if (!RoleHandler.CanEdit(client.Role))
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
-                return false;
-            }
-
-            if (!ActiveDocuments.TryGetValue(documentID, out var activeDocument))
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit an inactive document.");
-                return false;
-            }
-
-            if (!activeDocument.ClientPresent(client.ID))
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
                 return false;
             }
 
@@ -439,19 +423,6 @@ namespace WebSocketServer.Model
 
             Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an unopened document ({documentID}).");
             return false;
-        }
-
-        public bool HandleOperation(Client client, Operation operation, int documentID)
-        {
-            if (!ClientCanEdit(client, documentID))
-            {
-                Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
-                return false;
-            }
-
-            ///TODO: unsafe, plus possible race condition
-            ActiveDocuments[documentID].HandleOperation(client, operation);
-            return true;
         }
 
         public bool HandleGCMetadata(Client client, int documentID, int dependency)

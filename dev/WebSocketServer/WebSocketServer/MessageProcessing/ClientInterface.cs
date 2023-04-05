@@ -159,7 +159,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientOperationMessage(messageString);
-            client.Workspace.ScheduleAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
+            client.Workspace.ScheduleDocumentAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
         }
 
         void HandleGCMetadata(string messageString)

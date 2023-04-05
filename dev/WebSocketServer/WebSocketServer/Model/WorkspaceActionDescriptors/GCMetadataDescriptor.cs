@@ -8,9 +8,9 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class GCMetadataDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int DocumentID { get; set; }
-        public int Dependency { get; set; }
+        public Client Client { get; init; }
+        public int DocumentID { get; init; }
+        public int Dependency { get; init; }
 
         public GCMetadataDescriptor(Client client, int documentID, int dependency)
         {

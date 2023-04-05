@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,6 +10,7 @@ using TextOperations.Types;
 using WebSocketServer.Data;
 using WebSocketServer.Extensions;
 using WebSocketServer.MessageProcessing;
+using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.DatabaseParsers;
 using WebSocketServer.Parsers.MessageParsers;
 using WebSocketServer.Utilities;
@@ -38,6 +40,9 @@ namespace WebSocketServer.Model
         StatusChecker garbageRosterChecker; // StatusChecker for the garbageRoster
         int? GCOldestMessageNumber = null;
 
+        readonly BlockingCollection<IDocumentActionDescriptor> actionDescriptors = new();
+
+
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
 
@@ -60,6 +65,20 @@ namespace WebSocketServer.Model
             return new DocumentInstance(document, initialContent);
         }
 
+        public void ScheduleAction(IDocumentActionDescriptor actionDescriptor)
+        {
+            actionDescriptors.Add(actionDescriptor);
+        }
+
+        void ProcessActions(CancellationToken cancellationToken)
+        {
+            ///TODO: this never gets called, it should be done using Tasks so that opened documents do not create a thread each
+            foreach (var actionDescriptor in actionDescriptors.GetConsumingEnumerable(cancellationToken))
+            {
+                actionDescriptor.Execute(this);
+            }
+        }
+
         static List<string>? GetInitialDocument(string workspaceID, string absolutePath)
         {
             try
@@ -76,6 +95,29 @@ namespace WebSocketServer.Model
         public bool ClientPresent(int clientID)
         {
             return clients.ContainsKey(clientID);
+        }
+
+        bool ClientCanEdit(Client client)
+        {
+            if (client == null)
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
+                return false;
+            }
+
+            if (!RoleHandler.CanEdit(client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
+                return false;
+            }
+
+            if (!ClientPresent(client.ID))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
+                return false;
+            }
+
+            return true;
         }
 
         public void AddClient(Client client)
@@ -107,12 +149,12 @@ namespace WebSocketServer.Model
             ResetGCState();
         }
 
-        public void HandleOperation(Client client, Operation operation)
+        public bool HandleOperation(Client client, Operation operation)
         {
-            if (client == null || !ClientPresent(client.ID) || !RoleHandler.CanEdit(client.Role))
+            if (ClientCanEdit(client))
             {
                 Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
-                return;
+                return false;
             }
 
             var message = new OperationMessage(operation, documentFile.ID);
@@ -120,6 +162,8 @@ namespace WebSocketServer.Model
             clients.SendMessage(message);
             ProcessOperation(operation);
             StartGC();
+
+            return true;
         }
 
         void ProcessOperation(Operation operation)

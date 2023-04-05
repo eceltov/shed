@@ -8,9 +8,9 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class CreateFolderDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int ParentID { get; set; }
-        public string Name { get; set; }
+        public Client Client { get; init; }
+        public int ParentID { get; init; }
+        public string Name { get; init; }
 
         public CreateFolderDescriptor(Client client, int parentID, string name)
         {

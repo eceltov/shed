@@ -8,8 +8,8 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class DeleteDocumentDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int FileID { get; set; }
+        public Client Client { get; init; }
+        public int FileID { get; init; }
 
         public DeleteDocumentDescriptor(Client client, int fileID)
         {

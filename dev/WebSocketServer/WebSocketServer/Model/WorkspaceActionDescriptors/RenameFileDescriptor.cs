@@ -8,9 +8,9 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class RenameFileDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
-        public int FileID { get; set; }
-        public string Name { get; set; }
+        public Client Client { get; init; }
+        public int FileID { get; init; }
+        public string Name { get; init; }
 
         public RenameFileDescriptor(Client client, int fileID, string name)
         {

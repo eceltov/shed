@@ -8,7 +8,7 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
     internal class ConnectClientDescriptor : IWorkspaceActionDescriptor
     {
-        public Client Client { get; set; }
+        public Client Client { get; init; }
 
         public ConnectClientDescriptor(Client client)
         {

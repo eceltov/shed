@@ -7,12 +7,12 @@ using TextOperations.Types;
 
 namespace WebSocketServer.Model.WorkspaceActionDescriptors
 {
-    internal class ApplyOperationDescriptor : IWorkspaceActionDescriptor
+    internal class ApplyOperationDescriptor : IDocumentActionDescriptor
     {
         ///TODO: make setters private
-        public Client Client { get; set; }
-        public Operation Operation { get; set; }
-        public int DocumentID { get; set; }
+        public Client Client { get; init; }
+        public Operation Operation { get; init; }
+        public int DocumentID { get; init; }
 
         public ApplyOperationDescriptor(Client client, Operation operation, int documentID)
         {
@@ -21,9 +21,9 @@ namespace WebSocketServer.Model.WorkspaceActionDescriptors
             DocumentID = documentID;
         }
 
-        public bool Execute(Workspace workspace)
+        public bool Execute(DocumentInstance documentInstance)
         {
-            return workspace.HandleOperation(Client, Operation, DocumentID);
+            return documentInstance.HandleOperation(Client, Operation);
         }
     }
 }
