@@ -4,6 +4,8 @@ const types = {
   folder: 1,
 };
 
+const rootID = 0;
+
 const fileNameRegex = /^[^\\/:*?"<>|]*$/;
 
 function validateFileName(name) {
@@ -296,5 +298,5 @@ module.exports = {
   types, validateFileName, getNewDocumentObj, getNewFolderObj, getIDPathMap, getFileObjectFromPath,
   getFileObject, getParentFileObject, getFileNameFromPath, getFileNameFromID,
   checkIfFolderHasFileName, addFile, removeFile, renameFile, isDocument, getAbsolutePathFromIDPath,
-  getSpawnParentID,
+  getSpawnParentID, rootID,
 };

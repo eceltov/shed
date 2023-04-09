@@ -41,7 +41,7 @@ class Workspace extends React.Component {
       role: roles.none,
       fileStructure: null,
       activeTab: null, // fileID of active document
-      activeFile: null,
+      activeFile: fsOps.rootID, // set root as the default active file
       showingOptions: false,
       tabs: [], // fileIDs in the same order as the final tabs
       aceTheme: 'ace/theme/chaos',
@@ -183,7 +183,9 @@ class Workspace extends React.Component {
       }
       else {
         newActiveTab = null;
-        newActiveFile = null;
+        // set default ID to the root so that creation of new files works intuitively
+        // (else the client would have to click on a folder/document if activeFile would equal null)
+        newActiveFile = fsOps.rootID;
       }
     }
 
@@ -468,6 +470,10 @@ class Workspace extends React.Component {
       }
 
       this.recursiveFileDelete(folderObj, stateSnapshot);
+
+      if (message.fileID === stateSnapshot.activeFile) {
+        stateSnapshot.activeFile = fsOps.rootID;
+      }
 
       return stateSnapshot;
     });

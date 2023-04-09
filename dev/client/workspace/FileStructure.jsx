@@ -112,7 +112,7 @@ class FileStructure extends React.Component {
     );
     if (name !== newName) {
       const message = msgFactory.renameFile(this.props.activeFile, newName);
-      this.sendMessageToServer(JSON.stringify(message));
+      this.props.sendMessageToServer(JSON.stringify(message));
     }
   }
 
