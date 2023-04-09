@@ -18,6 +18,7 @@ namespace WebSocketServer.Model
         static int nextID = 0;
         public Roles Role { get; set; }
         public Workspace Workspace { get; }
+        ///TODO: this should be concurrent
 
         public Dictionary<int, DocumentInstance> OpenDocuments { get; }
 

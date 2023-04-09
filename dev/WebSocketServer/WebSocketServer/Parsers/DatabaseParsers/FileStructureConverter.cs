@@ -53,6 +53,13 @@ namespace WebSocketServer.Parsers.DatabaseParsers
                 return;
 
             writer.WriteStartObject();
+
+            if (file is FileStructure fileStructure)
+            {
+                writer.WritePropertyName("nextID");
+                writer.WriteValue(fileStructure.NextID);
+            }
+
             writer.WritePropertyName("type");
             writer.WriteValue(file.Type);
             writer.WritePropertyName("ID");

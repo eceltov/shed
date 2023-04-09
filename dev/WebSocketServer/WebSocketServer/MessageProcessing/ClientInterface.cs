@@ -6,7 +6,6 @@ using System.Text;
 using System.Threading.Tasks;
 using WebSocketServer.Data;
 using WebSocketServer.Model;
-using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.MessageParsers;
 using WebSocketSharp;
 using WebSocketSharp.Server;
@@ -85,7 +84,7 @@ namespace WebSocketServer.MessageProcessing
                 client = newClient;
                 AllClients.Add(client);
                 Console.WriteLine($"Added client {client.ID}");
-                workspace.ScheduleAction(new ConnectClientDescriptor(client));
+                workspace.ScheduleAction(() => workspace.HandleConnectClient(client));
             }
         }
 
@@ -95,7 +94,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientGetDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(new GetDocumentDescriptor(client, message.FileID));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleGetDocument(client, message.FileID));
 
         }
 
@@ -105,7 +104,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCreateDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(new CreateDocumentDescriptor(client, message.ParentID, message.Name));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleCreateDocument(client, message.ParentID, message.Name));
         }
 
         void HandleCreateFolder(string messageString)
@@ -114,7 +113,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCreateFolderMessage(messageString);
-            client.Workspace.ScheduleAction(new CreateFolderDescriptor(client, message.ParentID, message.Name));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleCreateFolder(client, message.ParentID, message.Name));
         }
 
         void HandleDeleteDocument(string messageString)
@@ -123,7 +122,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientDeleteDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(new DeleteDocumentDescriptor(client, message.FileID));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleDeleteDocument(client, message.FileID));
         }
 
         void HandleDeleteFolder(string messageString)
@@ -132,7 +131,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientDeleteFolderMessage(messageString);
-            client.Workspace.ScheduleAction(new DeleteFolderDescriptor(client, message.FileID));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleDeleteFolder(client, message.FileID));
         }
 
         void HandleRenameFile(string messageString)
@@ -141,7 +140,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientRenameFileMessage(messageString);
-            client.Workspace.ScheduleAction(new RenameFileDescriptor(client, message.FileID, message.Name));
+            client.Workspace.ScheduleAction(() => client.Workspace.HandleRenameFile(client, message.FileID, message.Name));
         }
 
         void HandleCloseDocument(string messageString)
@@ -150,7 +149,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCloseDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(new CloseDocumentDescriptor(client, message.DocumentID));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleCloseDocument(client));
         }
 
         void HandleOperation(string messageString)
@@ -159,7 +158,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientOperationMessage(messageString);
-            client.Workspace.ScheduleDocumentAction(new ApplyOperationDescriptor(client, message.Operation, message.DocumentID));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleOperation(client, message.Operation));
         }
 
         void HandleGCMetadata(string messageString)
@@ -168,11 +167,12 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientGCMetadataMessage(messageString);
-            client.Workspace.ScheduleAction(new GCMetadataDescriptor(client, message.DocumentID, message.Dependency));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleGCMetadata(client, message.Dependency));
         }
 
         protected override void OnClose(CloseEventArgs e)
         {
+            ///TODO: remove from workspace and document
             Console.WriteLine($"Connection closed (client ID {client?.ID})");
             base.OnClose(e);
         }

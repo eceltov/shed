@@ -3,14 +3,12 @@ using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
-using System.Text.RegularExpressions;
 using System.Threading.Tasks;
 using TextOperations.Operations;
 using TextOperations.Types;
 using WebSocketServer.Data;
 using WebSocketServer.Extensions;
 using WebSocketServer.MessageProcessing;
-using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.DatabaseParsers;
 using WebSocketServer.Parsers.MessageParsers;
 using WebSocketServer.Utilities;
@@ -40,56 +38,30 @@ namespace WebSocketServer.Model
         StatusChecker garbageRosterChecker; // StatusChecker for the garbageRoster
         int? GCOldestMessageNumber = null;
 
-        readonly BlockingCollection<IDocumentActionDescriptor> actionDescriptors = new();
+        Task lastTask = Task.CompletedTask;
+
+        // callback used to save the document (so that all IO operations are executed in workspaces)
+        Action<int, List<string>> SaveDocumentCallback;
 
 
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
 
-        DocumentInstance(Document documentFile, List<string> document)
+        public DocumentInstance(Document documentFile, List<string> document, Action<int, List<string>> SaveDocumentCallback)
         {
             this.documentFile = documentFile;
             Document = document;
+
+            this.SaveDocumentCallback = SaveDocumentCallback;
 
             // initialize a default StatusChecker
             garbageRosterChecker = new StatusChecker(0, GC);
         }
 
-        public static DocumentInstance? CreateDocumentInstance(Document document, string workspaceID, string absolutePath)
-        {
-            if (GetInitialDocument(workspaceID, absolutePath) is not List<string> initialContent)
-            {
-                return null;
-            }
-
-            return new DocumentInstance(document, initialContent);
-        }
-
-        public void ScheduleAction(IDocumentActionDescriptor actionDescriptor)
-        {
-            actionDescriptors.Add(actionDescriptor);
-        }
-
-        void ProcessActions(CancellationToken cancellationToken)
-        {
-            ///TODO: this never gets called, it should be done using Tasks so that opened documents do not create a thread each
-            foreach (var actionDescriptor in actionDescriptors.GetConsumingEnumerable(cancellationToken))
-            {
-                actionDescriptor.Execute(this);
-            }
-        }
-
-        static List<string>? GetInitialDocument(string workspaceID, string absolutePath)
-        {
-            try
-            {
-                string contentString = DatabaseProvider.Database.GetDocumentData(workspaceID, absolutePath);
-                return Regex.Split(contentString, "\r\n|\r|\n").ToList();
-            }
-            catch
-            {
-                return null;
-            }
+        public void ScheduleAction(Action action)
+        {   
+            ///TODO: can there be a race condition here?
+            lastTask = lastTask.ContinueWith((prevTask) => action()); 
         }
 
         public bool ClientPresent(int clientID)
@@ -136,6 +108,12 @@ namespace WebSocketServer.Model
 
         public void RemoveConnection(Client client)
         {
+            if (!clients.ContainsKey(client.ID))
+            {
+                Console.WriteLine($"Error in {nameof(RemoveConnection)}: client {client.ID} cannot be removed from the document.");
+                return;
+            }
+
             clients.Remove(client.ID);
         }
 
@@ -151,7 +129,7 @@ namespace WebSocketServer.Model
 
         public bool HandleOperation(Client client, Operation operation)
         {
-            if (ClientCanEdit(client))
+            if (!ClientCanEdit(client))
             {
                 Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
                 return false;
@@ -164,6 +142,25 @@ namespace WebSocketServer.Model
             StartGC();
 
             return true;
+        }
+
+        public bool HandleCloseDocument(Client client)
+        {
+            if (client.OpenDocuments.ContainsKey(DocumentID))
+            {
+                client.OpenDocuments.Remove(DocumentID);
+
+                RemoveConnection(client);
+
+                // save the document is all clients left
+                if (ClientCount == 0)
+                    SaveDocumentCallback(DocumentID, new List<string>(Document));
+
+                return true;
+            }
+
+            Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an unopened document ({DocumentID}).");
+            return false;
         }
 
         void ProcessOperation(Operation operation)

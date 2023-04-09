@@ -100,7 +100,7 @@ namespace WebSocketServer.MessageProcessing
 
     internal class RenameFileMessage
     {
-        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.DeleteFolder;
+        [JsonProperty("msgType")] public ServerMessageTypes MsgType { get; } = ServerMessageTypes.RenameFile;
         [JsonProperty("fileID")] public int FileID { get; set; }
         [JsonProperty("name")] public string Name { get; set; }
 

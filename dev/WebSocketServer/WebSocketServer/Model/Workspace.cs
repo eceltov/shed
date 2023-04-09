@@ -8,10 +8,10 @@ using System.Threading.Tasks;
 using System.Xml.Linq;
 using WebSocketServer.Data;
 using WebSocketServer.MessageProcessing;
-using WebSocketServer.Model.WorkspaceActionDescriptors;
 using WebSocketServer.Parsers.DatabaseParsers;
 using WebSocketServer.Extensions;
 using TextOperations.Types;
+using System.Text.RegularExpressions;
 
 namespace WebSocketServer.Model
 {
@@ -34,7 +34,7 @@ namespace WebSocketServer.Model
         /// </summary>
         public Dictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
-        readonly BlockingCollection<IWorkspaceActionDescriptor> actionDescriptors;
+        readonly BlockingCollection<Action> actions;
         readonly Thread workerThread;
 
 
@@ -46,24 +46,24 @@ namespace WebSocketServer.Model
             FileStructure = fileStructure;
             Users = users;
             Clients = new();
-            actionDescriptors = new();
+            actions = new();
             ActiveDocuments = new();
 
             workerThread = new Thread(() => ProcessActions(CancellationToken.None));
             workerThread.Start();
         }
 
-        public void ScheduleAction(IWorkspaceActionDescriptor actionDescriptor)
+        public void ScheduleAction(Action action)
         {
-            actionDescriptors.Add(actionDescriptor);
+            actions.Add(action);
         }
 
-        public bool ScheduleDocumentAction(IDocumentActionDescriptor actionDescriptor)
+        public bool ScheduleDocumentAction(int documentID, Action<DocumentInstance> action)
         {
             ///TODO: accessing ActiveDocuments is not thread safe
-            if (ActiveDocuments.TryGetValue(actionDescriptor.DocumentID, out DocumentInstance? documentInstance) && documentInstance != null)
+            if (ActiveDocuments.TryGetValue(documentID, out DocumentInstance? documentInstance) && documentInstance != null)
             {
-                documentInstance.ScheduleAction(actionDescriptor);
+                documentInstance.ScheduleAction(() => action(documentInstance));
                 return true;
             }
 
@@ -73,9 +73,9 @@ namespace WebSocketServer.Model
 
         void ProcessActions(CancellationToken cancellationToken)
         {
-            foreach (var actionDescriptor in actionDescriptors.GetConsumingEnumerable(cancellationToken))
+            foreach (var action in actions.GetConsumingEnumerable(cancellationToken))
             {
-                actionDescriptor.Execute(this);
+                action();
             }
         }
 
@@ -142,26 +142,60 @@ namespace WebSocketServer.Model
             return true;
         }
 
+        static List<string>? GetDocumentContent(string workspaceID, string absolutePath)
+        {
+            try
+            {
+                string contentString = DatabaseProvider.Database.GetDocumentData(workspaceID, absolutePath);
+                return Regex.Split(contentString, "\r\n|\r|\n").ToList();
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        void SaveDocument(int documentID, List<string> document)
+        {
+            string? absolutePath = FileStructure.GetAbsolutePath(documentID);
+
+            if (absolutePath == null)
+            {
+                Console.WriteLine($"Error in {nameof(SaveDocument)}: Absolute path is null (documentID {documentID}).");
+                return;
+            }
+
+            if (DatabaseProvider.Database.WriteDocumentData(ID, absolutePath, document))
+            {
+                Console.WriteLine($"Error in {nameof(SaveDocument)}: Could not save document (path {absolutePath}).");
+                return;
+            }
+        }
+
         DocumentInstance? StartDocument(int fileID)
         {
             if (ActiveDocuments.ContainsKey(fileID))
             {
-                Console.WriteLine($"Error: Attempted to start already active document (ID ${fileID}).");
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start already active document (ID {fileID}).");
                 return null;
             }
 
-            if (FileStructure.GetFileFromID(fileID) is not Document document)
+            if (FileStructure.GetFileFromID(fileID) is not Document documentFile)
             {
-                Console.WriteLine($"Error: Attempted to start invalid document (ID ${fileID}).");
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start invalid document (ID {fileID}).");
                 return null;
             }
 
             string? documentPath = FileStructure.GetAbsolutePath(fileID);
             if (documentPath == null) return null;
 
-            DocumentInstance? documentInstance = DocumentInstance.CreateDocumentInstance(document, ID, documentPath);
-            if (documentInstance == null) return null;
+            if (GetDocumentContent(ID, documentPath) is not List<string> document)
+            {
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Could not read document content (path {documentPath}).");
+                return null;
+            }
 
+            DocumentInstance documentInstance = new(documentFile, document, SaveDocument);
             ActiveDocuments.Add(fileID, documentInstance);
             return documentInstance;
         }
@@ -304,6 +338,7 @@ namespace WebSocketServer.Model
             if (!ClientCanJoin(client))
                 return false;
 
+            Clients.Add(client.ID, client);
             var initMsg = new InitWorkspaceMessage(client.ID, FileStructure, client.Role);
             client.ClientInterface.Send(initMsg);
 
@@ -331,6 +366,7 @@ namespace WebSocketServer.Model
 
             CreateDocumentMessage message = new(parentID, documentID, name);
             Clients.SendMessage(message);
+            SaveFileStructure();
             return true;
         }
 
@@ -344,6 +380,7 @@ namespace WebSocketServer.Model
 
             CreateFolderMessage message = new(parentID, folderID, name);
             Clients.SendMessage(message);
+            SaveFileStructure();
             return true;
         }
 
@@ -357,6 +394,7 @@ namespace WebSocketServer.Model
 
             DeleteDocumentMessage message = new(fileID);
             Clients.SendMessage(message);
+            SaveFileStructure();
             return true;
         }
 
@@ -370,6 +408,7 @@ namespace WebSocketServer.Model
 
             DeleteFolderMessage message = new(fileID);
             Clients.SendMessage(message);
+            SaveFileStructure();
             return true;
         }
 
@@ -383,46 +422,8 @@ namespace WebSocketServer.Model
 
             RenameFileMessage message = new(fileID, newName);
             Clients.SendMessage(message);
+            SaveFileStructure();
             return true;
-        }
-
-        bool SaveDocument(DocumentInstance documentInstance)
-        {
-            string? absolutePath = FileStructure.GetAbsolutePath(documentInstance.DocumentID);
-            if (absolutePath != null)
-            {
-                DatabaseProvider.Database.WriteDocumentData(ID, absolutePath, documentInstance.Document);
-                return true;
-            }
-
-            return false;
-        }
-
-        public bool HandleCloseDocument(Client client, int documentID)
-        {
-            if (client.OpenDocuments.ContainsKey(documentID))
-            {
-                client.OpenDocuments.Remove(documentID);
-
-                ///TODO: possible race condition
-                if (ActiveDocuments.ContainsKey(documentID))
-                {
-                    var documentInstance = ActiveDocuments[documentID];
-                    documentInstance.RemoveConnection(client);
-
-                    // save the document is all clients left
-                    if (documentInstance.ClientCount == 0)
-                        SaveDocument(documentInstance);
-
-                    return true;
-                }
-                
-                Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an inactive document ({documentID}).");
-                return false;
-            }
-
-            Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an unopened document ({documentID}).");
-            return false;
         }
 
         public bool HandleGCMetadata(Client client, int documentID, int dependency)
@@ -430,6 +431,12 @@ namespace WebSocketServer.Model
             ///TODO: unsafe, plus possible race condition
             ActiveDocuments[documentID].HandleGCMetadata(client, dependency);
             return true;
+        }
+
+        ///TODO: save after all clients left
+        void SaveFileStructure()
+        {
+            DatabaseProvider.Database.UpdateFileStructure(ID, FileStructure);
         }
     }
 }

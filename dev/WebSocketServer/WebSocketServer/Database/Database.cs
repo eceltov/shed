@@ -232,10 +232,14 @@ namespace WebSocketServer.Database
         {
             string oldAbsolutePath = GetFilePath(workspaceHash, oldRelativePath);
             string newAbsolutePath = GetFilePath(workspaceHash, newRelativePath);
+            FileAttributes attributes = System.IO.File.GetAttributes(oldAbsolutePath);
+
             try
             {
-                ///TODO: test if this works on folders
-                System.IO.File.Move(oldAbsolutePath, newAbsolutePath);
+                if (attributes.HasFlag(FileAttributes.Directory))
+                    System.IO.Directory.Move(oldAbsolutePath, newAbsolutePath);
+                else
+                    System.IO.File.Move(oldAbsolutePath, newAbsolutePath);
                 return true;    
             }
             catch
