@@ -18,6 +18,7 @@ namespace WebSocketServer.Model
     internal class DocumentInstance
     {
         // Maps client IDs to Client instances.
+        ///TODO: this should be concurrent
         Dictionary<int, Client> clients = new();
 
         Document documentFile;
@@ -41,13 +42,13 @@ namespace WebSocketServer.Model
         Task lastTask = Task.CompletedTask;
 
         // callback used to save the document (so that all IO operations are executed in workspaces)
-        Action<int, List<string>> SaveDocumentCallback;
+        Action<List<string>> SaveDocumentCallback;
 
 
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
 
-        public DocumentInstance(Document documentFile, List<string> document, Action<int, List<string>> SaveDocumentCallback)
+        public DocumentInstance(Document documentFile, List<string> document, Action<List<string>> SaveDocumentCallback)
         {
             this.documentFile = documentFile;
             Document = document;
@@ -106,6 +107,7 @@ namespace WebSocketServer.Model
             client.ClientInterface.Send(initMsg);
         }
 
+        ///TODO: handle changes in GC active clients
         public void RemoveConnection(Client client)
         {
             if (!clients.ContainsKey(client.ID))
@@ -115,6 +117,10 @@ namespace WebSocketServer.Model
             }
 
             clients.Remove(client.ID);
+
+            // save the document is all clients left
+            if (ClientCount == 0)
+                SaveDocumentCallback(new List<string>(Document));
         }
 
         /// <summary>
@@ -151,10 +157,6 @@ namespace WebSocketServer.Model
                 client.OpenDocuments.Remove(DocumentID);
 
                 RemoveConnection(client);
-
-                // save the document is all clients left
-                if (ClientCount == 0)
-                    SaveDocumentCallback(DocumentID, new List<string>(Document));
 
                 return true;
             }

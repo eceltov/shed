@@ -22,6 +22,7 @@ namespace WebSocketServer.Model
         public string Name { get; private set; }
         public string ID { get; private set; }
 
+        ///TODO: this should be concurrent
         /// <summary>
         /// Maps client IDs to Client instances.
         /// </summary>
@@ -142,11 +143,11 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        static List<string>? GetDocumentContent(string workspaceID, string absolutePath)
+        static List<string>? GetDocumentContent(string workspaceID, string relativePath)
         {
             try
             {
-                string contentString = DatabaseProvider.Database.GetDocumentData(workspaceID, absolutePath);
+                string contentString = DatabaseProvider.Database.GetDocumentData(workspaceID, relativePath);
                 return Regex.Split(contentString, "\r\n|\r|\n").ToList();
             }
             catch
@@ -157,36 +158,36 @@ namespace WebSocketServer.Model
 
         void SaveDocument(int documentID, List<string> document)
         {
-            string? absolutePath = FileStructure.GetAbsolutePath(documentID);
+            string? relativePath = FileStructure.GetRelativePath(documentID);
 
-            if (absolutePath == null)
+            if (relativePath == null)
             {
-                Console.WriteLine($"Error in {nameof(SaveDocument)}: Absolute path is null (documentID {documentID}).");
+                Console.WriteLine($"Error in {nameof(SaveDocument)}: Relative path is null (documentID {documentID}).");
                 return;
             }
 
-            if (DatabaseProvider.Database.WriteDocumentData(ID, absolutePath, document))
+            if (!DatabaseProvider.Database.WriteDocumentData(ID, relativePath, document))
             {
-                Console.WriteLine($"Error in {nameof(SaveDocument)}: Could not save document (path {absolutePath}).");
+                Console.WriteLine($"Error in {nameof(SaveDocument)}: Could not save document (path {relativePath}).");
                 return;
             }
         }
 
-        DocumentInstance? StartDocument(int fileID)
+        DocumentInstance? StartDocument(int documentID)
         {
-            if (ActiveDocuments.ContainsKey(fileID))
+            if (ActiveDocuments.ContainsKey(documentID))
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start already active document (ID {fileID}).");
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start already active document (ID {documentID}).");
                 return null;
             }
 
-            if (FileStructure.GetFileFromID(fileID) is not Document documentFile)
+            if (FileStructure.GetFileFromID(documentID) is not Document documentFile)
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start invalid document (ID {fileID}).");
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start invalid document (ID {documentID}).");
                 return null;
             }
 
-            string? documentPath = FileStructure.GetAbsolutePath(fileID);
+            string? documentPath = FileStructure.GetRelativePath(documentID);
             if (documentPath == null) return null;
 
             if (GetDocumentContent(ID, documentPath) is not List<string> document)
@@ -195,8 +196,10 @@ namespace WebSocketServer.Model
                 return null;
             }
 
-            DocumentInstance documentInstance = new(documentFile, document, SaveDocument);
-            ActiveDocuments.Add(fileID, documentInstance);
+            Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(() => SaveDocument(documentID, documentContent));
+
+            DocumentInstance documentInstance = new(documentFile, document, SaveDocumentCallback);
+            ActiveDocuments.Add(documentID, documentInstance);
             return documentInstance;
         }
 
@@ -212,8 +215,8 @@ namespace WebSocketServer.Model
             if (!FileStructure.AddFile(parentID, document))
                 return null;
 
-            string absolutePath = FileStructure.GetAbsolutePath(document.ID)!;
-            if (!DatabaseProvider.Database.CreateDocument(ID, absolutePath))
+            string relativePath = FileStructure.GetRelativePath(document.ID)!;
+            if (!DatabaseProvider.Database.CreateDocument(ID, relativePath))
             {
                 FileStructure.RemoveFile(document.ID);
                 return null;
@@ -234,8 +237,8 @@ namespace WebSocketServer.Model
             if (!FileStructure.AddFile(parentID, folder))
                 return null;
 
-            string absolutePath = FileStructure.GetAbsolutePath(folder.ID)!;
-            if (!DatabaseProvider.Database.CreateFolder(ID, absolutePath))
+            string relativePath = FileStructure.GetRelativePath(folder.ID)!;
+            if (!DatabaseProvider.Database.CreateFolder(ID, relativePath))
             {
                 FileStructure.RemoveFile(folder.ID);
                 return null;
@@ -249,7 +252,7 @@ namespace WebSocketServer.Model
             if (!RoleHandler.CanManageFiles(client.Role))
                 return false;
 
-            if (FileStructure.GetAbsolutePath(fileID) is not string absolutePath)
+            if (FileStructure.GetRelativePath(fileID) is not string relativePath)
                 return false;
 
             if (!FileStructure.RemoveFile(fileID))
@@ -269,7 +272,7 @@ namespace WebSocketServer.Model
                 }
             }
 
-            if (!DatabaseProvider.Database.DeleteDocument(ID, absolutePath))
+            if (!DatabaseProvider.Database.DeleteDocument(ID, relativePath))
             {
                 ///TODO: retry it later
             }
@@ -285,7 +288,7 @@ namespace WebSocketServer.Model
             if (FileStructure.GetFileFromID(fileID) is not Folder folder)
                 return false;
 
-            if (FileStructure.GetAbsolutePath(fileID) is not string absolutePath)
+            if (FileStructure.GetRelativePath(fileID) is not string relativePath)
                 return false;
 
             // delete all nested files
@@ -300,7 +303,7 @@ namespace WebSocketServer.Model
             if (!FileStructure.RemoveFile(fileID))
                 return false;
 
-            if (!DatabaseProvider.Database.DeleteFolder(ID, absolutePath))
+            if (!DatabaseProvider.Database.DeleteFolder(ID, relativePath))
             {
                 ///TODO: retry it later
             }
@@ -316,18 +319,19 @@ namespace WebSocketServer.Model
             if (!RoleHandler.CanManageFiles(client.Role))
                 return false;
 
-            if (FileStructure.GetAbsolutePath(fileID) is not string oldPath)
+            if (FileStructure.GetRelativePath(fileID) is not string oldPath)
                 return false;
 
             if (!FileStructure.RenameFile(fileID, newName))
                 return false;
 
-            if (FileStructure.GetAbsolutePath(fileID) is not string newPath)
+            if (FileStructure.GetRelativePath(fileID) is not string newPath)
                 return false;
 
             if (!DatabaseProvider.Database.RenameFile(ID, oldPath, newPath))
             {
                 ///TODO: retry it later
+                return false;
             }
 
             return true;
@@ -437,6 +441,16 @@ namespace WebSocketServer.Model
         void SaveFileStructure()
         {
             DatabaseProvider.Database.UpdateFileStructure(ID, FileStructure);
+        }
+
+        public void RemoveConnection(Client client)
+        {
+            foreach (var document in client.OpenDocuments.Values)
+            {
+                document.RemoveConnection(client);
+            }
+
+            Clients.Remove(client.ID);
         }
     }
 }

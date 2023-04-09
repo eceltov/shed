@@ -172,7 +172,9 @@ namespace WebSocketServer.MessageProcessing
 
         protected override void OnClose(CloseEventArgs e)
         {
-            ///TODO: remove from workspace and document
+            if (client != null)
+                client.Workspace.RemoveConnection(client);
+
             Console.WriteLine($"Connection closed (client ID {client?.ID})");
             base.OnClose(e);
         }

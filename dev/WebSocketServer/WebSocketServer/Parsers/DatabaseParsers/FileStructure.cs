@@ -288,16 +288,21 @@ namespace WebSocketServer.Parsers.DatabaseParsers
             return GetFileFromPath(path) is Document;
         }
 
-        public string? GetAbsolutePathFromIDPath(string path)
+        /// <summary>
+        /// Returns the workspace-relative file path from an ID path.
+        /// </summary>
+        /// <param name="idPath">The ID path of a file.</param>
+        /// <returns>Returns the workspace-relative file path.</returns>
+        public string? GetRelativePathFromIDPath(string idPath)
         {
-            if (path == null)
+            if (idPath == null)
             {
-                Console.WriteLine("Absolute path is null!");
+                Console.WriteLine("Relative path is null!");
                 return null;
             }
 
-            string absolutePath = "";
-            string[] tokens = path.Split('/');
+            string relativePath = "";
+            string[] tokens = idPath.Split('/');
 
             Folder currentFolder = this;
             for (int i = 0; i < tokens.Length - 1; i++)
@@ -306,24 +311,24 @@ namespace WebSocketServer.Parsers.DatabaseParsers
                     return null;
 
                 currentFolder = folder;
-                absolutePath += $"{currentFolder.Name}/";
+                relativePath += $"{currentFolder.Name}/";
             }
 
             if (!currentFolder.Items.ContainsKey(tokens[^1]))
                 return null;
 
             File lastFile = currentFolder.Items[tokens[^1]];
-            return absolutePath + lastFile.Name;
+            return relativePath + lastFile.Name;
         }
 
-        public string? GetAbsolutePath(int fileID)
+        public string? GetRelativePath(int fileID)
         {
             if (!pathMap.ContainsKey(fileID))
             {
                 return null;
             }
 
-            return GetAbsolutePathFromIDPath(pathMap[fileID]);
+            return GetRelativePathFromIDPath(pathMap[fileID]);
         }
 
         /// <param name="fileID">An ID of a document or folder.</param>
