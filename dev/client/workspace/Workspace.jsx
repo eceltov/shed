@@ -16,6 +16,7 @@ const Editor = require('./Editor');
 
 const CSLatency = 0;
 const SCLatency = 0;
+const webSocketReconnectDelay = 3000;
 const modelist = ace.require('ace/ext/modelist');
 // const Range = ace.require('ace/range').Range;
 const EditSession = ace.require('ace/edit_session').EditSession;
@@ -24,6 +25,7 @@ const EditSession = ace.require('ace/edit_session').EditSession;
 class Workspace extends React.Component {
   constructor(props) {
     super(props);
+    this.connect = this.connect.bind(this);
     this.sendMessageToServer = this.sendMessageToServer.bind(this);
     this.selectFile = this.selectFile.bind(this);
     this.openDocument = this.openDocument.bind(this);
@@ -62,6 +64,8 @@ class Workspace extends React.Component {
     this.savedCommitSerialNumbers = new Map();
   }
 
+  /// TODO: the token should be removed from the URL in order to be sharable
+  /// TODO: if the above is implemented, do not forget to store the token for reconnections
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
@@ -95,6 +99,16 @@ class Workspace extends React.Component {
       // console.log("recv message obj", message_obj);
       // console.log("recv message", message.data);
       that.serverMessageProcessor(message);
+    };
+
+    connection.onclose = function onclose(e) {
+      console.log('WebSocket closed. Reconnecting...');
+      setTimeout(() => that.connect(), webSocketReconnectDelay);
+    };
+
+    connection.onerror = function onerror(err) {
+      console.error('WebSocket error.');
+      connection.close();
     };
   }
 
