@@ -51,7 +51,15 @@ function deleteWorkspace() {
   };
 }
 
+function forceDocument(fileID, document) {
+  return {
+    msgType: msgTypes.client.forceDocument,
+    fileID,
+    document,
+  };
+}
+
 module.exports = {
   createDocument, createFolder, deleteDocument, deleteFolder, renameFile, deleteWorkspace,
-  getDocument,
+  getDocument, forceDocument,
 };

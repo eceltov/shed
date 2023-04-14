@@ -3,6 +3,7 @@ const FileStructureFolder = require('./FileStructureFolder');
 const FileOperation = require('./FileOperation');
 const fsOps = require('../../lib/fileStructureOps');
 const msgFactory = require('../../lib/clientMessageFactory');
+const DivergenceSolver = require('./DivergenceSolver');
 
 class FileStructure extends React.Component {
   constructor(props) {
@@ -163,6 +164,9 @@ class FileStructure extends React.Component {
       );
     }
 
+    let diverged = this.props.activeFile !== null
+      && this.props.divergedDocuments.has(this.props.activeFile);
+
     return (
       <div>
         <div className="fileOperations">
@@ -171,6 +175,12 @@ class FileStructure extends React.Component {
           <FileOperation key="c" text="rename" func={this.onRenameFile} />
           <FileOperation key="d" text="delete" func={this.onDeleteFile} />
         </div>
+        {
+        !diverged ? null :
+          <DivergenceSolver
+            func={this.props.forceDocument(this.props.activeFile)}
+          />
+        }
         <FileStructureFolder
           fileID={this.props.fileStructure.ID}
           name={this.props.fileStructure.name}

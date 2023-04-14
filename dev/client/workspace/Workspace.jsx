@@ -14,7 +14,7 @@ const HeaderBar = require('./HeaderBar');
 const OptionsScreen = require('./OptionsScreen');
 const Editor = require('./Editor');
 
-const CSLatency = 0;
+const CSLatency = 1500;
 const SCLatency = 0;
 const webSocketReconnectDelay = 3000;
 const modelist = ace.require('ace/ext/modelist');
@@ -39,6 +39,7 @@ class Workspace extends React.Component {
     this.getTabBar = this.getTabBar.bind(this);
     this.showOptionsView = this.showOptionsView.bind(this);
     this.deleteWorkspace = this.deleteWorkspace.bind(this);
+    this.forceDocument = this.forceDocument.bind(this);
     this.state = {
       role: roles.none,
       fileStructure: null,
@@ -47,6 +48,7 @@ class Workspace extends React.Component {
       showingOptions: false,
       tabs: [], // fileIDs in the same order as the final tabs
       aceTheme: 'ace/theme/chaos',
+      divergedDocuments: new Set(), // fileIDs of diverged documents
     };
 
     // eslint-disable-next-line react/no-unused-class-component-methods
@@ -309,6 +311,12 @@ class Workspace extends React.Component {
       case msgTypes.server.deleteWorkspace:
         this.onDeleteWorkspace(message);
         break;
+      case msgTypes.server.divergenceDetected:
+        this.onDivergenceDetected(message);
+        break;
+      case msgTypes.server.forceDocument:
+        this.onForceDocument(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
@@ -525,6 +533,67 @@ class Workspace extends React.Component {
     });
   }
 
+  onDivergenceDetected(message) {
+    this.setState((prevState) => {
+      // do not change anything if the diverged document is already known
+      if (prevState.divergedDocuments.has(message.fileID)) {
+        return {};
+      }
+
+      const divergedDocuments = new Set(prevState.divergedDocuments);
+      divergedDocuments.add(message.fileID);
+      return {
+        divergedDocuments,
+      };
+    });
+  }
+
+  onForceDocument(message) {
+    // create a new managed session that has no history
+    const name = fsOps.getFileNameFromID(this.state.fileStructure, this.pathMap, message.fileID);
+    const mode = modelist.getModeForPath(name).mode;
+    const session = new EditSession(message.serverDocument, mode);
+
+    const initObj = {
+      fileID: message.fileID,
+      serverHB: [],
+      serverOrdering: [],
+      firstSOMessageNumber: 0,
+    };
+
+    const managedSession = new ManagedSession(
+      session, this.clientID, 0, this.sendMessageToServer, initObj, this.editor.setReadOnly,
+    );
+
+    // reset the saved commit serial number, as the editing session starts anew
+    this.savedCommitSerialNumbers.set(message.fileID, 0);
+
+    // disable the old ManagedSession
+    this.openedDocuments.get(message.fileID).disable();
+
+    // replace old ManagedSession with the new one
+    this.openedDocuments.set(message.fileID, managedSession);
+
+    // remove the document from the diverged set
+    // the rerender will automatically mount the new session, if the old one was active
+    this.setState((prevState) => {
+      const divergedDocuments = new Set(prevState.divergedDocuments);
+      divergedDocuments.delete(message.fileID);
+      return {
+        divergedDocuments,
+      };
+    });
+  }
+
+  forceDocument(fileID) {
+    const managedSession = this.openedDocuments.get(fileID);
+    ///TODO: test if this works, then make this into a method of ManagedSession
+    const document = managedSession.session.getDocument().getAllLines();
+
+    const message = msgFactory.forceDocument(this.props.activeFile, document);
+    this.props.sendMessageToServer(JSON.stringify(message));
+  }
+
   deleteWorkspace() {
     const message = msgFactory.deleteWorkspace();
     this.sendMessageToServer(JSON.stringify(message));
@@ -574,7 +643,7 @@ class Workspace extends React.Component {
   }
 
   render() {
-    // set readonly if neccessarry and mount correct session
+    // set readonly if necessary and mount correct session
     if (this.state.activeTab !== null && this.editor.mounted) {
       this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
 
@@ -596,6 +665,8 @@ class Workspace extends React.Component {
             pathMap={this.pathMap}
             activeFile={this.state.activeFile}
             selectFile={this.selectFile}
+            divergedDocuments={this.state.divergedDocuments}
+            forceDocument={this.forceDocument}
           />
         </div>
 

@@ -44,12 +44,24 @@ class ManagedSession {
     this.handlingChanges = true;
     this.LISTEN_INTERVAL = 200; // how long will the editor listen before sending the data to others
 
+    ///TODO: this is used to make the document readonly when applying changes,
+    ///but it sets readonly for the whole editor, even when this document is not active
     this.setReadOnly = setReadOnly;
 
     this.loggingEnabled = false;
     this.DEBUG = false;
 
     this.session.on('change', this.handleChange);
+  }
+
+  /**
+   * @brief Disables the ManagedSession, making it unable to communicate with other components.
+   */
+  ///TODO: this could be done in a cleaner way, removing these functions will cause to errors,
+  /// that will not impact the rest of the client, but they can pollute the console
+  disable() {
+    this.setReadOnly = null;
+    this.sendMessageToServer = null;
   }
 
   setMode(mode) {

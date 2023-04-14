@@ -21,6 +21,10 @@ const msgTypes = {
     closeDocument: 8,
     // sent to delete a workspace: {msgType}
     deleteWorkspace: 9,
+    // sent after divergence was detected by the local client: {msgType, fileID}
+    divergenceDetected: 10,
+    // sent to force the local document state on all clients: {msgType, fileID, document}
+    forceDocument: 11,
   },
 
   // messages sent by server
@@ -49,6 +53,10 @@ const msgTypes = {
     failedValidation: 61,
     // sent before the workspace deletes: {msgType}
     deleteWorkspace: 62,
+    // sent after divergence was detected: {msgType, fileID}
+    divergenceDetected: 63,
+    // sent to force the server document state: {msgType, fileID, serverDocument}
+    forceDocument: 64,
   },
 };
 
