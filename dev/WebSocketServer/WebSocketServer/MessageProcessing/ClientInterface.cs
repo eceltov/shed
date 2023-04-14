@@ -149,7 +149,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCloseDocumentMessage(messageString);
-            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleCloseDocument(client));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleClientClosedDocument(client));
         }
 
         void HandleOperation(string messageString)
@@ -158,7 +158,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientOperationMessage(messageString);
-            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleOperation(client, message.Operation));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleOperation(client, message.Operation));
         }
 
         void HandleGCMetadata(string messageString)
@@ -167,7 +167,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientGCMetadataMessage(messageString);
-            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.HandleGCMetadata(client, message.Dependency));
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleGCMetadata(client, message.Dependency));
         }
 
         protected override void OnClose(CloseEventArgs e)

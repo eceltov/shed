@@ -26,14 +26,14 @@ namespace WebSocketServer.Model
         /// <summary>
         /// Maps client IDs to Client instances.
         /// </summary>
-        public Dictionary<int, Client> Clients { get; private set; }
+        public ConcurrentDictionary<int, Client> Clients { get; private set; }
 
         /// <summary>
         /// Maps document file IDs to active DocumentInstances.
         /// Active documents are those that are currently opened by at least
         /// one client.
         /// </summary>
-        public Dictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
+        public ConcurrentDictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
         readonly BlockingCollection<Action> actions;
         readonly Thread workerThread;
@@ -59,12 +59,12 @@ namespace WebSocketServer.Model
             actions.Add(action);
         }
 
-        public bool ScheduleDocumentAction(int documentID, Action<DocumentInstance> action)
+        public bool ScheduleDocumentAction(int documentID, Action<DocumentInstance> documentAction)
         {
             ///TODO: accessing ActiveDocuments is not thread safe
             if (ActiveDocuments.TryGetValue(documentID, out DocumentInstance? documentInstance) && documentInstance != null)
             {
-                documentInstance.ScheduleAction(() => action(documentInstance));
+                documentAction(documentInstance);
                 return true;
             }
 
@@ -120,7 +120,7 @@ namespace WebSocketServer.Model
                 {
                     // the document could not be instantiated
                     /// TODO: send an error message
-                    Console.WriteLine("Error: DocumentInstance could not be started.");
+                    Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: DocumentInstance could not be started.");
                     return false;
                 }
             }
@@ -133,12 +133,17 @@ namespace WebSocketServer.Model
             /// TODO: this should probably be handled sooner than here
             if (documentInstance.ClientPresent(client.ID))
             {
-                Console.WriteLine("Error: Connecting client to a document when already connected.");
+                Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: Connecting client to a document when already connected.");
                 return false;
             }
 
-            client.OpenDocuments.Add(fileID, documentInstance);
-            documentInstance.AddClient(client);
+            if (!client.OpenDocuments.TryAdd(fileID, documentInstance))
+            {
+                Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: Could not add new open document to client.");
+                return false;
+            }
+
+            documentInstance.ScheduleAddClient(client);
 
             return true;
         }
@@ -199,7 +204,11 @@ namespace WebSocketServer.Model
             Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(() => SaveDocument(documentID, documentContent));
 
             DocumentInstance documentInstance = new(documentFile, document, SaveDocumentCallback);
-            ActiveDocuments.Add(documentID, documentInstance);
+            if (!ActiveDocuments.TryAdd(documentID, documentInstance))
+            {
+                Console.WriteLine($"Error in {nameof(StartDocument)}: Could not add document to ActiveDocuments.");
+                return null;
+            }
             return documentInstance;
         }
 
@@ -261,14 +270,15 @@ namespace WebSocketServer.Model
             // close document
             if (ActiveDocuments.ContainsKey(fileID))
             {
-                DocumentInstance documentInstance = ActiveDocuments[fileID];
+                if (!ActiveDocuments.TryRemove(fileID, out DocumentInstance? documentInstance))
+                    return false;
+
                 documentInstance.Delete();
-                ActiveDocuments.Remove(fileID);
 
                 // remove document reference from clients
                 foreach (var (clientID, connectedClient) in Clients)
                 {
-                    connectedClient.OpenDocuments.Remove(clientID);
+                    connectedClient.OpenDocuments.TryRemove(fileID, out DocumentInstance _);
                 }
             }
 
@@ -342,7 +352,9 @@ namespace WebSocketServer.Model
             if (!ClientCanJoin(client))
                 return false;
 
-            Clients.Add(client.ID, client);
+            if (!Clients.TryAdd(client.ID, client))
+                return false;
+
             var initMsg = new InitWorkspaceMessage(client.ID, FileStructure, client.Role);
             client.ClientInterface.Send(initMsg);
 
@@ -430,13 +442,6 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        public bool HandleGCMetadata(Client client, int documentID, int dependency)
-        {
-            ///TODO: unsafe, plus possible race condition
-            ActiveDocuments[documentID].HandleGCMetadata(client, dependency);
-            return true;
-        }
-
         ///TODO: save after all clients left
         void SaveFileStructure()
         {
@@ -446,11 +451,9 @@ namespace WebSocketServer.Model
         public void RemoveConnection(Client client)
         {
             foreach (var document in client.OpenDocuments.Values)
-            {
-                document.RemoveConnection(client);
-            }
+                document.ScheduleRemoveConnection(client);
 
-            Clients.Remove(client.ID);
+            Clients.TryRemove(client.ID, out Client? _);
         }
     }
 }

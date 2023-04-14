@@ -17,6 +17,7 @@ namespace WebSocketServer.Utilities
         /// The status checker represents an array that invokes a callback after all elements
         /// reach a specified number of checks. The default number of checks required is one
         /// for each element.
+        /// This class is thread safe.
         /// </summary>
         /// <param name="count">The number of elements in the array.</param>
         /// <param name="readyCallback">
@@ -49,11 +50,19 @@ namespace WebSocketServer.Utilities
             if (index < 0 || index >= status.Length)
                 throw new ArgumentException("Error: Check: The index was out of range.");
 
-            if (status[index] >= targetCheckCount)
-                throw new InvalidOperationException("Error: Check: The index specified already has the maximum amount of checks.");
 
-            status[index]++;
-            currentChecks++;
+            int initialValue, newValue;
+            do
+            {
+                if (status[index] >= targetCheckCount)
+                    throw new InvalidOperationException("Error: Check: The index specified already has the maximum amount of checks.");
+
+                initialValue = status[index];
+                newValue = initialValue + 1;
+            }
+            while (initialValue != Interlocked.CompareExchange(ref status[index], newValue, initialValue));
+
+            Interlocked.Increment(ref currentChecks);
 
             if (Ready())
                 readyCallback();
@@ -61,6 +70,7 @@ namespace WebSocketServer.Utilities
 
         /// <summary>
         /// Resets the StatusChecker to its initial state.
+        /// Not thread safe.
         /// </summary>
         public void Reset()
         {
@@ -71,6 +81,7 @@ namespace WebSocketServer.Utilities
         /// <summary>
         /// Resets the StatusChecker to its initial state.
         /// Also changes the number of elements to be checked.
+        /// Not thread safe.
         /// </summary>
         /// <param name="newCount">The new number of elements in the array.</param>
         public void Reset(int newCount)
@@ -79,9 +90,30 @@ namespace WebSocketServer.Utilities
             status = new int[newCount];
         }
 
+        /// <summary>
+        /// A thread-safe check whether the conditions were met.
+        /// Will invalidate the StatusChecker atfer the first successful call.
+        /// </summary>
+        /// <returns>
+        /// Returns whether the contitions were met and if this
+        /// is the first thread to call this with the correct conditions.
+        /// </returns>
         bool Ready()
         {
-            return currentChecks == targetCheckCount * status.Length;
+            // this value will always be the same, as none of the multipliers change
+            int targetValue = targetCheckCount * status.Length;
+
+            if (currentChecks == targetValue)
+            {
+                // set currentChecks to an invalid value so that the Ready call only returns true to one thread
+                int invalidationValue = -1;
+
+                // the first thread to call this will get the targetValue, the others the invalidationValue
+                bool firstToCallReady = Interlocked.CompareExchange(ref currentChecks, invalidationValue, targetValue) == targetValue;
+                return firstToCallReady;
+            }
+
+            return false;
         }
     }
 }

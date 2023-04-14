@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -18,9 +19,8 @@ namespace WebSocketServer.Model
         static int nextID = 0;
         public Roles Role { get; set; }
         public Workspace Workspace { get; }
-        ///TODO: this should be concurrent
 
-        public Dictionary<int, DocumentInstance> OpenDocuments { get; }
+        public ConcurrentDictionary<int, DocumentInstance> OpenDocuments { get; }
 
         Client(User user, Workspace workspace, ClientInterface clientInterface)
         {

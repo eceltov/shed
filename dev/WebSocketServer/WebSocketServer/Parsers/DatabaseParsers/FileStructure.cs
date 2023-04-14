@@ -71,6 +71,8 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         const string fileNameRegex = "^[^\\/:*?\"<>|]*$";
 
+        object AddRemoveFileLock = new();
+
         public FileStructure() { }
 
         public FileStructure(Folder folder) : base(folder)
@@ -112,6 +114,32 @@ namespace WebSocketServer.Parsers.DatabaseParsers
                 && name != ""
                 && name != "."
                 && name != "..";
+        }
+
+        public Document? CreateDocument(int parentID, string name)
+        {
+            lock (AddRemoveFileLock)
+            {
+                Document document = new Document(NextID++, name);
+
+                if (AddFile(parentID, document))
+                    return document;
+
+                return null;
+            }
+        }
+
+        public Folder? CreateFolder(int parentID, string name)
+        {
+            lock (AddRemoveFileLock)
+            {
+                Folder folder = new Folder(NextID++, name);
+
+                if (AddFile(parentID, folder))
+                    return folder;
+
+                return null;
+            }
         }
 
         void InitIDPathMapRecursion(Folder? folder, string parentPath)
@@ -246,25 +274,29 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         /// <returns>Returns whether the deletion was successful.</returns>
         public bool RemoveFile(int fileID)
         {
-            if (fileID == ID || !pathMap.ContainsKey(fileID))
-                return false;
+            lock (AddRemoveFileLock)
+            {
+                if (fileID == ID || !pathMap.ContainsKey(fileID))
+                    return false;
 
-            Folder parentFolderObj = GetParentFolder(fileID)!;
+                Folder parentFolderObj = GetParentFolder(fileID)!;
 
-            // it is safe to index into items of the parent folder, because fileID !== parentID
-            //    due to fileID !== fileStructure.ID and the root folder being the only folder with it as its parent
-            File fileObj = parentFolderObj.Items[fileID.ToString()];
+                // it is safe to index into items of the parent folder, because fileID !== parentID
+                //    due to fileID !== fileStructure.ID and the root folder being the only folder with it as its parent
+                File fileObj = parentFolderObj.Items[fileID.ToString()];
 
-            if (fileObj is Folder folder)
-                RemoveFileRecursion(folder);
+                if (fileObj is Folder folder)
+                    RemoveFileRecursion(folder);
 
-            pathMap.Remove(fileID);
-            parentFolderObj.Items.Remove(fileID.ToString());
-            return true;
+                pathMap.Remove(fileID);
+                parentFolderObj.Items.Remove(fileID.ToString());
+                return true;
+            }
         }
 
         public bool RenameFile(int fileID, string newName)
         {
+            ///TODO: lock
             if (fileID == ID || !pathMap.ContainsKey(fileID))
                 return false;
 

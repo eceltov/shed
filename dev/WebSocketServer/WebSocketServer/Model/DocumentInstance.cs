@@ -15,11 +15,12 @@ using WebSocketServer.Utilities;
 
 namespace WebSocketServer.Model
 {
+    ///TODO: make all the variables concurrent (especially the GC ones)
     internal class DocumentInstance
     {
         // Maps client IDs to Client instances.
         ///TODO: this should be concurrent
-        Dictionary<int, Client> clients = new();
+        ConcurrentDictionary<int, Client> clients = new();
 
         Document documentFile;
 
@@ -27,23 +28,35 @@ namespace WebSocketServer.Model
         public List<string> Document { get; private set; } = new();
         List<WrappedOperation> wHB = new();
         List<OperationMetadata> serverOrdering = new();
-        int firstSOMessageNumber = 0; // the total serial number of the first SO entry
 
-        // attribute for garbage collection
-        int garbageCount = 0; // current amount of messages since last GC
+        // attributes for garbage collection
+
+        // the total serial number of the first SO entry
+        // does not need to be concurrent, as it is only changed in GC()
+        int firstSOMessageNumber = 0;
+
+        // current amount of messages since last GC
+        // does not need to be concurrent, as it is changed in the Text Operation Task queue
+        int garbageCount = 0;
+
         ///TODO: set this value in the configuration
-        int garbageMax = 5; // after how many messages to GC
+        // after how many messages to GC
+        int garbageMax = 5;
+
         bool GCInProgress = false;
         // clients that are partaking in garbage collection, maps ClientIDs to their index in the StatusChecker
         Dictionary<int, int> garbageRoster = new();
         StatusChecker garbageRosterChecker; // StatusChecker for the garbageRoster
-        int? GCOldestMessageNumber = null;
 
-        Task lastTask = Task.CompletedTask;
+        // GCOldestMessageNumber is the SO index of the last operation that can be GC'd
+        const int NoGarbageGCOldestMessageNumber = -1;
+        const int UninitializedGCOldestMessageNumber = -2;
+        int GCOldestMessageNumber = UninitializedGCOldestMessageNumber;
+
+        Task lastTextOperationTask = Task.CompletedTask;
 
         // callback used to save the document (so that all IO operations are executed in workspaces)
         Action<List<string>> SaveDocumentCallback;
-
 
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
@@ -59,15 +72,60 @@ namespace WebSocketServer.Model
             garbageRosterChecker = new StatusChecker(0, GC);
         }
 
-        public void ScheduleAction(Action action)
-        {   
-            ///TODO: can there be a race condition here?
-            lastTask = lastTask.ContinueWith((prevTask) => action()); 
+        public void ScheduleAddClient(Client client)
+        {
+            Task.Run(() => AddClient(client));
+        }
+
+        public void ScheduleRemoveConnection(Client client)
+        {
+            Task.Run(() => RemoveConnection(client));
+        }
+
+        public void ScheduleClientClosedDocument(Client client)
+        {
+            Task.Run(() => HandleClientClosedDocument(client));
+        }
+
+        public void ScheduleGCMetadata(Client client, int dependency)
+        {
+            Task.Run(() => HandleGCMetadata(client, dependency));
+        }
+
+        public void ScheduleOperation(Client authoringClient, Operation operation)
+        {
+            ScheduleTextOperationAction(() => HandleOperation(authoringClient, operation));
         }
 
         public bool ClientPresent(int clientID)
         {
             return clients.ContainsKey(clientID);
+        }
+
+        ///TODO: make this concurrent, it should abort all other activities
+        /// <summary>
+        /// Prepares the instance for deletion.
+        /// Removes references to all clients and clears the state of GC.
+        /// </summary>
+        public void Delete()
+        {
+            clients = new();
+            ResetGCState();
+        }
+
+        void ScheduleGCRemove(int SOGarbageIndex)
+        {
+            ScheduleTextOperationAction(() => GCRemove(SOGarbageIndex));
+        }
+
+        /// <summary>
+        /// Schedules Text Operation actions that cannot run in parallel.
+        /// </summary>
+        /// <param name="action">The Text Operation action to be executed.</param>
+        void ScheduleTextOperationAction(Action action)
+        {   
+            ///TODO: can there be a race condition here?
+            lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => action()); 
         }
 
         bool ClientCanEdit(Client client)
@@ -93,49 +151,41 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        public void AddClient(Client client)
+        void AddClient(Client client)
         {
-            if (clients.ContainsKey(client.ID))
+            if (clients.ContainsKey(client.ID) || !clients.TryAdd(client.ID, client))
             {
-                Console.WriteLine($"Error: Adding already present client to ${nameof(DocumentInstance)}");
+                Console.WriteLine($"Error in {nameof(AddClient)}: Adding already present client to ${nameof(DocumentInstance)}.");
                 return;
             }
-
-            clients.Add(client.ID, client);
 
             var initMsg = new InitDocumentMessage(Document, documentFile.ID, wHB, serverOrdering, firstSOMessageNumber);
             client.ClientInterface.Send(initMsg);
         }
 
         ///TODO: handle changes in GC active clients
-        public void RemoveConnection(Client client)
+        void RemoveConnection(Client client)
         {
             if (!clients.ContainsKey(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(RemoveConnection)}: client {client.ID} cannot be removed from the document.");
+                Console.WriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document, because it is not present.");
                 return;
             }
 
-            clients.Remove(client.ID);
+            if (!clients.TryRemove(client.ID, out Client? _))
+            {
+                Console.WriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document.");
+                return;
+            }
 
-            // save the document is all clients left
+            // save the document if all clients left
             if (ClientCount == 0)
                 SaveDocumentCallback(new List<string>(Document));
         }
 
-        /// <summary>
-        /// Prepares the instance for deletion.
-        /// Removes references to all clients and clears the state of GC.
-        /// </summary>
-        public void Delete()
+        bool HandleOperation(Client authoringClient, Operation operation)
         {
-            clients = new();
-            ResetGCState();
-        }
-
-        public bool HandleOperation(Client client, Operation operation)
-        {
-            if (!ClientCanEdit(client))
+            if (!ClientCanEdit(authoringClient))
             {
                 Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
                 return false;
@@ -144,28 +194,33 @@ namespace WebSocketServer.Model
             var message = new OperationMessage(operation, documentFile.ID);
 
             clients.SendMessage(message);
-            ProcessOperation(operation);
+            ApplyOperation(operation);
             StartGC();
 
             return true;
         }
 
-        public bool HandleCloseDocument(Client client)
+        bool HandleClientClosedDocument(Client client)
         {
             if (client.OpenDocuments.ContainsKey(DocumentID))
             {
-                client.OpenDocuments.Remove(DocumentID);
+                client.OpenDocuments.TryRemove(DocumentID, out DocumentInstance _);
 
                 RemoveConnection(client);
 
                 return true;
             }
 
-            Console.WriteLine($"Error: {nameof(HandleCloseDocument)}: A client ({client.ID}) is closing an unopened document ({DocumentID}).");
+            Console.WriteLine($"Error: {nameof(HandleClientClosedDocument)}: A client ({client.ID}) is closing an unopened document ({DocumentID}).");
             return false;
         }
 
-        void ProcessOperation(Operation operation)
+        /// <summary>
+        /// Applies a received operation to the document, HB and SO.
+        /// This method cannot be run concurrently with GCRemove, as both modify the HB and SO.
+        /// </summary>
+        /// <param name="operation">The operation to be applied.</param>
+        void ApplyOperation(Operation operation)
         {
             var (newDocument, wNewHB) = operation.UDR(Document, wHB, serverOrdering);
             serverOrdering.Add(operation.Metadata);
@@ -185,7 +240,7 @@ namespace WebSocketServer.Model
                 GCInProgress = true;
 
                 // reset the oldest message number so a new can be selected
-                GCOldestMessageNumber = null;
+                GCOldestMessageNumber = UninitializedGCOldestMessageNumber;
 
                 var message = new GCMetadataRequestMessage(documentFile.ID);
 
@@ -206,10 +261,26 @@ namespace WebSocketServer.Model
             }
         }
 
-        public void HandleGCMetadata(Client client, int dependency)
+        void HandleGCMetadata(Client client, int dependency)
         {
-            if (GCOldestMessageNumber == null || dependency < GCOldestMessageNumber)
-                GCOldestMessageNumber = dependency;
+            // only update the GCOldestMessageNumber if the client has some garbage
+            if (dependency >= 0)
+            {
+                // set the GCOldestMessageNumber in case it is uninitialized
+                bool wasUninitialized = UninitializedGCOldestMessageNumber == Interlocked.CompareExchange(
+                    ref GCOldestMessageNumber, dependency, UninitializedGCOldestMessageNumber);
+
+                // in case it was not uninitialized, check whether the dependency is less and update it if so
+                int initialValue;
+                do
+                {
+                    initialValue = GCOldestMessageNumber;
+                    if (wasUninitialized || dependency >= initialValue)
+                        break;
+                }
+                while (initialValue != Interlocked.CompareExchange(ref GCOldestMessageNumber, dependency, initialValue));
+            }
+
 
             if (!garbageRoster.ContainsKey(client.ID))
             {
@@ -232,6 +303,11 @@ namespace WebSocketServer.Model
             }
         }
 
+        /// <summary>
+        /// Removes all SO and HB entries that match SO entries up to (not including) a specified index.
+        /// This method cannot be run concurrently with ApplyOperation, as both modify the HB and SO.
+        /// </summary>
+        /// <param name="SOGarbageIndex">The index that specifies which entries should be removed.</param>
         void GCRemove(int SOGarbageIndex)
         {
             if (SOGarbageIndex < 0 || SOGarbageIndex >= serverOrdering.Count)
@@ -273,8 +349,8 @@ namespace WebSocketServer.Model
         void GC()
         {
             // some client has no garbage, abort the operation
-            ///TODO: this value should be constant
-            if (GCOldestMessageNumber == null || GCOldestMessageNumber == -1)
+            if (GCOldestMessageNumber == UninitializedGCOldestMessageNumber
+                || GCOldestMessageNumber == NoGarbageGCOldestMessageNumber)
             {
                 ResetGCState();
                 return;
@@ -282,13 +358,13 @@ namespace WebSocketServer.Model
 
             // need to subtract this.firstSOMessageNumber,
             //    because that is how many SO entries from the beginning are missing
-            int SOGarbageIndex = GCOldestMessageNumber.Value - firstSOMessageNumber;
-            GCRemove(SOGarbageIndex);
+            int SOGarbageIndex = GCOldestMessageNumber - firstSOMessageNumber;
+            ScheduleGCRemove(SOGarbageIndex);
 
             // filter out all the GC'd operations
             firstSOMessageNumber += SOGarbageIndex;
 
-            var message = new GCMessage(documentFile.ID, GCOldestMessageNumber.Value);
+            var message = new GCMessage(documentFile.ID, GCOldestMessageNumber);
             foreach (var (clientID, _) in garbageRoster)
             {
                 if (clients.TryGetValue(clientID, out var client))
@@ -304,7 +380,7 @@ namespace WebSocketServer.Model
         {
             garbageRoster.Clear();
             GCInProgress = false;
-            GCOldestMessageNumber = null;
+            GCOldestMessageNumber = UninitializedGCOldestMessageNumber;
         }
     }
 }
