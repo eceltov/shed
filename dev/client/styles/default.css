@@ -1,11 +1,11 @@
 /*
-Notes: handle bigger and smaller resolutions
+TODO: handle bigger and smaller resolutions
 */
 
 :root {
     --top-bar-height: 60px;
     --top-bar-height2: 600px;
-    --left-side-bar-width: 15vw;
+    --left-side-bar-width: min(max(15vw, 200px), 300px);
     --highlight-color: rgba(20, 160, 130, 0.7);
     --active-tab-color: rgb(100, 100, 100);
     --active-file-color: rgb(80, 80, 80);
@@ -85,18 +85,27 @@ Notes: handle bigger and smaller resolutions
 
 .divergenceSolver {
     color: var(--main-font-color);
-    margin-left: 10px;
-    padding: 0 3px 0 3px;
+    background: rgb(130,0,0);
+    margin: 10px 10px 0px 10px;
+    padding: 3px 3px 10px 3px;
+    display: grid;
+    width: inherit;
 }
 
 .divergenceSolver .divergenceButton {
     display: inline-block;
     cursor: pointer;
-    background: rgb(60,60,60);
+    background: rgb(200,0,0);
+    padding: 0 3px 0 3px;
+    margin: auto;
 }
 
 .divergenceSolver .divergenceButton:hover {
-    background: var(--highlight-color);
+    background: rgb(255,0,0);
+}
+
+.divergenceSolver .divergenceSolverConfirmation {
+    margin: auto;
 }
 
 #editableFile {

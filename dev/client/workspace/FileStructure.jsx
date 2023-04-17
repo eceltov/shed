@@ -178,7 +178,7 @@ class FileStructure extends React.Component {
         {
         !diverged ? null :
           <DivergenceSolver
-            func={this.props.forceDocument(this.props.activeFile)}
+            func={() => this.props.forceDocument(this.props.activeFile)}
           />
         }
         <FileStructureFolder

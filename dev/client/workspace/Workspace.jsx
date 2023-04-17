@@ -14,7 +14,7 @@ const HeaderBar = require('./HeaderBar');
 const OptionsScreen = require('./OptionsScreen');
 const Editor = require('./Editor');
 
-const CSLatency = 1500;
+const CSLatency = 0;
 const SCLatency = 0;
 const webSocketReconnectDelay = 3000;
 const modelist = ace.require('ace/ext/modelist');
@@ -590,8 +590,8 @@ class Workspace extends React.Component {
     ///TODO: test if this works, then make this into a method of ManagedSession
     const document = managedSession.session.getDocument().getAllLines();
 
-    const message = msgFactory.forceDocument(this.props.activeFile, document);
-    this.props.sendMessageToServer(JSON.stringify(message));
+    const message = msgFactory.forceDocument(this.activeFile, document);
+    this.sendMessageToServer(JSON.stringify(message));
   }
 
   deleteWorkspace() {
