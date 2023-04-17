@@ -71,7 +71,8 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         const string fileNameRegex = "^[^\\/:*?\"<>|]*$";
 
-        object AddRemoveFileLock = new();
+        // a lock for file creation/deletion/renaming
+        object FileLock = new();
 
         public FileStructure() { }
 
@@ -118,7 +119,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public Document? CreateDocument(int parentID, string name)
         {
-            lock (AddRemoveFileLock)
+            lock (FileLock)
             {
                 Document document = new Document(NextID++, name);
 
@@ -131,7 +132,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public Folder? CreateFolder(int parentID, string name)
         {
-            lock (AddRemoveFileLock)
+            lock (FileLock)
             {
                 Folder folder = new Folder(NextID++, name);
 
@@ -274,7 +275,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         /// <returns>Returns whether the deletion was successful.</returns>
         public bool RemoveFile(int fileID)
         {
-            lock (AddRemoveFileLock)
+            lock (FileLock)
             {
                 if (fileID == ID || !pathMap.ContainsKey(fileID))
                     return false;
@@ -296,19 +297,21 @@ namespace WebSocketServer.Parsers.DatabaseParsers
 
         public bool RenameFile(int fileID, string newName)
         {
-            ///TODO: lock
-            if (fileID == ID || !pathMap.ContainsKey(fileID))
-                return false;
+            lock (FileLock)
+            {
+                if (fileID == ID || !pathMap.ContainsKey(fileID))
+                    return false;
 
-            Folder parentFolder = GetParentFolder(fileID)!;
-            if (CheckIfFolderHasFileName(parentFolder, newName))
-                return false;
+                Folder parentFolder = GetParentFolder(fileID)!;
+                if (CheckIfFolderHasFileName(parentFolder, newName))
+                    return false;
 
-            // it is safe to index into items of the parent folder, because fileID !== parentID
-            //    due to fileID !== fileStructure.ID and the root folder being the only folder with it as its parent
-            File file = parentFolder.Items[fileID.ToString()];
-            file.Name = newName;
-            return true;
+                // it is safe to index into items of the parent folder, because fileID !== parentID
+                //    due to fileID !== fileStructure.ID and the root folder being the only folder with it as its parent
+                File file = parentFolder.Items[fileID.ToString()];
+                file.Name = newName;
+                return true;
+            }
         }
 
         public bool IsDocument(int fileID)
