@@ -71,7 +71,7 @@ namespace WebSocketServer.MessageProcessing
         void HandleConnect(string messageString)
         {
             var message = new ClientConnectMessage(messageString);
-            string? userID = MessageProcessor.AcceptConnection(message);
+            string? userID = ConnectionAuthenticator.AcceptConnection(message);
             if (userID != null)
             {
 

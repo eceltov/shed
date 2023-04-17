@@ -13,7 +13,7 @@ using WebSocketServer.Parsers.MessageParsers;
 
 namespace WebSocketServer.MessageProcessing
 {
-    static class MessageProcessor
+    static class ConnectionAuthenticator
     {
         /// <summary>
         /// Validates the request JWT and accepts the connection if valid.
