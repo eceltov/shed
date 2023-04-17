@@ -8,6 +8,7 @@ using TextOperations.Operations;
 using TextOperations.Types;
 using WebSocketServer.Data;
 using WebSocketServer.MessageProcessing;
+using WebSocketServer.MessageProcessing.ServerMessages;
 using WebSocketServer.Parsers.MessageParsers;
 
 namespace TextOperationsUnitTests.Tests.UsageTests

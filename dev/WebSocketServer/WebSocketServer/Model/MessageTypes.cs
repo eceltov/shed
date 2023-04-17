@@ -27,7 +27,12 @@ namespace WebSocketServer.Model
         // sent to stop receiving operations from that document: {msgType, fileID}
         CloseDocument = 8,
         // sent to delete a workspace: {msgType}
-        DeleteWorkspace = 9
+        DeleteWorkspace = 9,
+        // sent after divergence was detected by the local client: {msgType, fileID}
+        ///TODO: currently unused, only the server can detect divergences
+        DivergenceDetected = 10,
+        // sent to force the local document state on all clients: {msgType, fileID, document}
+        ForceDocument = 11,
     }
 
     public enum ServerMessageTypes
@@ -55,6 +60,10 @@ namespace WebSocketServer.Model
         // sent after failed token verification: {msgType}
         FailedValidation = 61,
         // sent before the workspace deletes: {msgType}
-        DeleteWorkspace = 62
+        DeleteWorkspace = 62,
+        // sent after divergence was detected: {msgType, fileID}
+        DivergenceDetected = 63,
+        // sent to force the server document state: {msgType, fileID, serverDocument}
+        ForceDocument = 64,
     }
 }
