@@ -629,7 +629,7 @@ The Same-Origin IL Residuals problem:
             It must be first discovered, if the effective position should be even used, as unrelated effective positions could be compared. It
             has to be first established that the two operations are related in order for effective position to be used.
     Solution Attempt 3:
-        Could RA be simply used?
+        Could RA be simply used instead of LI?
 
 The Multistage LI problem:
     [(0, 0, -1, -1), del(0, 2, 5), del(0, 0, 2)]
