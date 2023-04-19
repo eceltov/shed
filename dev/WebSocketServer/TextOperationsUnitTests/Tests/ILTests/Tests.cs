@@ -13,7 +13,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
     public class Tests
     {
         [TestMethod]
-        public void TwoAddsOnSameRow()
+        public void SameOriginLISideEffectsProblem_TwoAddsOnSameRow()
         {
             // a dif extracted from an op with metadata: (0, 0, -1, -1)
             // it was the first operation received by the server
@@ -40,7 +40,11 @@ namespace TextOperationsUnitTests.Tests.ILTests
             wdIncludeDif.AddRange(wdTransformedDif1);
 
             // this should result in Add(0, 0, "b"), because Dif2 took place before Dif1
-            var wdTransformedDif2 = wdExternalDif2.MakeIndependent().LET(wdTransformedDif1.CopyAndReverse()).LIT(wdIncludeDif);
+            var wdTransformedDif2 = wdExternalDif2.MakeIndependent()
+                // exclude the previous operation by the same client, this should not have any impact
+                .LET(wdExternalDif1.CopyAndReverse())
+                // include HB
+                .LIT(wdIncludeDif);
 
             Assert.AreEqual(0, wdTransformedDif1[0].Sub.Row);
             Assert.AreEqual(0, wdTransformedDif1[0].Sub.Position);
@@ -52,7 +56,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
         }
 
         [TestMethod]
-        public void AddNewline()
+        public void SameOriginLISideEffectsProblem_AddNewline()
         {
             // a dif extracted from an op with metadata: (0, 0, -1, -1)
             // it was the first operation received by the server
@@ -79,7 +83,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
             wdIncludeDif.AddRange(wdTransformedDif1);
 
             // this should result in Add(0, 0, "b")
-            var wdTransformedDif2 = wdExternalDif2.MakeIndependent().LET(wdTransformedDif1.CopyAndReverse()).LIT(wdIncludeDif);
+            var wdTransformedDif2 = wdExternalDif2.MakeIndependent().LET(wdExternalDif1.CopyAndReverse()).LIT(wdIncludeDif);
 
             Assert.AreEqual(0, wdTransformedDif2[0].Sub.Row);
             Assert.AreEqual(0, wdTransformedDif2[0].Sub.Position);
@@ -87,7 +91,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
         }
 
         [TestMethod]
-        public void TwoAddsOnDifferentRows()
+        public void SameOriginLISideEffectsProblem_TwoAddsOnDifferentRows()
         {
             // a dif extracted from an op with metadata: (0, 0, -1, -1)
             // it was the first operation received by the server
@@ -115,7 +119,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
             wdIncludeDif.AddRange(wdTransformedDif1);
 
             // this should result in Add(0, 0, "b")
-            var wdTransformedDif2 = wdExternalDif2.MakeIndependent().LET(wdTransformedDif1.CopyAndReverse()).LIT(wdIncludeDif);
+            var wdTransformedDif2 = wdExternalDif2.MakeIndependent().LET(wdExternalDif1.CopyAndReverse()).LIT(wdIncludeDif);
 
             Assert.AreEqual(1, wdTransformedDif1[1].Sub.Row);
             Assert.AreEqual(0, wdTransformedDif1[1].Sub.Position);
@@ -147,7 +151,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
         }
 
         [TestMethod]
-        public void DoubleLI()
+        public void MultiLevelLIProblem_DoubleLI()
         {
             var wdDif1 = new Dif()
             {

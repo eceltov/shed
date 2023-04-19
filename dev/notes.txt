@@ -606,6 +606,14 @@ document.md
 [[1,3,-1,-1],[[2,1,6],[3,0,6],[4,0,3],[5,0,11],[2,1,false],[2,1,false],[2,1,false],[2,1,"kop"],[2,4,true],[3,0,"k"]],35]
 
 The Same-Origin IL Residuals problem:
+    This problem occurs in this situation:
+        [(0, 0, -1, -1), del(0, 0, 7)] - o1
+        [(1, 0, -1, -1), add(0, 5, "a")] - o2
+        [(1, 0, -1, -1), add(0, 4, "b")] - o3
+        Including o1 to o2 results in add(0, 0, "a") with IL
+        Excluding o2 from o3 does not result in any change
+        Including o1 to o3 results in add(0, 0, "b") with IL
+        Including o2 to o3 results in add(0, 1, "b") with IL, even though the result should be add(0, 0, "b"), because "b" was supposed to be before "a".
     Solution Attempt 1:
         When transforming and both the wrap and transformer have LI with the same wTransformer, the Original positions get compared instead.
         Counterexample:
@@ -613,6 +621,15 @@ The Same-Origin IL Residuals problem:
             [(1, 0, -1, -1), add(0, 3, "a")]
             [(1, 1, -1, -1), add(0, 1, "b")]
             The first external dif gets transformed to add(0, 2, "a") LI
+    Solution Attempt 2:
+        When adding del(0, 0, 10) to add(0, 5, "a"), save the effective position of the add to be -5. This position is updated with every other transformation
+        by the same amount the actual position changed.
+        Counterexample (possibly):
+            Multistage LI would break this (although that is another problem, this might actually work).
+            It must be first discovered, if the effective position should be even used, as unrelated effective positions could be compared. It
+            has to be first established that the two operations are related in order for effective position to be used.
+    Solution Attempt 3:
+        Could RA be simply used?
 
 The Multistage LI problem:
     [(0, 0, -1, -1), del(0, 2, 5), del(0, 0, 2)]
@@ -620,3 +637,5 @@ The Multistage LI problem:
     When including and then excluding these two operations, the result is add(0, 2, "a"), because the first LI gets overwritten by the second one
     Solution:
         Make Original and wTransformer Lists
+
+JoinSiblings is not used anywhere
