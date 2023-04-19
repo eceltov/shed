@@ -53,7 +53,9 @@ namespace TextOperationsUnitTests.Tests.UsageTests
         }
     }
 
-    [TestClass]
+    //these tests are for debugging scenarios generated from a live editing session
+    ///TODO: add assertions
+    //[TestClass]
     public class Simple
     {
         void EnvSetup()
