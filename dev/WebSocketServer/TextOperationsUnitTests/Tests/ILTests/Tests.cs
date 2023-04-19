@@ -151,11 +151,31 @@ namespace TextOperationsUnitTests.Tests.ILTests
         }
 
         [TestMethod]
-        public void MultiLevelLIProblem_DoubleLI()
+        public void MultiLevelLIProblem_DoubleLI1()
         {
             var wdDif1 = new Dif()
             {
                 new Del(0, 2, 5),
+                new Del(0, 0, 2),
+            }.Wrap();
+
+            var wdDif2 = new Dif()
+            {
+                new Add(0, 3, "a"),
+            }.Wrap();
+
+            var wdTransformedDif = wdDif2.MakeIndependent().LIT(wdDif1);
+            var wdTransformedDif2 = wdTransformedDif.MakeIndependent().LET(wdDif1).MakeDependent();
+
+            Assert.IsTrue(wdTransformedDif2.SameAs(wdDif2));
+        }
+
+        [TestMethod]
+        public void MultiLevelLIProblem_DoubleLI2()
+        {
+            var wdDif1 = new Dif()
+            {
+                new Del(0, 1, 5),
                 new Del(0, 0, 2),
             }.Wrap();
 
