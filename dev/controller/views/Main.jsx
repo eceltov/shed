@@ -18,6 +18,7 @@ class Main extends React.Component {
           <script src="main/static/NewWorkspaceButton.js" type="text/javascript" />
           <script src="main/static/CreateWorkspaceButton.js" type="text/javascript" />
           <script src="main/static/DeleteWorkspaceButton.js" type="text/javascript" />
+          <script src="main/static/LoginButton.js" type="text/javascript" />
 
         </head>
         <body>

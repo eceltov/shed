@@ -54,47 +54,5 @@ namespace WebSocketServer.MessageProcessing
                 return null;
             }
         }
-
-        public static string GenerateTestToken1()
-        {
-            // generate token that is valid for 7 days
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(ConfigurationManager.Configuration.JWT.Secret);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[] {
-                    new Claim("id", "00000000"),
-                    new Claim("firstName", "Adam"),
-                    new Claim("lastName", "Tester"),
-                    new Claim("mail", "adam.tester@example.com"),
-                    new Claim("role", "test")
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
-
-        public static string GenerateTestToken2()
-        {
-            // generate token that is valid for 7 days
-            var tokenHandler = new JwtSecurityTokenHandler();
-            var key = Encoding.ASCII.GetBytes(ConfigurationManager.Configuration.JWT.Secret);
-            var tokenDescriptor = new SecurityTokenDescriptor
-            {
-                Subject = new ClaimsIdentity(new[] {
-                    new Claim("id", "00000001"),
-                    new Claim("firstName", "Adam2"),
-                    new Claim("lastName", "Tester2"),
-                    new Claim("mail", "adam.tester2@example.com"),
-                    new Claim("role", "test2")
-                }),
-                Expires = DateTime.UtcNow.AddDays(7),
-                SigningCredentials = new SigningCredentials(new SymmetricSecurityKey(key), SecurityAlgorithms.HmacSha256Signature)
-            };
-            var token = tokenHandler.CreateToken(tokenDescriptor);
-            return tokenHandler.WriteToken(token);
-        }
     }
 }

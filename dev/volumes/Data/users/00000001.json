@@ -1,6 +1,8 @@
 {
     "id": "00000001",
     "role": "user",
+    "username": "admin2",
+    "password": "password2",
     "workspaces": [
         {
             "id": "0xh24randomhash32rh",

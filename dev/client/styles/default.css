@@ -354,8 +354,9 @@ TODO: handle bigger and smaller resolutions
 
 .createInput {
     border-radius: 4px;
-    color: var(--main-font-color);
-    background: grey;
+    color: black;
+    font-weight: bold;
+    background: white;
     outline: none;
     box-shadow: none;
     border: none;
@@ -364,10 +365,17 @@ TODO: handle bigger and smaller resolutions
     width: 92%;
 }
 
-.createInput:focus {
+.credentialsInput {
+    border-radius: 4px;
+    color: black;
+    font-weight: bold;
+    background: white;
     outline: none;
     box-shadow: none;
     border: none;
+    display: block;
+    height: 40px;
+    width: max(30vw, 300px);
 }
 
 .createName {
@@ -413,6 +421,17 @@ TODO: handle bigger and smaller resolutions
     box-shadow: none;
     border: none;
     /*width: 92%;*/
+}
+
+.loginButton {
+    background: rgb(14, 216, 14);
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    margin: 10px 0 5px 0;
+    font-size: x-large;
 }
 
 .createWorkspaceButton {

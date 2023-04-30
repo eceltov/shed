@@ -39,6 +39,10 @@ function renderDefaultUnauthView(res) {
   res.render('Main.jsx', { activeView: views.about, authenticated: false });
 }
 
+function renderLoginView(res) {
+  res.render('Main.jsx', { activeView: views.login, authenticated: false });
+}
+
 /**
  * @brief Renders the users' workspaces if authenticated or the about screen otherwise.
  * @param {*} res The express res parameter.
@@ -88,6 +92,16 @@ function register(app) {
     renderDefaultUnauthView(res);
   });
 
+  app.get('/login', (req, res) => {
+    const jwtPayload = handleJWTCookie(req, res);
+    if (jwtPayload !== null) {
+      renderDefaultView(res, jwtPayload);
+    }
+    else {
+      renderLoginView(res);
+    }
+  });
+
   app.get('/about', (req, res) => {
     const jwtPayload = handleJWTCookie(req, res);
     res.render('Main.jsx', { activeView: views.about, authenticated: jwtPayload !== null });
@@ -117,6 +131,27 @@ function register(app) {
     const jwtPayload = handleJWTCookie(req, res);
     if (jwtPayload !== null && req.body !== undefined && req.body.workspaceHash !== undefined) {
       database.deleteWorkspace(jwtPayload.id, req.body.workspaceHash);
+    }
+    else {
+      console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
+    }
+  });
+
+  app.post('/api/login', (req, res) => {
+    if (req.body !== undefined && req.body.username !== undefined && req.body.password !== undefined) {
+      const verificationObj = database.verifyCredentials(req.body.username, req.body.password);
+      if (!verificationObj.valid) {
+        console.log('Login unsuccessful: Bad credentials.');
+        return;
+      }
+
+      //database.login(jwtPayload.id, req.body.workspaceHash);
+      const token = jwt.sign({
+        id: verificationObj.id,
+        role: verificationObj.role,
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24),
+      }, appConfig.jwtSecret)
+      res.send({token});
     }
     else {
       console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);

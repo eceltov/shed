@@ -16,6 +16,7 @@ class DatabaseGateway {
     this.paths = config.paths;
     this.paths.usersPath = path.join(__dirname, '../volumes/Data/users/');
     this.paths.workspacesPath = path.join(__dirname, '../volumes/Data/workspaces/');
+    this.paths.usernameToIdMapPath = path.join(__dirname, '../volumes/Data/usernameToIdMap.json')
     this.workspaceHashSalt = config.workspaceHashSalt;
   }
 
@@ -47,11 +48,23 @@ class DatabaseGateway {
     return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceUsersPath}`;
   }
 
-  getUserWorkspaces(userID) {
+  getUserJson(userID) {
     const userPath = this.getUserPath(userID);
     const JSONString = fs.readFileSync(userPath);
     const userMeta = JSON.parse(JSONString);
+    return userMeta;
+  }
+
+  getUserWorkspaces(userID) {
+    const userMeta = this.getUserJson(userID);
     return userMeta.workspaces;
+  }
+
+  getUsernameToIdMap() {
+    const path = this.paths.usernameToIdMapPath;
+    const JSONString = fs.readFileSync(path);
+    const parsed = JSON.parse(JSONString);
+    return parsed;
   }
 
   /**
@@ -276,6 +289,21 @@ class DatabaseGateway {
       console.error(err);
       return false;
     }
+  }
+
+  verifyCredentials(username, password) {
+    const map = this.getUsernameToIdMap();
+    if (!map.hasOwnProperty(username)) {
+      return { valid: false };
+    }
+
+    const userHash = map[username];
+    const meta = this.getUserJson(userHash);
+    if (meta.password === password) {
+      return { valid: true, id: userHash, role: meta.role };
+    }
+
+    return { valid: false };
   }
 }
 

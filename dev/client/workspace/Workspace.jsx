@@ -38,7 +38,6 @@ class Workspace extends React.Component {
     this.onGC = this.onGC.bind(this);
     this.getTabBar = this.getTabBar.bind(this);
     this.showOptionsView = this.showOptionsView.bind(this);
-    this.deleteWorkspace = this.deleteWorkspace.bind(this);
     this.forceDocument = this.forceDocument.bind(this);
     this.state = {
       role: roles.none,
@@ -75,6 +74,11 @@ class Workspace extends React.Component {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
     const token = utils.getCookie('jwt');
+
+    // redirect user to login screen if unauthenticated
+    if (!token) {
+      window.location.href = '/';
+    }
 
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
@@ -308,9 +312,6 @@ class Workspace extends React.Component {
       case msgTypes.server.failedValidation:
         this.onFailedvalidation(message);
         break;
-      case msgTypes.server.deleteWorkspace:
-        this.onDeleteWorkspace(message);
-        break;
       case msgTypes.server.divergenceDetected:
         this.onDivergenceDetected(message);
         break;
@@ -320,11 +321,6 @@ class Workspace extends React.Component {
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
-  }
-
-  // eslint-disable-next-line class-methods-use-this
-  onDeleteWorkspace(message) {
-    window.location.href = '/';
   }
 
   onFailedvalidation(message) {
@@ -594,11 +590,6 @@ class Workspace extends React.Component {
     this.sendMessageToServer(JSON.stringify(message));
   }
 
-  deleteWorkspace() {
-    const message = msgFactory.deleteWorkspace();
-    this.sendMessageToServer(JSON.stringify(message));
-  }
-
   showOptionsView() {
     this.setState((prevState) => ({
       activeTab: null,
@@ -627,7 +618,7 @@ class Workspace extends React.Component {
       return (
         <div className="content">
           {this.state.tabs.length > 0 ? this.getTabBar() : null}
-          <OptionsScreen deleteWorkspace={this.deleteWorkspace} />
+          <OptionsScreen />
           <div id="editor" key="0" hidden={this.state.activeTab === null} />
         </div>
       );
