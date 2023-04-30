@@ -54,6 +54,7 @@ namespace WebSocketServer.Model
         const int UninitializedGCOldestMessageNumber = -2;
         int GCOldestMessageNumber = UninitializedGCOldestMessageNumber;
 
+        object lastTextOperationTaskLock = new object();
         Task lastTextOperationTask = Task.CompletedTask;
 
         // callback used to save the document (so that all IO operations are executed in workspaces)
@@ -125,8 +126,10 @@ namespace WebSocketServer.Model
         /// <param name="action">The Text Operation action to be executed.</param>
         void ScheduleTextOperationAction(Action action)
         {   
-            ///TODO: can there be a race condition here?
-            lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => action()); 
+            lock (lastTextOperationTaskLock)
+            {
+                lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => action()); 
+            }
         }
 
         bool ClientCanEdit(Client client)

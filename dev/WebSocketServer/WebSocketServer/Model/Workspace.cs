@@ -35,10 +35,6 @@ namespace WebSocketServer.Model
         /// </summary>
         public ConcurrentDictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
-        readonly BlockingCollection<Action> actions;
-        readonly Thread workerThread;
-
-
         public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users)
         {
             Console.WriteLine($"Creating Workspace {name}, ID {ID}");
@@ -47,21 +43,16 @@ namespace WebSocketServer.Model
             FileStructure = fileStructure;
             Users = users;
             Clients = new();
-            actions = new();
             ActiveDocuments = new();
-
-            workerThread = new Thread(() => ProcessActions(CancellationToken.None));
-            workerThread.Start();
         }
 
         public void ScheduleAction(Action action)
         {
-            actions.Add(action);
+            Task.Run(() => action());
         }
 
         public bool ScheduleDocumentAction(int documentID, Action<DocumentInstance> documentAction)
         {
-            ///TODO: accessing ActiveDocuments is not thread safe
             if (ActiveDocuments.TryGetValue(documentID, out DocumentInstance? documentInstance) && documentInstance != null)
             {
                 documentAction(documentInstance);
@@ -70,14 +61,6 @@ namespace WebSocketServer.Model
 
             Console.WriteLine($"Error in {nameof(ScheduleDocumentAction)}: Could not schedule document action.");
             return false;
-        }
-
-        void ProcessActions(CancellationToken cancellationToken)
-        {
-            foreach (var action in actions.GetConsumingEnumerable(cancellationToken))
-            {
-                action();
-            }
         }
 
         bool ClientCanJoin(Client client)
@@ -340,6 +323,7 @@ namespace WebSocketServer.Model
 
             if (!DatabaseProvider.Database.RenameFile(ID, oldPath, newPath))
             {
+                Console.WriteLine($"Error in {nameof(RenameFile)}: Database could not rename file.");
                 ///TODO: retry it later
                 return false;
             }
