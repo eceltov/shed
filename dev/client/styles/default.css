@@ -404,6 +404,17 @@ TODO: handle bigger and smaller resolutions
     /*width: 92%;*/
 }
 
+.deleteButton {
+    margin-left: 10px;
+    background: rgb(216, 14, 14);
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    /*width: 92%;*/
+}
+
 .createWorkspaceButton {
     background: rgb(14, 216, 14);
     color: var(--main-font-color);

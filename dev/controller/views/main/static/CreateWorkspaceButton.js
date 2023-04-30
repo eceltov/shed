@@ -8,6 +8,7 @@ function onCreateWorkspaceButtonClick() {
       },
       body: JSON.stringify({ name: workspaceNameElement.value }),
     });
+    window.location.href = '/';
   }
 }
 

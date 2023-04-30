@@ -3,7 +3,7 @@ const fs = require('fs');
 const path = require('path');
 const views = require('../views/main/viewEnum');
 
-const DatabaseGateway = require('../../database/DatabaseGateway');
+const DatabaseGateway = require('../DatabaseGateway');
 
 const appConfigPath = path.join(__dirname, '../../../config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
@@ -109,7 +109,17 @@ function register(app) {
       database.createWorkspace(jwtPayload.id, req.body.name);
     }
     else {
-      console.log('Invalid create workspace request. Body:', res.body, 'UserID:', jwtPayload.id);
+      console.log('Invalid create workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
+    }
+  });
+
+  app.post('/api/deleteWorkspace', (req, res) => {
+    const jwtPayload = handleJWTCookie(req, res);
+    if (jwtPayload !== null && req.body !== undefined && req.body.workspaceHash !== undefined) {
+      database.deleteWorkspace(jwtPayload.id, req.body.workspaceHash);
+    }
+    else {
+      console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
     }
   });
 }

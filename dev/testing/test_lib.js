@@ -1,5 +1,5 @@
 const Client = require('./TestClient');
-const DatabaseGateway = require('../database/DatabaseGateway');
+const DatabaseGateway = require('./database/DatabaseGateway');
 const fsOps = require('../lib/fileStructureOps');
 const { add, del, move, newline, remline } = require('../lib/subdifOps');
 const { deepEqual } = require('../lib/utils');

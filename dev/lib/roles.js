@@ -71,6 +71,14 @@ function canManageFiles(role) {
     || (role === roles.owner);
 }
 
+/**
+ * @param {*} role The role of some entity.
+ * @returns Returns true if the role can delete a workspace, else returns false.
+ */
+function canDeleteWorkspace(role) {
+  return role === roles.owner;
+}
+
 module.exports = {
-  roles, getRoleName, canView, canEdit, canManageFiles,
+  roles, getRoleName, canView, canEdit, canManageFiles, canDeleteWorkspace,
 };

@@ -8,7 +8,7 @@ const WorkspaceInstance = require('./WorkspaceInstance');
 const { msgTypes } = require('../lib/messageTypes');
 const msgFactory = require('../lib/serverMessageFactory');
 const { roles } = require('../lib/roles');
-const DatabaseGateway = require('../database/DatabaseGateway');
+const DatabaseGateway = require('../controller/DatabaseGateway');
 
 class Server {
   constructor() {

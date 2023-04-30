@@ -8,7 +8,7 @@ const fs = require('fs');
 const walker = require('node-walker');
 const reactViews = require('express-react-views');
 
-const DatabaseGateway = require('../database/DatabaseGateway');
+const DatabaseGateway = require('./DatabaseGateway');
 
 class Controller {
   constructor() {
