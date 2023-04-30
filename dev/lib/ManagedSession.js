@@ -48,7 +48,7 @@ class ManagedSession {
     ///but it sets readonly for the whole editor, even when this document is not active
     this.setReadOnly = setReadOnly;
 
-    this.loggingEnabled = false;
+    this.loggingEnabled = true;
     this.DEBUG = false;
 
     this.session.on('change', this.handleChange);
@@ -263,7 +263,9 @@ class ManagedSession {
 
       /// TODO: RACE CONDITION: what about changes made by the user while
       ///   UDR is being processed with handlingChanges === false?
-      const readOnlyState = (this.setReadOnly !== null ? this.setReadOnly(true) : null);
+      /// TODO: the readonly state was removed because the below implementation is wrong;
+      /// the state should be restored, not set to true every time
+      //const readOnlyState = (this.setReadOnly !== null ? this.setReadOnly(true) : null);
       this.handlingChanges = false;
       const loggingCond = false;
       // this.clientID === 1 && operation[0][0] === 0 && operation[0][1] >= 2;
@@ -271,9 +273,9 @@ class ManagedSession {
         operation, document, this.HB, this.serverOrdering, loggingCond, oldCursorPosition,
       );
       this.handlingChanges = true;
-      if (this.setReadOnly !== null) {
-        this.setReadOnly(readOnlyState);
-      }
+      //if (this.setReadOnly !== null) {
+        //this.setReadOnly(readOnlyState);
+      //}
       /// TODO: RACE CONDITION END
 
       this.serverOrdering.push([

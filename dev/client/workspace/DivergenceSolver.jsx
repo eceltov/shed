@@ -17,25 +17,37 @@ class DivergenceSolver extends React.Component {
   }
 
   render() {
-    return (
-      <div className="divergenceSolver">
-        <p>
-          Document divergence detected.
-          If you wish, you can force your document version on all clients.
-          Otherwise wait for a different client to force its document.
-        </p>
-        {
-          this.state.clicked ?
-          <p className="divergenceSolverConfirmation">
-            Document sent to server.
+    if (this.props.userCanEdit) {
+      return (
+        <div className="divergenceSolver">
+          <p>
+            Document divergence detected.
+            If you wish, you can force your document version on all clients.
+            Otherwise wait for a different client to force its document.
           </p>
-          :
-          <div role="button" className="divergenceButton" onClick={this.handleOnClick}>
-            Force Document State
-          </div>
-        }
-      </div>
-    );
+          {
+            this.state.clicked ?
+            <p className="divergenceSolverConfirmation">
+              Document sent to server.
+            </p>
+            :
+            <div role="button" className="divergenceButton" onClick={this.handleOnClick}>
+              Force Document State
+            </div>
+          }
+        </div>
+      );
+    }
+    else {
+      return (
+        <div className="divergenceSolver">
+          <p>
+            Document divergence detected.
+            Wait for a priviledged user to force their document.
+          </p>
+        </div>
+      );
+    }
   }
 }
 

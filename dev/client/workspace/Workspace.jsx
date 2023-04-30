@@ -590,7 +590,7 @@ class Workspace extends React.Component {
     ///TODO: test if this works, then make this into a method of ManagedSession
     const document = managedSession.session.getDocument().getAllLines();
 
-    const message = msgFactory.forceDocument(this.activeFile, document);
+    const message = msgFactory.forceDocument(fileID, document);
     this.sendMessageToServer(JSON.stringify(message));
   }
 
@@ -647,7 +647,7 @@ class Workspace extends React.Component {
     if (this.state.activeTab !== null && this.editor.mounted) {
       this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
 
-      if (!roles.canEdit(this.state.role)) {
+      if (!roles.canEdit(this.state.role) || this.state.divergedDocuments.has(this.state.activeTab)) {
         this.editor.setReadOnly(true);
       }
       else {
@@ -667,6 +667,7 @@ class Workspace extends React.Component {
             selectFile={this.selectFile}
             divergedDocuments={this.state.divergedDocuments}
             forceDocument={this.forceDocument}
+            userCanEdit={roles.canEdit(this.state.role)}
           />
         </div>
 

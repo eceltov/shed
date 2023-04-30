@@ -99,6 +99,11 @@ namespace WebSocketServer.Model
             ScheduleTextOperationAction(() => HandleOperation(authoringClient, operation));
         }
 
+        public void ScheduleForceDocument(Client client, List<string> document)
+        {
+            Task.Run(() => HandleForceDocument(client, document));
+        }
+
         public bool ClientPresent(int clientID)
         {
             return clients.ContainsKey(clientID);
@@ -198,7 +203,22 @@ namespace WebSocketServer.Model
             var message = new OperationMessage(operation, documentFile.ID);
 
             clients.SendMessage(message);
-            ApplyOperation(operation);
+
+            // operation application always succeeds if the concurrency model is correct
+            // in case it is not and the application fails, a divergence detection message is sent to the clients
+            try
+            {
+                ApplyOperation(operation);
+            }
+            catch
+            {
+                Console.WriteLine($"Error: {nameof(HandleOperation)}: Document divergence detected.");
+                var divergenceMessage = new DivergenceDetectedMessage(DocumentID);
+                clients.SendMessage(divergenceMessage);
+
+                return false;
+            }
+
             StartGC();
 
             return true;
@@ -307,6 +327,25 @@ namespace WebSocketServer.Model
             }
         }
 
+        bool HandleForceDocument(Client client, List<string> document)
+        {
+            if (!ClientCanEdit(client))
+            {
+                Console.WriteLine($"Error: {nameof(HandleForceDocument)}: Unauthorized client tried to force document.");
+                return false;
+            }
+
+            // it is assumed that all operations in the queue were already executed, as the client document editor becomes
+            // disabled after divergence is detected
+            Document = document;
+            ResetAllStructures();
+
+            var message = new ForceDocumentMessage(document, DocumentID);
+            clients.SendMessage(message);
+
+            return true;
+        }
+
         /// <summary>
         /// Removes all SO and HB entries that match SO entries up to (not including) a specified index.
         /// This method cannot be run concurrently with ApplyOperation, as both modify the HB and SO.
@@ -378,6 +417,18 @@ namespace WebSocketServer.Model
             }
 
             ResetGCState();
+        }
+
+        /// <summary>
+        /// Clears all structures associated with document history.
+        /// </summary>
+        void ResetAllStructures()
+        {
+            ResetGCState();
+            wHB = new();
+            serverOrdering = new();
+            firstSOMessageNumber = 0;
+            garbageCount = 0;
         }
 
         void ResetGCState()

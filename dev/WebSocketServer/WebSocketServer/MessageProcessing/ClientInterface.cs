@@ -5,6 +5,8 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using WebSocketServer.Data;
+using WebSocketServer.Extensions;
+using WebSocketServer.MessageProcessing.ServerMessages;
 using WebSocketServer.Model;
 using WebSocketServer.Parsers.MessageParsers;
 using WebSocketSharp;
@@ -61,6 +63,9 @@ namespace WebSocketServer.MessageProcessing
                     break;
                 case ClientMessageTypes.CloseDocument:
                     HandleCloseDocument(messageString);
+                    break;
+                case ClientMessageTypes.ForceDocument:
+                    HandleForceDocument(messageString);
                     break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
@@ -168,6 +173,15 @@ namespace WebSocketServer.MessageProcessing
 
             var message = new ClientGCMetadataMessage(messageString);
             client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleGCMetadata(client, message.Dependency));
+        }
+
+        void HandleForceDocument(string messageString)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientForceDocumentMessage(messageString);
+            client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleForceDocument(client, message.Document));
         }
 
         protected override void OnClose(CloseEventArgs e)
