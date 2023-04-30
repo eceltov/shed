@@ -41,9 +41,9 @@ namespace WebSocketServer.Model
             }
         }
 
-        public static Client? CreateClient(string userID, Workspace workspace, ClientInterface clientInterface)
+        public static async Task<Client?> CreateClientAsync(string userID, Workspace workspace, ClientInterface clientInterface)
         {
-            var user = DatabaseProvider.Database.GetUser(userID);
+            var user = await DatabaseProvider.Database.GetUserAsync(userID);
 
             if (user == null)
                 return null;

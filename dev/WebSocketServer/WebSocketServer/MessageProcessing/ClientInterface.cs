@@ -21,11 +21,11 @@ namespace WebSocketServer.MessageProcessing
         protected override void OnMessage(MessageEventArgs e)
         {
             Console.WriteLine(e.Data);
-            HandleMessage(e.Data);
+            HandleMessageAsync(e.Data).GetAwaiter().GetResult();
         }
 
         ///TODO: this should not be public
-        public void HandleMessage(string messageString)
+        public async Task HandleMessageAsync(string messageString)
         {
             // only an operation uses JSON arrays
             if (messageString[0] == '[')
@@ -38,7 +38,7 @@ namespace WebSocketServer.MessageProcessing
             switch (genericMessage.MsgType)
             {
                 case ClientMessageTypes.Connect:
-                    HandleConnect(messageString);
+                    await HandleConnectAsync(messageString);
                     break;
                 case ClientMessageTypes.GetDocument:
                     HandleGetDocument(messageString);
@@ -73,21 +73,22 @@ namespace WebSocketServer.MessageProcessing
             }
         }
 
-        void HandleConnect(string messageString)
+        async Task HandleConnectAsync(string messageString)
         {
             var message = new ClientConnectMessage(messageString);
             string? userID = ConnectionAuthenticator.AcceptConnection(message);
             if (userID != null)
             {
 
-                Workspace? workspace = AllWorkspaces.GetWorkspace(message.WorkspaceHash);
+                Workspace? workspace = await AllWorkspaces.GetWorkspaceAsync(message.WorkspaceHash);
                 if (workspace == null) return;
 
-                Client? newClient = Client.CreateClient(userID, workspace, this);
+                Client? newClient = await Client.CreateClientAsync(userID, workspace, this);
                 if (newClient == null) return;
 
                 client = newClient;
-                AllClients.Add(client);
+                if (!AllClients.Add(client)) return;
+
                 Console.WriteLine($"Added client {client.ID}");
                 workspace.ScheduleAction(() => workspace.HandleConnectClient(client));
             }
@@ -99,7 +100,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientGetDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleGetDocument(client, message.FileID));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleGetDocumentAsync(client, message.FileID));
 
         }
 
@@ -109,7 +110,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCreateDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleCreateDocument(client, message.ParentID, message.Name));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleCreateDocumentAsync(client, message.ParentID, message.Name));
         }
 
         void HandleCreateFolder(string messageString)
@@ -118,7 +119,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientCreateFolderMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleCreateFolder(client, message.ParentID, message.Name));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleCreateFolderAsync(client, message.ParentID, message.Name));
         }
 
         void HandleDeleteDocument(string messageString)
@@ -127,7 +128,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientDeleteDocumentMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleDeleteDocument(client, message.FileID));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleDeleteDocumentAsync(client, message.FileID));
         }
 
         void HandleDeleteFolder(string messageString)
@@ -136,7 +137,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientDeleteFolderMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleDeleteFolder(client, message.FileID));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleDeleteFolderAsync(client, message.FileID));
         }
 
         void HandleRenameFile(string messageString)
@@ -145,7 +146,7 @@ namespace WebSocketServer.MessageProcessing
                 return;
 
             var message = new ClientRenameFileMessage(messageString);
-            client.Workspace.ScheduleAction(() => client.Workspace.HandleRenameFile(client, message.FileID, message.Name));
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleRenameFileAsync(client, message.FileID, message.Name));
         }
 
         void HandleCloseDocument(string messageString)
@@ -187,7 +188,11 @@ namespace WebSocketServer.MessageProcessing
         protected override void OnClose(CloseEventArgs e)
         {
             if (client != null)
+            {
                 client.Workspace.RemoveConnection(client);
+                AllClients.Remove(client);
+            }
+
 
             Console.WriteLine($"Connection closed (client ID {client?.ID})");
             base.OnClose(e);

@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,34 +10,44 @@ namespace WebSocketServer.Data
 {
     internal static class AllWorkspaces
     {
-        ///TODO: this should be synchronized
-        static Dictionary<string, Workspace> workspaces;
+        readonly static SemaphoreSlim workspaceCreationSemaphore = new(1);
+        readonly static ConcurrentDictionary<string, Workspace> workspaces = new();
 
-        static AllWorkspaces()
+        /// <summary>
+        /// Attempts to retrieve a workspace. If the workspace is not loaded yet, a load attempt will be made.
+        /// </summary>
+        /// <param name="workspaceID">The ID of the workspace.</param>
+        /// <returns>Returns the workspace if found, otherwise null.</returns>
+        public static async Task<Workspace?> GetWorkspaceAsync(string workspaceID)
         {
-            workspaces = new();
-        }
+            if (workspaces.TryGetValue(workspaceID, out Workspace? workspace) && workspace != null)
+                return workspace;
 
-        public static Workspace? GetWorkspace(string workspaceID)
-        {
-            if (workspaces.ContainsKey(workspaceID))
+            await workspaceCreationSemaphore.WaitAsync();
+            try
             {
-                return workspaces[workspaceID];
+                if (workspaces.ContainsKey(workspaceID))
+                {
+                    return workspaces[workspaceID];
+                }
+
+                var newlyLoadedWorkspace = await LoadWorkspaceAsync(workspaceID);
+
+                if (newlyLoadedWorkspace != null)
+                    workspaces[workspaceID] = newlyLoadedWorkspace;
+
+                return newlyLoadedWorkspace;
             }
-
-            ///TODO: check if workspace exists
-            var workspace = LoadWorkspace(workspaceID);
-
-            if (workspace != null)
-                workspaces[workspaceID] = workspace;
-
-            return workspace;
+            finally
+            {
+                workspaceCreationSemaphore.Release();
+            }
         }
 
-        static Workspace? LoadWorkspace(string workspaceID)
+        static async Task<Workspace?> LoadWorkspaceAsync(string workspaceID)
         {
-            var fileStructure = DatabaseProvider.Database.GetFileStructure(workspaceID);
-            var users = DatabaseProvider.Database.GetWorkspaceUsers(workspaceID);
+            var fileStructure = await DatabaseProvider.Database.GetFileStructureAsync(workspaceID);
+            var users = await DatabaseProvider.Database.GetWorkspaceUsersAsync(workspaceID);
 
             if (fileStructure == null || users == null)
                 return null;

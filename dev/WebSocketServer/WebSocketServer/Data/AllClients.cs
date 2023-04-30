@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
@@ -9,20 +10,26 @@ namespace WebSocketServer.Data
 {
     internal static class AllClients
     {
-        ///TODO: this should by a synchronized structure
-        static Dictionary<int, Client> clients;
+        static ConcurrentDictionary<int, Client> clients = new();
 
-        static AllClients()
+        /// <summary>
+        /// Adds a client to the collection of all clients.
+        /// </summary>
+        /// <param name="client">The client to be added.</param>
+        /// <returns>Returns whether the operation succeeded.</returns>
+        public static bool Add(Client client)
         {
-            clients = new();
+            return clients.TryAdd(client.ID, client);
         }
 
-        public static void Add(Client client)
+        /// <summary>
+        /// Removes a client from the collection of all clients.
+        /// </summary>
+        /// <param name="client">The client to be removed.</param>
+        /// <returns>Returns whether the operation succeeded.</returns>
+        public static bool Remove(Client client)
         {
-            if (clients.ContainsKey(client.ID))
-                throw new Exception("Adding a client that is already present.");
-
-            clients[client.ID] = client;
+            return clients.TryRemove(client.ID, out Client? _);
         }
     }
 }

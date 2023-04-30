@@ -86,7 +86,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool ConnectClientToDocument(Client client, int fileID)
+        async Task<bool> ConnectClientToDocumentAsync(Client client, int fileID)
         {
             if (!RoleHandler.CanView(client.Role))
                 return false;
@@ -95,7 +95,7 @@ namespace WebSocketServer.Model
 
             if (!ActiveDocuments.ContainsKey(fileID))
             {
-                if (StartDocument(fileID) is DocumentInstance newDocument)
+                if (await StartDocumentAsync(fileID) is DocumentInstance newDocument)
                 {
                     documentInstance = newDocument;
                 }
@@ -103,7 +103,7 @@ namespace WebSocketServer.Model
                 {
                     // the document could not be instantiated
                     /// TODO: send an error message
-                    Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: DocumentInstance could not be started.");
+                    Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: DocumentInstance could not be started.");
                     return false;
                 }
             }
@@ -116,13 +116,13 @@ namespace WebSocketServer.Model
             /// TODO: this should probably be handled sooner than here
             if (documentInstance.ClientPresent(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: Connecting client to a document when already connected.");
+                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Connecting client to a document when already connected.");
                 return false;
             }
 
             if (!client.OpenDocuments.TryAdd(fileID, documentInstance))
             {
-                Console.WriteLine($"Error in {nameof(ConnectClientToDocument)}: Could not add new open document to client.");
+                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Could not add new open document to client.");
                 return false;
             }
 
@@ -131,11 +131,11 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        static List<string>? GetDocumentContent(string workspaceID, string relativePath)
+        static async Task<List<string>?> GetDocumentContentAsync(string workspaceID, string relativePath)
         {
             try
             {
-                string contentString = DatabaseProvider.Database.GetDocumentData(workspaceID, relativePath);
+                string contentString = await DatabaseProvider.Database.GetDocumentDataAsync(workspaceID, relativePath);
                 return Regex.Split(contentString, "\r\n|\r|\n").ToList();
             }
             catch
@@ -144,58 +144,58 @@ namespace WebSocketServer.Model
             }
         }
 
-        void SaveDocument(int documentID, List<string> document)
+        async Task SaveDocumentAsync(int documentID, List<string> document)
         {
             string? relativePath = FileStructure.GetRelativePath(documentID);
 
             if (relativePath == null)
             {
-                Console.WriteLine($"Error in {nameof(SaveDocument)}: Relative path is null (documentID {documentID}).");
+                Console.WriteLine($"Error in {nameof(SaveDocumentAsync)}: Relative path is null (documentID {documentID}).");
                 return;
             }
 
-            if (!DatabaseProvider.Database.WriteDocumentData(ID, relativePath, document))
+            if (!await DatabaseProvider.Database.WriteDocumentDataAsync(ID, relativePath, document))
             {
-                Console.WriteLine($"Error in {nameof(SaveDocument)}: Could not save document (path {relativePath}).");
+                Console.WriteLine($"Error in {nameof(SaveDocumentAsync)}: Could not save document (path {relativePath}).");
                 return;
             }
         }
 
-        DocumentInstance? StartDocument(int documentID)
+        async Task<DocumentInstance?> StartDocumentAsync(int documentID)
         {
             if (ActiveDocuments.ContainsKey(documentID))
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start already active document (ID {documentID}).");
+                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start already active document (ID {documentID}).");
                 return null;
             }
 
             if (FileStructure.GetFileFromID(documentID) is not Document documentFile)
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Attempted to start invalid document (ID {documentID}).");
+                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start invalid document (ID {documentID}).");
                 return null;
             }
 
             string? documentPath = FileStructure.GetRelativePath(documentID);
             if (documentPath == null) return null;
 
-            if (GetDocumentContent(ID, documentPath) is not List<string> document)
+            if (await GetDocumentContentAsync(ID, documentPath) is not List<string> document)
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Could not read document content (path {documentPath}).");
+                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Could not read document content (path {documentPath}).");
                 return null;
             }
 
-            Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(() => SaveDocument(documentID, documentContent));
+            Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(async () => await SaveDocumentAsync(documentID, documentContent));
 
             DocumentInstance documentInstance = new(documentFile, document, SaveDocumentCallback);
             if (!ActiveDocuments.TryAdd(documentID, documentInstance))
             {
-                Console.WriteLine($"Error in {nameof(StartDocument)}: Could not add document to ActiveDocuments.");
+                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Could not add document to ActiveDocuments.");
                 return null;
             }
             return documentInstance;
         }
 
-        int? CreateDocument(Client client, int parentID, string name)
+        async Task<int?> CreateDocumentAsync(Client client, int parentID, string name)
         {
             if (!FileStructure.ValidateFileName(name))
                 return null;
@@ -208,7 +208,7 @@ namespace WebSocketServer.Model
                 return null;
 
             string relativePath = FileStructure.GetRelativePath(document.ID)!;
-            if (!DatabaseProvider.Database.CreateDocument(ID, relativePath))
+            if (!await DatabaseProvider.Database.CreateDocumentAsync(ID, relativePath))
             {
                 FileStructure.RemoveFile(document.ID);
                 return null;
@@ -217,7 +217,7 @@ namespace WebSocketServer.Model
             return document.ID;
         }
 
-        int? CreateFolder(Client client, int parentID, string name)
+        async Task<int?> CreateFolderAsync(Client client, int parentID, string name)
         {
             if (!FileStructure.ValidateFileName(name))
                 return null;
@@ -230,7 +230,7 @@ namespace WebSocketServer.Model
                 return null;
 
             string relativePath = FileStructure.GetRelativePath(folder.ID)!;
-            if (!DatabaseProvider.Database.CreateFolder(ID, relativePath))
+            if (!await DatabaseProvider.Database.CreateFolderAsync(ID, relativePath))
             {
                 FileStructure.RemoveFile(folder.ID);
                 return null;
@@ -239,7 +239,7 @@ namespace WebSocketServer.Model
             return folder.ID;
         }
 
-        bool DeleteDocument(Client client, int fileID)
+        async Task<bool> DeleteDocumentAsync(Client client, int fileID)
         {
             if (!RoleHandler.CanManageFiles(client.Role))
                 return false;
@@ -265,7 +265,7 @@ namespace WebSocketServer.Model
                 }
             }
 
-            if (!DatabaseProvider.Database.DeleteDocument(ID, relativePath))
+            if (!await DatabaseProvider.Database.DeleteDocumentAsync(ID, relativePath))
             {
                 ///TODO: retry it later
             }
@@ -273,7 +273,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool DeleteFolder(Client client, int fileID)
+        async Task<bool> DeleteFolderAsync(Client client, int fileID)
         {
             if (!RoleHandler.CanManageFiles(client.Role))
                 return false;
@@ -288,15 +288,15 @@ namespace WebSocketServer.Model
             foreach (var (_, file) in folder.Items)
             {
                 if (file.Type == FileTypes.Document)
-                    DeleteDocument(client, file.ID);
+                    await DeleteDocumentAsync(client, file.ID);
                 else if (file.Type == FileTypes.Folder)
-                    DeleteFolder(client, file.ID);
+                    await DeleteFolderAsync(client, file.ID);
             }
 
             if (!FileStructure.RemoveFile(fileID))
                 return false;
 
-            if (!DatabaseProvider.Database.DeleteFolder(ID, relativePath))
+            if (!await DatabaseProvider.Database.DeleteFolderAsync(ID, relativePath))
             {
                 ///TODO: retry it later
             }
@@ -304,7 +304,7 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        bool RenameFile(Client client, int fileID, string newName)
+        async Task<bool> RenameFileAsync(Client client, int fileID, string newName)
         {
             if (!FileStructure.ValidateFileName(newName))
                 return false;
@@ -321,9 +321,9 @@ namespace WebSocketServer.Model
             if (FileStructure.GetRelativePath(fileID) is not string newPath)
                 return false;
 
-            if (!DatabaseProvider.Database.RenameFile(ID, oldPath, newPath))
+            if (!await DatabaseProvider.Database.RenameFileAsync(ID, oldPath, newPath))
             {
-                Console.WriteLine($"Error in {nameof(RenameFile)}: Database could not rename file.");
+                Console.WriteLine($"Error in {nameof(RenameFileAsync)}: Database could not rename file.");
                 ///TODO: retry it later
                 return false;
             }
@@ -345,91 +345,91 @@ namespace WebSocketServer.Model
             return true;
         }
 
-        public bool HandleGetDocument(Client client, int fileID)
+        public async Task<bool> HandleGetDocumentAsync(Client client, int fileID)
         {
             if (FileStructure.IsDocument(fileID))
             {
-                ConnectClientToDocument(client, fileID);
+                await ConnectClientToDocumentAsync(client, fileID);
                 return true;
             }
 
             return false;
         }
 
-        public bool HandleCreateDocument(Client client, int parentID, string name)
+        public async Task<bool> HandleCreateDocumentAsync(Client client, int parentID, string name)
         {
-            if (CreateDocument(client, parentID, name) is not int documentID)
+            if (await CreateDocumentAsync(client, parentID, name) is not int documentID)
             {
-                Console.WriteLine("Error: HandleCreateDocument: Document creation failed.");
+                Console.WriteLine($"Error in {nameof(HandleCreateDocumentAsync)}: Document creation failed.");
                 return false;
             }
 
             CreateDocumentMessage message = new(parentID, documentID, name);
             Clients.SendMessage(message);
-            SaveFileStructure();
+            await SaveFileStructureAsync();
             return true;
         }
 
-        public bool HandleCreateFolder(Client client, int parentID, string name)
+        public async Task<bool> HandleCreateFolderAsync(Client client, int parentID, string name)
         {
-            if (CreateFolder(client, parentID, name) is not int folderID)
+            if (await CreateFolderAsync(client, parentID, name) is not int folderID)
             {
-                Console.WriteLine("Error: HandleCreateFolder: Folder creation failed.");
+                Console.WriteLine($"Error in {nameof(HandleCreateFolderAsync)}: Folder creation failed.");
                 return false;
             }
 
             CreateFolderMessage message = new(parentID, folderID, name);
             Clients.SendMessage(message);
-            SaveFileStructure();
+            await SaveFileStructureAsync();
             return true;
         }
 
-        public bool HandleDeleteDocument(Client client, int fileID)
+        public async Task<bool> HandleDeleteDocumentAsync(Client client, int fileID)
         {
-            if (!DeleteDocument(client, fileID))
+            if (!await DeleteDocumentAsync(client, fileID))
             {
-                Console.WriteLine("Error: HandleDeleteDocument: Document deletion failed.");
+                Console.WriteLine($"Error in {nameof(HandleDeleteDocumentAsync)}: Document deletion failed.");
                 return false;
             }
 
             DeleteDocumentMessage message = new(fileID);
             Clients.SendMessage(message);
-            SaveFileStructure();
+            await SaveFileStructureAsync();
             return true;
         }
 
-        public bool HandleDeleteFolder(Client client, int fileID)
+        public async Task<bool> HandleDeleteFolderAsync(Client client, int fileID)
         {
-            if (!DeleteFolder(client, fileID))
+            if (!await DeleteFolderAsync(client, fileID))
             {
-                Console.WriteLine("Error: HandleDeleteFolder: Folder deletion failed.");
+                Console.WriteLine($"Error in {nameof(HandleDeleteFolderAsync)}: Folder deletion failed.");
                 return false;
             }
 
             DeleteFolderMessage message = new(fileID);
             Clients.SendMessage(message);
-            SaveFileStructure();
+            await SaveFileStructureAsync();
             return true;
         }
 
-        public bool HandleRenameFile(Client client, int fileID, string newName)
+        public async Task<bool> HandleRenameFileAsync(Client client, int fileID, string newName)
         {
-            if (!RenameFile(client, fileID, newName))
+            if (!await RenameFileAsync(client, fileID, newName))
             {
-                Console.WriteLine("Error: HandleRenameFile: File rename failed.");
+                Console.WriteLine($"Error in {nameof(HandleRenameFileAsync)}: File rename failed.");
                 return false;
             }
 
             RenameFileMessage message = new(fileID, newName);
             Clients.SendMessage(message);
-            SaveFileStructure();
+            await SaveFileStructureAsync();
             return true;
         }
 
         ///TODO: save after all clients left
-        void SaveFileStructure()
+        async Task<bool> SaveFileStructureAsync()
         {
-            DatabaseProvider.Database.UpdateFileStructure(ID, FileStructure);
+            return await DatabaseProvider.Database.UpdateFileStructureAsync(ID, FileStructure);
         }
 
         public void RemoveConnection(Client client)

@@ -66,12 +66,12 @@ namespace WebSocketServer.Database
             );
         }
 
-        public User? GetUser(string userID)
+        public async Task<User?> GetUserAsync(string userID)
         {
             try
             {
                 using var sr = new StreamReader(GetUserPath(userID));
-                string jsonString = sr.ReadToEnd();
+                string jsonString = await sr.ReadToEndAsync();
                 var user = new User(jsonString);
                 return user;
             }
@@ -81,10 +81,13 @@ namespace WebSocketServer.Database
             }
         }
 
-        public Roles GetUserWorkspaceRole(string userID, string workspaceHash)
+        public async Task<Roles> GetUserWorkspaceRoleAsync(string userID, string workspaceHash)
         {
-            var user = GetUser(userID);
+            var user = await GetUserAsync(userID);
             Roles role = Roles.None;
+
+            if (user == null)
+                return role;
 
             foreach (var workspace in user.Workspaces)
             {
@@ -98,10 +101,10 @@ namespace WebSocketServer.Database
             return role;
         }
 
-        public string GetDocumentData(string workspaceHash, string relativePath)
+        public async Task<string> GetDocumentDataAsync(string workspaceHash, string relativePath)
         {
             using var sr = new StreamReader(GetFilePath(workspaceHash, relativePath));
-            return sr.ReadToEnd();
+            return await sr.ReadToEndAsync();
         }
 
         public string GetFileStructurePath(string workspaceHash)
@@ -113,12 +116,12 @@ namespace WebSocketServer.Database
             );
         }
 
-        public FileStructure? GetFileStructure(string workspaceHash)
+        public async Task<FileStructure?> GetFileStructureAsync(string workspaceHash)
         {
             try
             {
                 using var sr = new StreamReader(GetFileStructurePath(workspaceHash));
-                string jsonString = sr.ReadToEnd();
+                string jsonString = await sr.ReadToEndAsync();
                 var fileStructure = new FileStructure(jsonString);
                 return fileStructure;
             }
@@ -133,11 +136,22 @@ namespace WebSocketServer.Database
         /// </summary>
         /// <param name="workspaceHash">The hash of the workspace of the file structure.</param>
         /// <param name="fileStructure">The data to be written.</param>
-        public void UpdateFileStructure(string workspaceHash, FileStructure fileStructure)
+        public async Task<bool> UpdateFileStructureAsync(string workspaceHash, FileStructure fileStructure)
         {
             string jsonString = JsonConvert.SerializeObject(fileStructure);
-            using var sw = new StreamWriter(GetFileStructurePath(workspaceHash));
-            sw.Write(jsonString);
+
+            try
+            {
+                using var sw = new StreamWriter(GetFileStructurePath(workspaceHash));
+                await sw.WriteAsync(jsonString);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+
         }
 
         /// <summary>
@@ -146,13 +160,17 @@ namespace WebSocketServer.Database
         /// <param name="workspaceHash">The hash of the workspace in which to create the document.</param>
         /// <param name="relativePath">The path of the document.</param>
         /// <returns>Returns whether the document was created successfully.</returns>
-        public bool CreateDocument(string workspaceHash, string relativePath)
+        public async Task<bool> CreateDocumentAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
             try
             {
-                var fs = System.IO.File.Create(absolutePath);
-                fs.Close();
+                await Task.Run(() =>
+                {
+                    var fs = System.IO.File.Create(absolutePath);
+                    fs.Close();
+                });
+                
                 return true;
             }
             catch
@@ -167,12 +185,16 @@ namespace WebSocketServer.Database
         /// <param name="workspaceHash">The hash of the workspace in which to create the folder.</param>
         /// <param name="relativePath">The path of the folder.</param>
         /// <returns>Returns whether the folder was created successfully.</returns>
-        public bool CreateFolder(string workspaceHash, string relativePath)
+        public async Task<bool> CreateFolderAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
             try
             {
-                System.IO.Directory.CreateDirectory(absolutePath);
+                await Task.Run(() =>
+                {
+                    System.IO.Directory.CreateDirectory(absolutePath);
+                });
+
                 return true;
             }
             catch
@@ -187,12 +209,16 @@ namespace WebSocketServer.Database
         /// <param name="workspaceHash">The hash of the workspace in which to delete the document.</param>
         /// <param name="relativePath">The path of the document.</param>
         /// <returns>Returns whether the document was deleted successfully.</returns>
-        public bool DeleteDocument(string workspaceHash, string relativePath)
+        public async Task<bool> DeleteDocumentAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
             try
             {
-                System.IO.File.Delete(absolutePath);
+                await Task.Run(() =>
+                {
+                    System.IO.File.Delete(absolutePath);
+                });
+
                 return true;
             }
             catch
@@ -207,12 +233,16 @@ namespace WebSocketServer.Database
         /// <param name="workspaceHash">The hash of the workspace in which to delete the folder.</param>
         /// <param name="relativePath">The path of the folder.</param>
         /// <returns>Returns whether the folder was deleted successfully.</returns>
-        public bool DeleteFolder(string workspaceHash, string relativePath)
+        public async Task<bool> DeleteFolderAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
             try
             {
-                System.IO.Directory.Delete(absolutePath, true);
+                await Task.Run(() =>
+                {
+                    System.IO.Directory.Delete(absolutePath, true);
+                });
+
                 return true;
             }
             catch
@@ -228,18 +258,22 @@ namespace WebSocketServer.Database
         /// <param name="oldRelativePath">The path to the file.</param>
         /// <param name="newRelativePath">The new path to the file.</param>
         /// <returns>Returns whether the file was deleted successfully.</returns>
-        public bool RenameFile(string workspaceHash, string oldRelativePath, string newRelativePath)
+        public async Task<bool> RenameFileAsync(string workspaceHash, string oldRelativePath, string newRelativePath)
         {
             string oldAbsolutePath = GetFilePath(workspaceHash, oldRelativePath);
             string newAbsolutePath = GetFilePath(workspaceHash, newRelativePath);
-            FileAttributes attributes = System.IO.File.GetAttributes(oldAbsolutePath);
 
             try
             {
-                if (attributes.HasFlag(FileAttributes.Directory))
-                    System.IO.Directory.Move(oldAbsolutePath, newAbsolutePath);
-                else
-                    System.IO.File.Move(oldAbsolutePath, newAbsolutePath);
+                await Task.Run(() =>
+                {
+                    FileAttributes attributes = System.IO.File.GetAttributes(oldAbsolutePath);
+                    if (attributes.HasFlag(FileAttributes.Directory))
+                        System.IO.Directory.Move(oldAbsolutePath, newAbsolutePath);
+                    else
+                        System.IO.File.Move(oldAbsolutePath, newAbsolutePath);
+                });
+                
                 return true;    
             }
             catch
@@ -255,19 +289,25 @@ namespace WebSocketServer.Database
         /// <param name="relativePath">The path of the document.</param>
         /// <param name="documentRows"></param>
         /// <returns>Returns whether the file was modified successfully.</returns>
-        public bool WriteDocumentData(string workspaceHash, string relativePath, List<string> documentRows)
+        public async Task<bool> WriteDocumentDataAsync(string workspaceHash, string relativePath, List<string> documentRows)
         {
             try
             {
                 string absolutePath = GetFilePath(workspaceHash, relativePath);
-                using var sw = new StreamWriter(absolutePath);
-                foreach (string row in documentRows)
+
+                await Task.Run(() =>
                 {
-                    sw.WriteLine(row);
-                }
+                    using var sw = new StreamWriter(absolutePath);
+                    foreach (string row in documentRows)
+                    {
+                        sw.WriteLine(row);
+                    }
+                });
+                
                 return true;
             }
-            catch {
+            catch
+            {
                 return false;
             }
         }
@@ -280,9 +320,13 @@ namespace WebSocketServer.Database
         /// <param name="workspaceName">The name of the workspace.</param>
         /// <param name="role">The role the user has in the workspace.</param>
         /// <returns></returns>
-        public bool AddUserWorkspace(string userID, string workspaceHash, string workspaceName, Roles role)
+        public async Task<bool> AddUserWorkspaceAsync(string userID, string workspaceHash, string workspaceName, Roles role)
         {
-            var user = GetUser(userID);
+            var user = await GetUserAsync(userID);
+
+            if (user == null)
+                return false;
+
             bool workspacePresent = user.Workspaces.Any((workspace) => workspace.ID == workspaceHash);
 
             if (workspacePresent)
@@ -299,7 +343,7 @@ namespace WebSocketServer.Database
             {
                 string jsonString = JsonConvert.SerializeObject(user);
                 using var sw = new StreamWriter(GetUserPath(userID));
-                sw.Write(jsonString);
+                await sw.WriteAsync(jsonString);
                 return true;
             }
             catch
@@ -308,21 +352,33 @@ namespace WebSocketServer.Database
             }
         }
 
-        public bool RemoveUserWorkspace(string userID, string workspaceHash)
+        public async Task<bool> RemoveUserWorkspaceAsync(string userID, string workspaceHash)
         {
-            var user = GetUser(userID);
-            int workspaceIdx = user.Workspaces.FindIndex((workspace) => workspace.ID == workspaceHash);
+            var user = await GetUserAsync(userID);
 
-            if (workspaceIdx == -1)
-                throw new InvalidOperationException("Attempting to delete a workspace that is not present.");
-
-            user.Workspaces.RemoveAt(workspaceIdx);
+            if (user == null)
+                return false;
 
             try
             {
-                string jsonString = JsonConvert.SerializeObject(user);
-                using var sw = new StreamWriter(GetUserPath(userID));
-                sw.Write(jsonString);
+                await Task.Run(() =>
+                {
+                    // do everything in a lock so that the workspaces get removed safely
+                    lock (user.Workspaces)
+                    {
+                        int workspaceIdx = user.Workspaces.FindIndex((workspace) => workspace.ID == workspaceHash);
+
+                        if (workspaceIdx == -1)
+                            throw new InvalidOperationException("Attempting to delete a workspace that is not present.");
+
+                        user.Workspaces.RemoveAt(workspaceIdx);
+
+                        string jsonString = JsonConvert.SerializeObject(user);
+                        using var sw = new StreamWriter(GetUserPath(userID));
+                        sw.Write(jsonString);
+                    }
+                });
+
                 return true;
             }
             catch
@@ -351,7 +407,7 @@ namespace WebSocketServer.Database
             return sb.ToString();
         }
 
-        public bool CreateWorkspace(string ownerID, string name)
+        public async Task<bool> CreateWorkspaceAsync(string ownerID, string name)
         {
             try
             {
@@ -359,23 +415,26 @@ namespace WebSocketServer.Database
 
                 string workspacePath = GetWorkspacePath(workspaceID);
 
-                // create workspace folder
-                System.IO.Directory.CreateDirectory(workspacePath);
-                // create root folder
-                System.IO.Directory.CreateDirectory(GetWorkspaceRootPath(workspaceID));
+                await Task.Run(() =>
+                {
+                    // create workspace folder
+                    System.IO.Directory.CreateDirectory(workspacePath);
+                    // create root folder
+                    System.IO.Directory.CreateDirectory(GetWorkspaceRootPath(workspaceID));
+                });
 
                 var defaultFileStructure = FileStructure.GetDefault(name);
                 var defaultUsers = WorkspaceUsers.GetDefault(ownerID);
 
                 // create structure.json file
-                UpdateFileStructure(workspaceID, defaultFileStructure);
+                await UpdateFileStructureAsync(workspaceID, defaultFileStructure);
 
                 // create users.json file
-                UpdateWorkspaceUsers(workspaceID, defaultUsers);
+                await UpdateWorkspaceUsersAsync(workspaceID, defaultUsers);
 
                 // add workspace entry to owner
                 // this is added last so that all workspaces listed in user config are valid
-                AddUserWorkspace(ownerID, workspaceID, name, Roles.Owner);
+                await AddUserWorkspaceAsync(ownerID, workspaceID, name, Roles.Owner);
 
                 return true;
             }
@@ -385,22 +444,29 @@ namespace WebSocketServer.Database
             }
         }
 
-        public bool DeleteWorkspace(string workspaceHash)
+        public async Task<bool> DeleteWorkspaceAsync(string workspaceHash)
         {
             try
             {
                 string workspacePath = GetWorkspacePath(workspaceHash);
 
                 // get all user IDs
-                var workspaceUsers = GetWorkspaceUsers(workspaceHash);
+                var workspaceUsers = await GetWorkspaceUsersAsync(workspaceHash);
+
+                if (workspaceUsers == null)
+                    return false;
+
                 var userIDs = workspaceUsers.Users.Keys.ToArray();
 
                 // remove user entries
                 foreach (string userID in userIDs)
-                    RemoveUserWorkspace(userID, workspaceHash);
+                    await RemoveUserWorkspaceAsync(userID, workspaceHash);
 
-                // remove workspace folder
-                System.IO.Directory.Delete(workspacePath, true);
+                await Task.Run(() =>
+                {
+                    // remove workspace folder
+                    System.IO.Directory.Delete(workspacePath, true);
+                });
 
                 return true;
             }
@@ -419,21 +485,38 @@ namespace WebSocketServer.Database
             );
         }
 
-        public WorkspaceUsers GetWorkspaceUsers(string workspaceHash)
+        public async Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash)
         {
             string path = GetWorkspaceUsersPath(workspaceHash);
 
-            using var sr = new StreamReader(path);
-            string jsonString = sr.ReadToEnd();
-            var workspaceUsers = new WorkspaceUsers(jsonString);
-            return workspaceUsers;
+            try
+            {
+                using var sr = new StreamReader(path);
+                string jsonString = await sr.ReadToEndAsync();
+                var workspaceUsers = new WorkspaceUsers(jsonString);
+                return workspaceUsers;
+            }
+            catch
+            {
+                return null;
+            }
         }
 
-        public void UpdateWorkspaceUsers(string workspaceHash, WorkspaceUsers workspaceUsers)
+        public async Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers)
         {
             string jsonString = JsonConvert.SerializeObject(workspaceUsers);
-            using var sw = new StreamWriter(GetWorkspaceUsersPath(workspaceHash));
-            sw.Write(jsonString);
+
+            try
+            {
+                using var sw = new StreamWriter(GetWorkspaceUsersPath(workspaceHash));
+                await sw.WriteAsync(jsonString);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
         }
     }
 }
