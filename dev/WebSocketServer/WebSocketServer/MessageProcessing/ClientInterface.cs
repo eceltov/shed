@@ -67,6 +67,9 @@ namespace WebSocketServer.MessageProcessing
                 case ClientMessageTypes.ForceDocument:
                     HandleForceDocument(messageString);
                     break;
+                case ClientMessageTypes.AddUserToWorkspace:
+                    HandleAddUserToWorkspace(messageString);
+                    break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
@@ -183,6 +186,15 @@ namespace WebSocketServer.MessageProcessing
 
             var message = new ClientForceDocumentMessage(messageString);
             client.Workspace.ScheduleDocumentAction(message.DocumentID, (documentInstance) => documentInstance.ScheduleForceDocument(client, message.Document));
+        }
+
+        void HandleAddUserToWorkspace(string messageString)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientAddUserToWorkspacetMessage(messageString);
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleAddUserToWorkspaceAsync(client, message.Username, message.Role));
         }
 
         protected override void OnClose(CloseEventArgs e)

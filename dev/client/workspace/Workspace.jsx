@@ -39,6 +39,7 @@ class Workspace extends React.Component {
     this.getTabBar = this.getTabBar.bind(this);
     this.showOptionsView = this.showOptionsView.bind(this);
     this.forceDocument = this.forceDocument.bind(this);
+    this.addUserToWorkspace = this.addUserToWorkspace.bind(this);
     this.state = {
       role: roles.none,
       fileStructure: null,
@@ -602,6 +603,11 @@ class Workspace extends React.Component {
     this.editor.mount();
   }
 
+  addUserToWorkspace(username, role) {
+    const message = msgFactory.addUserToWorkspace(username, role);
+    this.sendMessageToServer(JSON.stringify(message));
+  }
+
   renderContent() {
     // welcome view
     if (this.state.tabs.length === 0 && !this.state.showingOptions) {
@@ -618,7 +624,7 @@ class Workspace extends React.Component {
       return (
         <div className="content">
           {this.state.tabs.length > 0 ? this.getTabBar() : null}
-          <OptionsScreen />
+          <OptionsScreen addUserToWorkspace={this.addUserToWorkspace} />
           <div id="editor" key="0" hidden={this.state.activeTab === null} />
         </div>
       );

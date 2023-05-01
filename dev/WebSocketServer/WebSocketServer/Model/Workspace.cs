@@ -12,6 +12,7 @@ using WebSocketServer.Extensions;
 using TextOperations.Types;
 using System.Text.RegularExpressions;
 using WebSocketServer.MessageProcessing.ServerMessages;
+using System.Runtime.InteropServices;
 
 namespace WebSocketServer.Model
 {
@@ -424,6 +425,49 @@ namespace WebSocketServer.Model
             Clients.SendMessage(message);
             await SaveFileStructureAsync();
             return true;
+        }
+
+        /// <summary>
+        /// Validates the username.
+        /// Only alphanumeric characters are allowed.
+        /// </summary>
+        /// <param name="username">The username to validate.</param>
+        /// <returns>Returns whether the username is valid.</returns>
+        bool ValidateUsername(string username)
+        {
+            return username.All(char.IsLetterOrDigit);
+        }
+
+        /// <summary>
+        /// Adds a user to a workspace if its username and role are valid and the
+        /// one to add the user is priviledged to do so.
+        /// If already present, its role is updated instead.
+        /// </summary>
+        /// <param name="client">The client that wishes to add a user.</param>
+        /// <param name="username">The username of the added user.</param>
+        /// <param name="role">The role of the added user.</param>
+        /// <returns></returns>
+        public async Task<bool> HandleAddUserToWorkspaceAsync(Client client, string username, Roles role)
+        {
+            if (!RoleHandler.CanAddUsers(client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Unpriviledged user tried to add a user.");
+                return false;
+            }
+
+            if (!ValidateUsername(username))
+            {
+                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid username.");
+                return false;
+            }
+
+            if (!RoleHandler.ValidWorkspaceAdditionRole(role))
+            {
+                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid role.");
+                return false;
+            }
+
+            return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
         }
 
         ///TODO: save after all clients left

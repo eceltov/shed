@@ -79,5 +79,27 @@ namespace WebSocketServer.Model
               || (role == Roles.Admin)
               || (role == Roles.Owner);
         }
+
+        /// <param name="role">The role of some entity.</param>
+        /// <returns>Returns true if the role can add users to workspaces, else returns false.</returns>
+        public static bool CanAddUsers(Roles role)
+        {
+            return (role == Roles.Admin)
+              || (role == Roles.Owner);
+        }
+
+        /// <param name="role">The role of some entity.</param>
+        /// <returns>
+        /// Returns true if a user with the specified role can
+        /// be added to a workspace, else returns false.
+        /// </returns>
+        public static bool ValidWorkspaceAdditionRole(Roles role)
+        {
+            // None and Owner cannot be added.
+            return (role == Roles.Viewer)
+              || (role == Roles.Editor)
+              || (role == Roles.WorkspaceEditor)
+              || (role == Roles.Admin);
+        }
     }
 }

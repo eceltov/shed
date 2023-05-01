@@ -33,6 +33,8 @@ namespace WebSocketServer.Model
         DivergenceDetected = 10,
         // sent to force the local document state on all clients: {msgType, fileID, document}
         ForceDocument = 11,
+        // sent to add a new user to the workspace: {msgType, username, role}
+        AddUserToWorkspace = 12,
     }
 
     public enum ServerMessageTypes

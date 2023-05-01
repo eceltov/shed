@@ -12,12 +12,10 @@ namespace WebSocketServer.Parsers.ConfigurationParsers
         public AppConfiguration(string jsonString)
         {
             var source = JsonConvert.DeserializeObject<AppConfiguration>(jsonString);
-            Test = source.Test;
             JWT = source.JWT;
             Database = source.Database;
         }
 
-        [JsonProperty("test")] public string Test { get; set; }
         [JsonProperty("JWT")] public JWT JWT { get; set; }
         [JsonProperty("Database")] public Database Database { get; set; }
     }

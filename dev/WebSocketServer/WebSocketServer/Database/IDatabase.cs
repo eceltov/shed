@@ -94,5 +94,17 @@ namespace WebSocketServer.Database
         Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash);
 
         Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers);
+
+        /// <summary>
+        /// Adds a user to a workspace.
+        /// If already present, updates its role instead.
+        /// </summary>
+        /// <param name="workspaceHash">The hash of the workspace.</param>
+        /// <param name="workspaceName">The name of the workspace.</param>
+        /// <param name="username">The username of the user.</param>
+        /// <param name="role">The desired role of the user.</param>
+        /// <returns>Return whether the operation succeeded.</returns>
+        Task<bool> AddUserToWorkspaceAsync(string workspaceHash, string workspaceName, string username, Roles role);
+
     }
 }

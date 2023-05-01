@@ -39,6 +39,14 @@ namespace WebSocketServer.Database
            );
         }
 
+        string GetUsernameToIdMapPath()
+        {
+            return Path.Combine(
+               UsersPath,
+               "../usernameToIdMap.json"
+           );
+        }
+
         string GetWorkspaceRootPath(string workspaceHash)
         {
             return Path.Combine(
@@ -314,12 +322,13 @@ namespace WebSocketServer.Database
 
         /// <summary>
         /// Adds a workspace entry to a user.
+        /// If already present, changes the role instead.
         /// </summary>
         /// <param name="userID">The ID of the user.</param>
         /// <param name="workspaceHash">The hash of the workspace.</param>
         /// <param name="workspaceName">The name of the workspace.</param>
         /// <param name="role">The role the user has in the workspace.</param>
-        /// <returns></returns>
+        /// <returns>Returns whether the operation succeeded.</returns>
         public async Task<bool> AddUserWorkspaceAsync(string userID, string workspaceHash, string workspaceName, Roles role)
         {
             var user = await GetUserAsync(userID);
@@ -327,17 +336,23 @@ namespace WebSocketServer.Database
             if (user == null)
                 return false;
 
-            bool workspacePresent = user.Workspaces.Any((workspace) => workspace.ID == workspaceHash);
+            var foundWorkspace = user.Workspaces.Find((workspace) => workspace.ID == workspaceHash);
 
-            if (workspacePresent)
-                return true;
-
-            var workspace = new Parsers.DatabaseParsers.Workspace {
-                ID = workspaceHash,
-                Name = workspaceName,
-                Role = role
-            };
-            user.Workspaces.Add(workspace);
+            // change the role to the one provided
+            if (foundWorkspace != null)
+            {
+                foundWorkspace.Role = role;
+            }
+            else
+            {
+                var workspace = new Parsers.DatabaseParsers.Workspace
+                {
+                    ID = workspaceHash,
+                    Name = workspaceName,
+                    Role = role
+                };
+                user.Workspaces.Add(workspace);
+            }
 
             try
             {
@@ -363,20 +378,16 @@ namespace WebSocketServer.Database
             {
                 await Task.Run(() =>
                 {
-                    // do everything in a lock so that the workspaces get removed safely
-                    lock (user.Workspaces)
-                    {
-                        int workspaceIdx = user.Workspaces.FindIndex((workspace) => workspace.ID == workspaceHash);
+                    int workspaceIdx = user.Workspaces.FindIndex((workspace) => workspace.ID == workspaceHash);
 
-                        if (workspaceIdx == -1)
-                            throw new InvalidOperationException("Attempting to delete a workspace that is not present.");
+                    if (workspaceIdx == -1)
+                        throw new InvalidOperationException("Attempting to delete a workspace that is not present.");
 
-                        user.Workspaces.RemoveAt(workspaceIdx);
+                    user.Workspaces.RemoveAt(workspaceIdx);
 
-                        string jsonString = JsonConvert.SerializeObject(user);
-                        using var sw = new StreamWriter(GetUserPath(userID));
-                        sw.Write(jsonString);
-                    }
+                    string jsonString = JsonConvert.SerializeObject(user);
+                    using var sw = new StreamWriter(GetUserPath(userID));
+                    sw.Write(jsonString);
                 });
 
                 return true;
@@ -504,7 +515,7 @@ namespace WebSocketServer.Database
 
         public async Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers)
         {
-            string jsonString = JsonConvert.SerializeObject(workspaceUsers);
+            string jsonString = JsonConvert.SerializeObject(workspaceUsers.Users);
 
             try
             {
@@ -517,6 +528,50 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+        }
+
+        public async Task<UsernameToIdMap?> GetUsernameToIdMapAsync()
+        {
+            try
+            {
+                using var sr = new StreamReader(GetUsernameToIdMapPath());
+                string jsonString = await sr.ReadToEndAsync();
+                var usernameToIdMap = new UsernameToIdMap(jsonString);
+                return usernameToIdMap;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> AddUserToWorkspaceAsync(string workspaceHash, string workspaceName, string username, Roles role)
+        {
+            // find userID
+            if (await GetUsernameToIdMapAsync() is not UsernameToIdMap map)
+                return false;
+
+            if (!map.Entries.ContainsKey(username))
+            {
+                Console.Write($"Error in {nameof(AddUserToWorkspaceAsync)}: Username not found.");
+                return false;
+            }
+
+            string userID = map.Entries[username];
+
+            // add entry to user workspaces list
+            await AddUserWorkspaceAsync(userID, workspaceHash, workspaceName, role);
+
+            // add entry to workspace users dict
+            if (await GetWorkspaceUsersAsync(workspaceHash) is not WorkspaceUsers workspaceUsers)
+                return false;
+
+            workspaceUsers.Users[userID] = (int)role;
+
+            if (!await UpdateWorkspaceUsersAsync(workspaceHash, workspaceUsers))
+                return false;
+
+            return true;
         }
     }
 }

@@ -59,7 +59,15 @@ function forceDocument(fileID, document) {
   };
 }
 
+function addUserToWorkspace(username, role) {
+  return {
+    msgType: msgTypes.client.addUserToWorkspace,
+    username,
+    role,
+  };
+}
+
 module.exports = {
   createDocument, createFolder, deleteDocument, deleteFolder, renameFile, deleteWorkspace,
-  getDocument, forceDocument,
+  getDocument, forceDocument, addUserToWorkspace,
 };

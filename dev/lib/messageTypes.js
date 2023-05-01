@@ -26,6 +26,8 @@ const msgTypes = {
     divergenceDetected: 10,
     // sent to force the local document state on all clients: {msgType, fileID, document}
     forceDocument: 11,
+    // sent to add a new user to the workspace: {msgType, username, role}
+    addUserToWorkspace: 12,
   },
 
   // messages sent by server
