@@ -74,12 +74,15 @@ class Workspace extends React.Component {
   connect() {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
-    const token = utils.getCookie('jwt');
+    
+    // use default value "" for guest users
+    const token = utils.getCookie('jwt') ?? "";
 
     // redirect user to login screen if unauthenticated
-    if (!token) {
+    // this was removed so that unauthenticated users can join workspaces that support them
+    /*if (!token) {
       window.location.href = '/';
-    }
+    }*/
 
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);

@@ -95,6 +95,10 @@ namespace WebSocketServer.Database
 
         Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers);
 
+        Task<WorkspaceConfig?> GetWorkspaceConfigAsync(string workspaceHash);
+
+        Task<bool> UpdateWorkspaceConfigAsync(string workspaceHash, WorkspaceConfig workspaceUsers);
+
         /// <summary>
         /// Adds a user to a workspace.
         /// If already present, updates its role instead.

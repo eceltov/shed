@@ -16,14 +16,13 @@ namespace WebSocketServer.MessageProcessing
     static class ConnectionAuthenticator
     {
         /// <summary>
-        /// Validates the request JWT and accepts the connection if valid.
+        /// Validates the request JWT.
         /// </summary>
         /// <param name="clientConnectMessage">The connection message.</param>
         /// <returns>Returns the userID if JWT validation passed, else null.</returns>
-        public static string? AcceptConnection(ClientConnectMessage clientConnectMessage)
+        public static string? ValidateJWT(ClientConnectMessage clientConnectMessage)
         {
-            IdentityModelEventSource.ShowPII = true;
-            if (clientConnectMessage.Token == null)
+            if (clientConnectMessage.Token == "")
                 return null;
 
             var tokenHandler = new JwtSecurityTokenHandler();
@@ -53,6 +52,21 @@ namespace WebSocketServer.MessageProcessing
                 // return null if validation fails
                 return null;
             }
+        }
+
+        /// <summary>
+        /// Gets the userID from a JWT without validating it.
+        /// </summary>
+        /// <param name="clientConnectMessage">The connection message.</param>
+        /// <returns>Returns the userID, or null, if not present.</returns>
+        public static string? GetIDFromJWT(ClientConnectMessage clientConnectMessage)
+        {
+            var tokenHandler = new JwtSecurityTokenHandler();
+            var jsonToken = tokenHandler.ReadToken(clientConnectMessage.Token);
+            if (jsonToken is not JwtSecurityToken JWT)
+                return null;
+
+            return JWT.Claims.FirstOrDefault(claim => claim.Type == "id")?.Value;
         }
     }
 }

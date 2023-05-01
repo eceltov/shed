@@ -79,22 +79,24 @@ namespace WebSocketServer.MessageProcessing
         async Task HandleConnectAsync(string messageString)
         {
             var message = new ClientConnectMessage(messageString);
-            string? userID = ConnectionAuthenticator.AcceptConnection(message);
-            if (userID != null)
-            {
 
-                Workspace? workspace = await AllWorkspaces.GetWorkspaceAsync(message.WorkspaceHash);
-                if (workspace == null) return;
+            if (await AllWorkspaces.GetWorkspaceAsync(message.WorkspaceHash) is not Workspace workspace)
+                return;
 
-                Client? newClient = await Client.CreateClientAsync(userID, workspace, this);
-                if (newClient == null) return;
+            string? userID = ConnectionAuthenticator.ValidateJWT(message);
 
-                client = newClient;
-                if (!AllClients.Add(client)) return;
+            // if the workspace does not allow everyone to join, validate the JWT
+            if (workspace.Config.AccessType == WorkspaceAccessTypes.Priviledged && userID == null)
+                return;
 
-                Console.WriteLine($"Added client {client.ID}");
-                workspace.ScheduleAction(() => workspace.HandleConnectClient(client));
-            }
+            if (await Client.CreateClientAsync(userID, workspace, this) is not Client newClient)
+                return;
+
+            client = newClient;
+            if (!AllClients.Add(client)) return;
+
+            Console.WriteLine($"Added client {client.ID}");
+            workspace.ScheduleAction(() => workspace.HandleConnectClient(client));
         }
 
         void HandleGetDocument(string messageString)

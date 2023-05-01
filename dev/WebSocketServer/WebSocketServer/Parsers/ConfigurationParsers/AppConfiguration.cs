@@ -32,6 +32,7 @@ namespace WebSocketServer.Parsers.ConfigurationParsers
         [JsonProperty("workspaceRootFolderPath")] public string WorkspaceRootFolderPath { get; set; }
         [JsonProperty("fileStructurePath")] public string FileStructurePath { get; set; }
         [JsonProperty("workspaceUsersPath")] public string WorkspaceUsersPath { get; set; }
+        [JsonProperty("workspaceConfigPath")] public string WorkspaceConfigPath { get; set; }
     }
 
     public class Database

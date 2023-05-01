@@ -20,6 +20,7 @@ namespace WebSocketServer.Model
     {
         public FileStructure FileStructure { get; private set; }
         public WorkspaceUsers Users { get; private set; }
+        public WorkspaceConfig Config { get; private set; }
         public string Name { get; private set; }
         public string ID { get; private set; }
 
@@ -36,13 +37,14 @@ namespace WebSocketServer.Model
         /// </summary>
         public ConcurrentDictionary<int, DocumentInstance> ActiveDocuments { get; private set; }
 
-        public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users)
+        public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users, WorkspaceConfig workspaceConfig)
         {
             Console.WriteLine($"Creating Workspace {name}, ID {ID}");
             this.ID = ID;
             Name = name;
             FileStructure = fileStructure;
             Users = users;
+            Config = workspaceConfig;
             Clients = new();
             ActiveDocuments = new();
         }
@@ -72,15 +74,15 @@ namespace WebSocketServer.Model
                 return false;
             }
 
-            if (client.Role == Roles.None)
+            if (!WorkspaceAccessHandler.CanAccessWorkspace(Config.AccessType, client.Role))
             {
-                Console.WriteLine($"Error in ClientCanJoin: client {client.ID} has insufficient access rights.");
+                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} has insufficient access rights.");
                 return false;
             }
 
             if (Clients.ContainsKey(client.ID))
             {
-                Console.WriteLine($"Error in ClientCanJoin: client {client.ID} already present.");
+                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} already present.");
                 return false;
             }
 
@@ -89,8 +91,11 @@ namespace WebSocketServer.Model
 
         async Task<bool> ConnectClientToDocumentAsync(Client client, int fileID)
         {
-            if (!RoleHandler.CanView(client.Role))
+            if (!WorkspaceAccessHandler.CanAccessWorkspace(Config.AccessType, client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: client {client.ID} cannot view the document.");
                 return false;
+            }
 
             DocumentInstance documentInstance;
 

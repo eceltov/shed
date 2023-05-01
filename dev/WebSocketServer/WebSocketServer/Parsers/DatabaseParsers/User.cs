@@ -25,6 +25,18 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         [JsonProperty("username")] public string Username { get; set; }
         [JsonProperty("password")] public string Password { get; set; }
         [JsonProperty("workspaces")] public List<Workspace> Workspaces { get; set; }
+
+        public static User CreateGuestUser()
+        {
+            return new User
+            {
+                ID = "guest",
+                Role = "guest",
+                Username = "guest",
+                Password = "guest",
+                Workspaces = new(),
+            };
+        }
     }
 
     public class Workspace

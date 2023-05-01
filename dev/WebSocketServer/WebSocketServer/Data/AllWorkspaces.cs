@@ -48,11 +48,12 @@ namespace WebSocketServer.Data
         {
             var fileStructure = await DatabaseProvider.Database.GetFileStructureAsync(workspaceID);
             var users = await DatabaseProvider.Database.GetWorkspaceUsersAsync(workspaceID);
+            var config = await DatabaseProvider.Database.GetWorkspaceConfigAsync(workspaceID);
 
-            if (fileStructure == null || users == null)
+            if (fileStructure == null || users == null || config == null)
                 return null;
 
-            return new Workspace(workspaceID, fileStructure.Name, fileStructure, users);
+            return new Workspace(workspaceID, fileStructure.Name, fileStructure, users, config);
         }
     }
 }

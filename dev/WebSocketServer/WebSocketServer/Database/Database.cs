@@ -496,6 +496,15 @@ namespace WebSocketServer.Database
             );
         }
 
+        string GetWorkspaceConfigPath(string workspaceHash)
+        {
+            return Path.Combine(
+                WorkspacesPath,
+                workspaceHash,
+                ConfigurationManager.Configuration.Database.Paths.WorkspaceConfigPath
+            );
+        }
+
         public async Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash)
         {
             string path = GetWorkspaceUsersPath(workspaceHash);
@@ -520,6 +529,40 @@ namespace WebSocketServer.Database
             try
             {
                 using var sw = new StreamWriter(GetWorkspaceUsersPath(workspaceHash));
+                await sw.WriteAsync(jsonString);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<WorkspaceConfig?> GetWorkspaceConfigAsync(string workspaceHash)
+        {
+            string path = GetWorkspaceConfigPath(workspaceHash);
+
+            try
+            {
+                using var sr = new StreamReader(path);
+                string jsonString = await sr.ReadToEndAsync();
+                var workspaceConfig = new WorkspaceConfig(jsonString);
+                return workspaceConfig;
+            }
+            catch
+            {
+                return null;
+            }
+        }
+
+        public async Task<bool> UpdateWorkspaceConfigAsync(string workspaceHash, WorkspaceConfig workspaceConfig)
+        {
+            string jsonString = JsonConvert.SerializeObject(workspaceConfig);
+
+            try
+            {
+                using var sw = new StreamWriter(GetWorkspaceConfigPath(workspaceHash));
                 await sw.WriteAsync(jsonString);
 
                 return true;

@@ -8,7 +8,8 @@
       "usersPath": "users",
       "workspaceRootFolderPath": "root/",
       "fileStructurePath": "structure.json",
-      "workspaceUsersPath": "users.json"
+      "workspaceUsersPath": "users.json",
+      "workspaceConfigPath": "config.json"
     },
     "workspaceHashSalt": "some salt"
   }
