@@ -10,12 +10,14 @@ namespace WebSocketServer.MessageProcessing.ServerMessages
         [JsonProperty("clientID")] public int ClientID { get; set; }
         [JsonProperty("fileStructure")] public FileStructure FileStructure { get; set; }
         [JsonProperty("role")] public Roles Role { get; set; }
+        [JsonProperty("accessType")] public WorkspaceAccessTypes AccessType { get; set; }
 
-        public InitWorkspaceMessage(int clientID, FileStructure fileStructure, Roles role)
+        public InitWorkspaceMessage(int clientID, FileStructure fileStructure, Roles role, WorkspaceAccessTypes accessType)
         {
             ClientID = clientID;
             FileStructure = fileStructure;
             Role = role;
+            AccessType = accessType;
         }
     }
 }

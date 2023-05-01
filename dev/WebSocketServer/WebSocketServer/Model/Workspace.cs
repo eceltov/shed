@@ -345,7 +345,7 @@ namespace WebSocketServer.Model
             if (!Clients.TryAdd(client.ID, client))
                 return false;
 
-            var initMsg = new InitWorkspaceMessage(client.ID, FileStructure, client.Role);
+            var initMsg = new InitWorkspaceMessage(client.ID, FileStructure, client.Role, Config.AccessType);
             client.ClientInterface.Send(initMsg);
 
             return true;
@@ -496,6 +496,34 @@ namespace WebSocketServer.Model
             }
 
             return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
+        }
+
+        public async Task<bool> HandleChangeWorkspaceAccessTypeAsync(Client client, WorkspaceAccessTypes accessType)
+        {
+            if (!RoleHandler.CanChangeWorkspaceAccessType(client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Unpriviledged user tried to change access type.");
+                return false;
+            }
+
+            if (Config.AccessType == accessType)
+                return true;
+
+            if (!await DatabaseProvider.Database.ChangeWorkspaceAccessTypeAsync(ID, accessType))
+            {
+                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Could not update access type.");
+                return false;
+            }
+
+            ChangeWorkspaceAccessTypeMessage message = new(accessType);
+            Clients.SendMessage(message);
+
+            lock (Config)
+            {
+                Config.AccessType = accessType;
+            }
+
+            return false;
         }
 
         ///TODO: save after all clients left

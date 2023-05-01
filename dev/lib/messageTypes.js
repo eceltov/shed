@@ -28,6 +28,8 @@ const msgTypes = {
     forceDocument: 11,
     // sent to add a new user to the workspace: {msgType, username, role}
     addUserToWorkspace: 12,
+    // sent to change the access type of the workspace: {msgType, accessType}
+    changeWorkspaceAccessType: 13,
   },
 
   // messages sent by server
@@ -60,6 +62,8 @@ const msgTypes = {
     divergenceDetected: 63,
     // sent to force the server document state: {msgType, fileID, serverDocument}
     forceDocument: 64,
+    // sent to inform about the change of the access type of the workspace: {msgType, accessType}
+    changeWorkspaceAccessType: 65,
   },
 };
 

@@ -67,7 +67,14 @@ function addUserToWorkspace(username, role) {
   };
 }
 
+function changeWorkspaceAccessType(accessType) {
+  return {
+    msgType: msgTypes.client.changeWorkspaceAccessType,
+    accessType,
+  };
+}
+
 module.exports = {
   createDocument, createFolder, deleteDocument, deleteFolder, renameFile, deleteWorkspace,
-  getDocument, forceDocument, addUserToWorkspace,
+  getDocument, forceDocument, addUserToWorkspace, changeWorkspaceAccessType,
 };

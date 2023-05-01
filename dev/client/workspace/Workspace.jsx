@@ -9,6 +9,7 @@ const ManagedSession = require('../../lib/ManagedSession');
 const msgFactory = require('../../lib/clientMessageFactory');
 const { msgTypes } = require('../../lib/messageTypes');
 const roles = require('../../lib/roles');
+const workspaceAccessTypes = require('../../lib/workspaceAccessTypes');
 const utils = require('../../lib/utils');
 const HeaderBar = require('./HeaderBar');
 const OptionsScreen = require('./OptionsScreen');
@@ -40,8 +41,10 @@ class Workspace extends React.Component {
     this.showOptionsView = this.showOptionsView.bind(this);
     this.forceDocument = this.forceDocument.bind(this);
     this.addUserToWorkspace = this.addUserToWorkspace.bind(this);
+    this.changeWorkspaceAccessType = this.changeWorkspaceAccessType.bind(this);
     this.state = {
       role: roles.none,
+      accessType: workspaceAccessTypes.accessTypes.priviledged,
       fileStructure: null,
       activeTab: null, // fileID of active document
       activeFile: fsOps.rootID, // set root as the default active file
@@ -74,7 +77,7 @@ class Workspace extends React.Component {
   connect() {
     const urlParams = new URLSearchParams(window.location.search);
     const workspaceHash = urlParams.get('hash');
-    
+
     // use default value "" for guest users
     const token = utils.getCookie('jwt') ?? "";
 
@@ -322,6 +325,9 @@ class Workspace extends React.Component {
       case msgTypes.server.forceDocument:
         this.onForceDocument(message);
         break;
+      case msgTypes.server.changeWorkspaceAccessType:
+        this.onChangeWorkspaceAccessType(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
@@ -340,6 +346,7 @@ class Workspace extends React.Component {
     this.pathMap = fsOps.getIDPathMap(message.fileStructure);
     this.setState({
       role: message.role,
+      accessType: message.accessType,
       fileStructure: message.fileStructure,
       activeFile: message.fileStructure.ID,
     });
@@ -548,6 +555,12 @@ class Workspace extends React.Component {
     });
   }
 
+  onChangeWorkspaceAccessType(message) {
+    this.setState({
+      accessType: message.accessType,
+    });
+  }
+
   onForceDocument(message) {
     // create a new managed session that has no history
     const name = fsOps.getFileNameFromID(this.state.fileStructure, this.pathMap, message.fileID);
@@ -611,6 +624,11 @@ class Workspace extends React.Component {
     this.sendMessageToServer(JSON.stringify(message));
   }
 
+  changeWorkspaceAccessType(accessType) {
+    const message = msgFactory.changeWorkspaceAccessType(accessType);
+    this.sendMessageToServer(JSON.stringify(message));
+  }
+
   renderContent() {
     // welcome view
     if (this.state.tabs.length === 0 && !this.state.showingOptions) {
@@ -627,7 +645,12 @@ class Workspace extends React.Component {
       return (
         <div className="content">
           {this.state.tabs.length > 0 ? this.getTabBar() : null}
-          <OptionsScreen addUserToWorkspace={this.addUserToWorkspace} />
+          <OptionsScreen
+            addUserToWorkspace={this.addUserToWorkspace}
+            changeWorkspaceAccessType={this.changeWorkspaceAccessType}
+            accessType={this.state.accessType}
+            role={this.state.role}
+          />
           <div id="editor" key="0" hidden={this.state.activeTab === null} />
         </div>
       );

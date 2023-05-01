@@ -1,10 +1,12 @@
 const React = require('react');
 const roles = require('../../lib/roles');
+const workspaceAccessTypes = require('../../lib/workspaceAccessTypes');
 
 class OptionsScreen extends React.Component {
   constructor(props) {
     super(props);
     this.handleAddUser = this.handleAddUser.bind(this);
+    this.onAccessTypeChange = this.onAccessTypeChange.bind(this);
   }
 
   validateUsername(username) {
@@ -30,10 +32,14 @@ class OptionsScreen extends React.Component {
     console.log(`Error in handleAddUser: Invalid values: ${username}, ${role}`);
   }
 
-  render() {
+  onAccessTypeChange(e) {
+    this.props.changeWorkspaceAccessType(e.target.value);
+  }
+
+  renderAddUsers() {
     return (
-      <div className="optionsContent">
-        <h1 className="title">Add Users To Workspace</h1>
+      <div>
+        <h1 className="optionsTitle">Add Users To Workspace</h1>
 
         <div className="createSegment">
           <label className="createName">
@@ -59,6 +65,41 @@ class OptionsScreen extends React.Component {
             Add
           </button>
         </div>
+      </div>
+    );
+  }
+
+  renderChangeAccessTypes() {
+    return (
+      <div>
+        <h1 className="optionsTitle">Change Workspace Access Type</h1>
+
+        <div className="createSegment">
+          <label className="createName">
+            Access Type
+            <select className="credentialsInput" name="label" id="accessInput" required
+              onChange={this.onAccessTypeChange}
+              defaultValue={this.props.accessType}
+            >
+              <option value={workspaceAccessTypes.accessTypes.priviledged}>Priviledged</option>
+              <option value={workspaceAccessTypes.accessTypes.allReadOnly}>All (Read Only)</option>
+            </select>
+          </label>
+        </div>
+      </div>
+    );
+  }
+
+  render() {
+    return (
+      <div className="optionsContent">
+        {!roles.canAddUsers(this.props.role) ? null :
+          this.renderAddUsers()
+        }
+
+        {!roles.canChangeWorkspaceAccessType(this.props.role) ? null :
+          this.renderChangeAccessTypes()
+        }
       </div>
     );
   }

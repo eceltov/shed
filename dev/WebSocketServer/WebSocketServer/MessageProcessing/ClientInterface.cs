@@ -70,6 +70,9 @@ namespace WebSocketServer.MessageProcessing
                 case ClientMessageTypes.AddUserToWorkspace:
                     HandleAddUserToWorkspace(messageString);
                     break;
+                case ClientMessageTypes.ChangeWorkspaceAccessType:
+                    HandleChangeWorkspaceAccessType(messageString);
+                    break;
                 default:
                     Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
@@ -197,6 +200,15 @@ namespace WebSocketServer.MessageProcessing
 
             var message = new ClientAddUserToWorkspacetMessage(messageString);
             client.Workspace.ScheduleAction(async () => await client.Workspace.HandleAddUserToWorkspaceAsync(client, message.Username, message.Role));
+        }
+
+        void HandleChangeWorkspaceAccessType(string messageString)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientChangeWorkspaceAccessTypeMessage(messageString);
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleChangeWorkspaceAccessTypeAsync(client, message.AccessType));
         }
 
         protected override void OnClose(CloseEventArgs e)

@@ -35,6 +35,8 @@ namespace WebSocketServer.Model
         ForceDocument = 11,
         // sent to add a new user to the workspace: {msgType, username, role}
         AddUserToWorkspace = 12,
+        // sent to change the access type of the workspace: {msgType, accessType}
+        ChangeWorkspaceAccessType = 13,
     }
 
     public enum ServerMessageTypes
@@ -67,5 +69,7 @@ namespace WebSocketServer.Model
         DivergenceDetected = 63,
         // sent to force the server document state: {msgType, fileID, serverDocument}
         ForceDocument = 64,
+        // sent to inform about the change of the access type of the workspace: {msgType, accessType}
+        ChangeWorkspaceAccessType = 65,
     }
 }

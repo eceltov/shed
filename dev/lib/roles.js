@@ -79,6 +79,27 @@ function canDeleteWorkspace(role) {
   return role === roles.owner;
 }
 
+/**
+ * @param {*} role The role of some entity.
+ * @returns Returns true if the role can add users to workspaces, else returns false.
+ */
+function canAddUsers(role)
+{
+  return (role === roles.admin)
+    || (role === roles.owner);
+}
+
+/**
+ * @param {*} role The role of some entity.
+ * @returns Returns true if the role can change access types workspaces, else returns false.
+ */
+function canChangeWorkspaceAccessType(role)
+{
+  return (role === roles.admin)
+    || (role === roles.owner);
+}
+
 module.exports = {
   roles, getRoleName, canView, canEdit, canManageFiles, canDeleteWorkspace,
+  canAddUsers, canChangeWorkspaceAccessType,
 };

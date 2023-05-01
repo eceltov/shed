@@ -113,5 +113,7 @@ namespace WebSocketServer.Database
         Task<string?> GetUsernameFromIDAsync(string username);
 
         Task<User?> GetUserByUsernameAsync(string username);
+
+        Task<bool> ChangeWorkspaceAccessTypeAsync(string workspaceHash, WorkspaceAccessTypes accessType);
     }
 }

@@ -573,6 +573,25 @@ namespace WebSocketServer.Database
             }
         }
 
+        public async Task<bool> ChangeWorkspaceAccessTypeAsync(string workspaceHash, WorkspaceAccessTypes accessType)
+        {
+            if (await GetWorkspaceConfigAsync(workspaceHash) is not WorkspaceConfig config)
+            {
+                Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config not found.");
+                return false;
+            }
+
+            config.AccessType = accessType;
+
+            if (!await UpdateWorkspaceConfigAsync(workspaceHash, config))
+            {
+                Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config could not be updated.");
+                return false;
+            }
+
+            return true;
+        }
+
         public async Task<UsernameToIdMap?> GetUsernameToIdMapAsync()
         {
             try

@@ -89,6 +89,14 @@ namespace WebSocketServer.Model
         }
 
         /// <param name="role">The role of some entity.</param>
+        /// <returns>Returns true if the role can change access types workspaces, else returns false.</returns>
+        public static bool CanChangeWorkspaceAccessType(Roles role)
+        {
+            return (role == Roles.Admin)
+              || (role == Roles.Owner);
+        }
+
+        /// <param name="role">The role of some entity.</param>
         /// <returns>
         /// Returns true if a user with the specified role can
         /// be added to a workspace, else returns false.

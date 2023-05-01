@@ -352,6 +352,14 @@ TODO: handle bigger and smaller resolutions
     margin-bottom: 5vh;
 }
 
+.optionsTitle {
+    margin-left: var(--workspace-link-margin-left);
+    margin-right: var(--workspace-link-margin-left);
+    color: var(--main-font-color);
+    font-weight: bold;
+    font-size: xx-large;
+}
+
 .createInput {
     border-radius: 4px;
     color: black;
