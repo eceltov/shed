@@ -106,5 +106,8 @@ namespace WebSocketServer.Database
         /// <returns>Return whether the operation succeeded.</returns>
         Task<bool> AddUserToWorkspaceAsync(string workspaceHash, string workspaceName, string username, Roles role);
 
+        Task<string?> GetUsernameFromIDAsync(string username);
+
+        Task<User?> GetUserByUsernameAsync(string username);
     }
 }

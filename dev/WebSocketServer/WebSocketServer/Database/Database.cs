@@ -545,19 +545,39 @@ namespace WebSocketServer.Database
             }
         }
 
-        public async Task<bool> AddUserToWorkspaceAsync(string workspaceHash, string workspaceName, string username, Roles role)
+        public async Task<string?> GetUsernameFromIDAsync(string username)
         {
-            // find userID
             if (await GetUsernameToIdMapAsync() is not UsernameToIdMap map)
-                return false;
+                return null;
 
             if (!map.Entries.ContainsKey(username))
             {
-                Console.Write($"Error in {nameof(AddUserToWorkspaceAsync)}: Username not found.");
-                return false;
+                Console.Write($"Error in {nameof(GetUsernameFromIDAsync)}: Username not found.");
+                return null;
             }
 
-            string userID = map.Entries[username];
+            return map.Entries[username];
+        }
+
+        public async Task<User?> GetUserByUsernameAsync(string username)
+        {
+            if (await GetUsernameFromIDAsync(username) is not string userID)
+                return null;
+
+            if (await GetUserAsync(userID) is not User user)
+            {
+                Console.Write($"Error in {nameof(GetUserByUsernameAsync)}: User not found.");
+                return null;
+            }
+
+            return user;
+        }
+
+        public async Task<bool> AddUserToWorkspaceAsync(string workspaceHash, string workspaceName, string username, Roles role)
+        {
+            // find userID
+            if (await GetUsernameFromIDAsync(username) is not string userID)
+                return false;
 
             // add entry to user workspaces list
             await AddUserWorkspaceAsync(userID, workspaceHash, workspaceName, role);

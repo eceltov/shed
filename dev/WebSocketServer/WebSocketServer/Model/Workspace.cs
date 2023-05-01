@@ -467,6 +467,29 @@ namespace WebSocketServer.Model
                 return false;
             }
 
+            if (await DatabaseProvider.Database.GetUserByUsernameAsync(username) is not User user)
+            {
+                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Could not find user '{username}'.");
+                return false;
+            }
+
+            var userWorkspaceEntry = user.Workspaces.Find((workspace) => workspace.ID == ID);
+            // handle special cases when the user already has access to the workspace
+            if (userWorkspaceEntry != null)
+            {
+                if (userWorkspaceEntry.Role == Roles.Owner)
+                {
+                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: The owner cannot be made less priviledged.");
+                    return false;
+                }
+
+                if (client.Role == Roles.Admin && userWorkspaceEntry.Role == Roles.Admin)
+                {
+                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less priviledged.");
+                    return false;
+                }
+            }
+
             return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
         }
 
