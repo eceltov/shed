@@ -2,375 +2,341 @@
   "id" : 1,
   "name" : "Name",
   "description" : "Description",
-  "revision" : 0,
-  "lastModifiedDate" : "2021-11-11T09:58:20Z",
-  "lastModifiedAgent" : "structurizr-web/2544/diagram",
+  "lastModifiedDate" : "2023-05-01T13:39:57Z",
   "properties" : {
-    "structurizr.dsl" : "d29ya3NwYWNlIHsKCiAgICBtb2RlbCB7CiAgICAgICAgdXNlciA9IHBlcnNvbiAiVXNlciIKCiAgICAgICAgbWFpbiA9IHNvZnR3YXJlU3lzdGVtICJTaGFyZWQgV2ViIEVkaXRvciIgewogICAgICAgICAgICBtYWluUGFnZSA9IGNvbnRhaW5lciAiTWFpbiBQYWdlIiAiQXV0aGVudGljYXRlcyB1c2VycyBhbmQgYWxsb3dzIHRoZW0gdG8gY3JlYXRlIGFuZCB2aWV3IGRvY3VtZW50cy4iICJKYXZhU2NyaXB0IGFuZCBSZWFjdCIgIkJyb3dzZXIiCiAgICAgICAgICAgIGRvY3VtZW50UGFnZSA9IGNvbnRhaW5lciAiRG9jdW1lbnQgUGFnZSIgIlNob3dzIHRoZSBjb250ZW50cyBvZiBhIGRvY3VtZW50IGFuZCBhbGxvd3MgdXNlcnMgdG8gZWRpdCBpdC4iICJKYXZhU2NyaXB0IGFuZCBSZWFjdCIgIkJyb3dzZXIiCiAgICAgICAgICAgIGRhdGFiYXNlID0gY29udGFpbmVyICJEb2N1bWVudCBEYXRhYmFzZSIgIlN0b3JlcyBkb2N1bWVudHMuIiAiIiAiRGF0YWJhc2UiCgogICAgICAgICAgICBwaHBTZXJ2ZXIgPSBjb250YWluZXIgIlBIUCBTZXJ2ZXIiICJNYW5hZ2VzIHVzZXIgYXV0aGVudGljYXRpb24sIGRvY3VtZW50IGNyZWF0aW9uL2RlbGV0aW9uIGFuZCBkb2N1bWVudCBhY2Nlc3MuIiAiUEhQIEFwYWNoZSIgewogICAgICAgICAgICAgICAgZnJvbnRDb250cm9sbGVyID0gY29tcG9uZW50ICJGcm9udCBDb250cm9sbGVyIiAiUHJvY2Vzc2VzIHVzZXIgcmVxdWVzdHMgYW5kIGdlbmVyYXRlcyBIVE1MIHBhZ2VzLiIgIlBIUCIKICAgICAgICAgICAgICAgIGxvZ2luQ29udHJvbGxlciA9IGNvbXBvbmVudCAiTG9naW4gQ29udHJvbGxlciIgIlByb2Nlc3NlcyB1c2VyIGF1dGhlbnRpY2F0aW9uIHJlcXVlc3RzLiIKICAgICAgICAgICAgICAgIGRvY3VtZW50TWFuYWdlbWVudENvbnRyb2xsZXIgPSBjb21wb25lbnQgIkRvY3VtZW50IE1hbmFnZW1lbnQgQ29udHJvbGxlciIgIlByb2Nlc3NlcyBkb2N1bWVudCBjcmVhdGlvbiBhbmQgZGVsZXRpb24gcmVxdWVzdHMuIgogICAgICAgICAgICAgICAgZG9jdW1lbnRBY2Nlc3NDb250cm9sbGVyID0gY29tcG9uZW50ICJEb2N1bWVudCBBY2Nlc3MgQ29udHJvbGxlciIgIlByb2Nlc3NlcyBkb2N1bWVudCBhY2Nlc3MgcmVxdWVzdHMuIElmIHRoZSB1c2VyIGhhcyBhY2Nlc3MsIHJldHVybnMgdGhlIGFjY2VzcyBwYXJhbWV0ZXJzIGZvciB0aGUgZG9jdW1lbnQuIgogICAgICAgICAgICAgICAgdXNlck1vZGVsID0gY29tcG9uZW50ICJVc2VyIE1vZGVsIiAiSG9sZHMgaW5mb3JtYXRpb24gYWJvdXQgdXNlcnMgKHByaXZpbGVnZXMsIGRvY3VtZW50IG93bmVyc2hpcHMsIGRvY3VtZW50IG5hbWVzLCBkb2N1bWVudCBhY2Nlc3MgcGFyYW1ldGVycykiCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIGNvbnRyb2xTZXJ2ZXIgPSBjb250YWluZXIgIkRvY3VtZW50IENvbnRyb2wgU2VydmVyIiAiU3RhcnRzL2Nsb3NlcyBEb2N1bWVudCBJbnN0YW5jZSBTZXJ2ZXJzIGJhc2VkIG9uIHVzZXIgcmVxdWVzdHMuIFNlbmRzIGNvbm5lY3Rpb24gaW5mb3JtYXRpb24gdG8gdXNlcnMuIiAiTm9kZS5qcyIgewogICAgICAgICAgICAgICAgaHR0cFNlcnZlciA9IGNvbXBvbmVudCAiSFRUUCBTZXJ2ZXIiICIiICJIVFRQIFNlcnZlciIKICAgICAgICAgICAgICAgIGRvY3VtZW50Q29udHJvbGxlciA9IGNvbXBvbmVudCAiRG9jdW1lbnQgQ29udHJvbGxlciIgIlN0YXJ0cy9jbG9zZXMgRG9jdW1lbnQgaW5zdGFuY2UgU2VydmVycyIKICAgICAgICAgICAgfQoKICAgICAgICAgICAgZG9jdW1lbnRTZXJ2ZXIgPSBjb250YWluZXIgIkRvY3VtZW50IEluc3RhbmNlIFNlcnZlciIgIlByb3ZpZGVzIG1haW4gZG9jdW1lbnQgZWRpdGluZyBmdW5jdGlvbmFsaXR5LiIgIk5vZGUuanMiIHsKICAgICAgICAgICAgICAgIHdlYnNvY2tldFNlcnZlciA9IGNvbXBvbmVudCAiV2ViU29ja2V0IFNlcnZlciIgIiIgIldlYlNvY2tldCBTZXJ2ZXIiCiAgICAgICAgICAgICAgICBvcGVyYXRpb25Db250cm9sbGVyID0gY29tcG9uZW50ICJPcGVyYXRpb24gQ29udHJvbGxlciIgIlJlbGF5cyBvcGVyYXRpb25zIHRvIG90aGVyIHVzZXJzIGFuZCB1cGRhdGVzIGxvY2FsIGRvY3VtZW50IHN0YXRlLiBBbHNvIG1hbmFnZXMgZ2FyYmFnZSBjb2xsZWN0aW9uLiIKICAgICAgICAgICAgICAgIGNsaWVudENvbnRyb2xsZXIgPSBjb21wb25lbnQgIkNsaWVudCBDb250cm9sbGVyIiAiSW5pdGlhbGl6ZXMgb3IgcmVtb3ZlcyBjbGllbnRzLiIKICAgICAgICAgICAgICAgIGNsaWVudE1vZGVsID0gY29tcG9uZW50ICJDbGllbnQgTW9kZWwiICJIb2xkcyBpbmZvcm1hdGlvbiBhYm91dCBjbGllbnRzLiIKICAgICAgICAgICAgICAgIGRvY3VtZW50TW9kZWwgPSBjb21wb25lbnQgIkRvY3VtZW50IE1vZGVsIiAiSG9sZHMgdGhlIGRvY3VtZW50J3MgY29udGVudCBhbmQgbWV0YWRhdGEuIgogICAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgICBhdXRoZW50aWNhdG9yID0gc29mdHdhcmVTeXN0ZW0gIkF1dGhlbnRpY2F0aW9uIFNlcnZpY2UiCgogICAgICAgIHVzZXIgLT4gbWFpbiAiVXNlcyIKICAgICAgICBtYWluIC0+IGF1dGhlbnRpY2F0b3IgIkF1dGhlbnRpY2F0ZXMgdXNlciIKCiAgICAgICAgdXNlciAtPiBtYWluUGFnZSAiVmlzaXRzIHRoZSBtYWluIHBhZ2UiCiAgICAgICAgdXNlciAtPiBkb2N1bWVudFBhZ2UgIkVkaXRzIGRvY3VtZW50cyB1c2luZyIKCiAgICAgICAgbWFpblBhZ2UgLT4gZG9jdW1lbnRQYWdlIAogICAgICAgIG1haW5QYWdlIC0+IHBocFNlcnZlciAiU2VuZHMgcmVxdWVzdHMgdG8iICJIVFRQIgogICAgICAgIG1haW5QYWdlIC0+IGZyb250Q29udHJvbGxlciAiU2VuZHMgcmVxdWVzdHMgdG8iICJIVFRQIgoKICAgICAgICBkb2N1bWVudFBhZ2UgLT4gd2Vic29ja2V0U2VydmVyICJTZW5kcyBjaGFuZ2VzIHRvIHRoZSBkb2N1bWVudCIgIkpTT04vV2ViU29ja2V0IgogICAgICAgIGRvY3VtZW50UGFnZSAtPiBjb250cm9sU2VydmVyICJSZXF1ZXN0cyBEb2N1bWVudCBJbnN0YW5jZSBTZXJ2ZXIgcG9ydCBmcm9tIiAiV2Vic29ja2V0PyIKCgogICAgICAgIAoKICAgICAgICAvL3BocFNlcnZlcgogICAgICAgIHBocFNlcnZlciAtPiBkYXRhYmFzZSAiQ3JlYXRlcyBhbmQgZGVsZXRlcyBmaWxlcyBmcm9tIgogICAgICAgIHBocFNlcnZlciAtPiBhdXRoZW50aWNhdG9yICJBdXRoZW50aWNhdGVzIHVzZXJzIHVzaW5nIgoKICAgICAgICBmcm9udENvbnRyb2xsZXIgLT4gbG9naW5Db250cm9sbGVyICJBdXRoZW50aWNhdGVzIHVzaW5nIgogICAgICAgIGZyb250Q29udHJvbGxlciAtPiBkb2N1bWVudE1hbmFnZW1lbnRDb250cm9sbGVyICJDcmVhdGVzIGFuZCBkZWxldGVzIGRvY3VtZW50cyB1c2luZyIKICAgICAgICBmcm9udENvbnRyb2xsZXIgLT4gZG9jdW1lbnRBY2Nlc3NDb250cm9sbGVyICJWYWxpZGF0ZXMgYWNjZXNzIHVzaW5nIgoKICAgICAgICBsb2dpbkNvbnRyb2xsZXIgLT4gYXV0aGVudGljYXRvciAiQXV0aGVudGljYXRlcyB1c2VycyB1c2luZyIKCiAgICAgICAgZG9jdW1lbnRNYW5hZ2VtZW50Q29udHJvbGxlciAtPiBkYXRhYmFzZSAiQ3JlYXRlcyBvciBkZWxldGVzIGRvY3VtZW50cyBmcm9tIgogICAgICAgIGRvY3VtZW50TWFuYWdlbWVudENvbnRyb2xsZXIgLT4gdXNlck1vZGVsICJDaGVja3MgZm9yIHBlcm1pc3Npb25zIgoKICAgICAgICBkb2N1bWVudEFjY2Vzc0NvbnRyb2xsZXIgLT4gdXNlck1vZGVsICJDaGVja3MgZm9yIHBlcm1pc3Npb25zIGFuZCBnZXRzIGFjY2VzcyBwYXJhbWV0ZXJzIGZyb20iCgogICAgICAgIC8vY29udHJvbFNlcnZlcgogICAgICAgIGRvY3VtZW50UGFnZSAtPiBodHRwU2VydmVyICJSZXF1ZXN0cyBEb2N1bWVudCBJbnN0YW5jZSBTZXJ2ZXIgcG9ydCBmcm9tIgogICAgICAgIGNvbnRyb2xTZXJ2ZXIgLT4gZG9jdW1lbnRTZXJ2ZXIgIlN0YXJ0cy9jbG9zZXMiCiAgICAgICAgaHR0cFNlcnZlciAtPiBkb2N1bWVudENvbnRyb2xsZXIgIk1ha2VzIEFQSSBjYWxscyB0byIKICAgICAgICBkb2N1bWVudENvbnRyb2xsZXIgLT4gZG9jdW1lbnRTZXJ2ZXIgIlN0YXJ0cy9jbG9zZXMiCgoKICAgICAgICAvLyBkb2N1bWVudFNlcnZlcgogICAgICAgIGRvY3VtZW50U2VydmVyIC0+IGRhdGFiYXNlICJSZWFkcyBmcm9tIGFuZCB3cml0ZXMgdG8iCiAgICAgICAgZG9jdW1lbnRTZXJ2ZXIgLT4gZG9jdW1lbnRQYWdlICJVcGRhdGVzIGNsaWVudCdzIGRvY3VtZW50IiAiSlNPTi9XZWJTb2NrZXQiCgogICAgICAgIHdlYnNvY2tldFNlcnZlciAtPiBvcGVyYXRpb25Db250cm9sbGVyICJVc2VzIHRvIHByb2Nlc3Mgb3BlcmF0aW9ucyIKICAgICAgICB3ZWJzb2NrZXRTZXJ2ZXIgLT4gY2xpZW50Q29udHJvbGxlciAiVXNlcyB0byBtYW5hZ2UgY2xpZW50cyIKCiAgICAgICAgb3BlcmF0aW9uQ29udHJvbGxlciAtPiBkb2N1bWVudE1vZGVsICJVcGRhdGVzIHRoZSBkb2N1bWVudCIKICAgICAgICBvcGVyYXRpb25Db250cm9sbGVyIC0+IGNsaWVudE1vZGVsICJVc2VzIHRvIGFjY2VzcyBjbGllbnQgbWV0YWRhdGEiCiAgICAgICAgb3BlcmF0aW9uQ29udHJvbGxlciAtPiBkb2N1bWVudFBhZ2UgIlVwZGF0ZXMgY2xpZW50J3MgZG9jdW1lbnQiCgogICAgICAgIGNsaWVudENvbnRyb2xsZXIgLT4gZG9jdW1lbnRNb2RlbCAiUmVhZHMgdGhlIGRvY3VtZW50IgogICAgICAgIGNsaWVudENvbnRyb2xsZXIgLT4gY2xpZW50TW9kZWwgIlVwZGF0ZXMgY2xpZW50IG1ldGFkYXRhIgogICAgICAgIGNsaWVudENvbnRyb2xsZXIgLT4gZG9jdW1lbnRQYWdlICJJbml0aWFsaXplcyBsb2NhbCBjbGllbnQgZG9jdW1lbnQiCgogICAgICAgIGRvY3VtZW50TW9kZWwgLT4gZGF0YWJhc2UgIlBlcnNpc3RzIHRoZSBkb2N1bWVudCIKCiAgICB9CgogICAgdmlld3MgewogICAgICAgIHN5c3RlbUNvbnRleHQgbWFpbiAiU3lzdGVtIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgIH0KCiAgICAgICAgY29udGFpbmVyIG1haW4gIlNoYXJlZFdlYkVkaXRvciIgewogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICB9CgogICAgICAgIGNvbXBvbmVudCBwaHBTZXJ2ZXIgInBocFNlcnZlciIgewogICAgICAgICAgICBpbmNsdWRlICoKICAgICAgICB9CgogICAgICAgIGNvbXBvbmVudCBjb250cm9sU2VydmVyICJkb2N1bWVudENvbnRyb2xTZXJ2ZXIiIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBjb21wb25lbnQgZG9jdW1lbnRTZXJ2ZXIgIkRvY3VtZW50U2VydmVyIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgIH0KCiAgICAgICAgc3R5bGVzIHsKICAgICAgICAgICAgZWxlbWVudCAiUGVyc29uIiB7CiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICMzMzExY2MKICAgICAgICAgICAgICAgIGZvbnRTaXplIDIyCiAgICAgICAgICAgICAgICBzaGFwZSBQZXJzb24KICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJTb2Z0d2FyZSBTeXN0ZW0iIHsKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzExNjhiZAogICAgICAgICAgICAgICAgY29sb3IgI2ZmZmZmZgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIkNvbnRhaW5lciIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjNDM4ZGQ1CiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQnJvd3NlciIgewogICAgICAgICAgICAgICAgc2hhcGUgV2ViQnJvd3NlcgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIk1vYmlsZSBBcHAiIHsKICAgICAgICAgICAgICAgIHNoYXBlIE1vYmlsZURldmljZUxhbmRzY2FwZQogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIkRhdGFiYXNlIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBDeWxpbmRlcgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIkNvbXBvbmVudCIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjODViYmYwCiAgICAgICAgICAgICAgICBjb2xvciAjMDAwMDAwCiAgICAgICAgICAgIH0KICAgICAgICB9CgogICAgICAgIC8vdGhlbWUgZGVmYXVsdAogICAgfQoKfQo="
+    "structurizr.dsl" : "d29ya3NwYWNlIHsKCiAgICBtb2RlbCB7CiAgICAgICAgdXNlciA9IHBlcnNvbiAiVXNlciIKCiAgICAgICAgbWFpbiA9IHNvZnR3YXJlU3lzdGVtICJTaGFyZWQgV2ViIEVkaXRvciIgewogICAgICAgICAgICBtYWluVmlldyA9IGNvbnRhaW5lciAiTWFpbiBWaWV3IiAiQXV0aGVudGljYXRlcyB1c2VycyBhbmQgYWxsb3dzIHRoZW0gdG8gYWNjZXNzIHdvcmtzcGFjZXMuIiAiSmF2YVNjcmlwdCwgUmVhY3QiICJCcm93c2VyIgogICAgICAgICAgICB3b3Jrc3BhY2VWaWV3ID0gY29udGFpbmVyICJXb3Jrc3BhY2UgVmlldyIgIkRpc3BsYXlzIGEgd29ya3NwYWNlIGFuZCBhbGxvd3MgdGhlIHVzZXIgdG8gbWFrZSBjaGFuZ2VzLiIgIkphdmFTY3JpcHQsIFJlYWN0IiAiQnJvd3NlciIKICAgICAgICAgICAgZGF0YWJhc2UgPSBjb250YWluZXIgIkRhdGFiYXNlIiAiU3RvcmVzIHdvcmtzcGFjZXMsIHVzZXIgZGF0YSBhbmQgY29uZmlndXJhdGlvbnMuIiAiRmlsZSBTeXN0ZW0iICJEYXRhYmFzZSIKCiAgICAgICAgICAgIGNvbnRyb2xsZXJTZXJ2ZXIgPSBjb250YWluZXIgIkNvbnRyb2xsZXIgU2VydmVyIiAiTWFuYWdlcyB1c2VyIGF1dGhlbnRpY2F0aW9uIGFuZCB3b3Jrc3BhY2UgY3JlYXRpb24vZGVsZXRpb24uIiAiRXhwcmVzcy5qcyIgewogICAgICAgICAgICAgICAgcmVzdEFQSSA9IGNvbXBvbmVudCAiUkVTVCBBUEkiICJSZWNlaXZlZCB1c2VyIHJlcXVlc3RzIGFuZCByZXR1cm5zIHJlc3BvbnNlcy4iCiAgICAgICAgICAgICAgICBjb250cm9sbGVyQ29tcG9uZW50ID0gY29tcG9uZW50ICJDb250cm9sbGVyIiAiUmVzb2x2ZXMgcmVxdWVzdHMsIHNlcnZlcyBwYWdlcyBvciBKU09OIGRhdGEuIgogICAgICAgICAgICAgICAgZGF0YWJhc2VBZGFwdGVyQ29udHJvbGxlciA9IGNvbXBvbmVudCAiRGF0YWJhc2UgQWRhcHRlciIgIkhhbmRsZXMgZGF0YWJhc2UgY29tbXVuaWNhdGlvbi4iCiAgICAgICAgICAgIH0KCiAgICAgICAgICAgIHdvcmtzcGFjZVNlcnZlciA9IGNvbnRhaW5lciAiV29ya3NwYWNlIFNlcnZlciIgIlN1cGVydmlzZXMgY2xpZW50cywgcHJvdmlkZXMgd29ya3NwYWNlIG1hbmFnbWVudCBhbmQgZG9jdW1lbnQgZWRpdGluZyBmdW5jdGlvbmFsaXR5LiIgIk5vZGUuanMiIHsKICAgICAgICAgICAgICAgIGNsaWVudEludGVyZmFjZSA9IGNvbXBvbmVudCAiQ2xpZW50IEludGVyZmFjZSIgIkFjY2VwdHMgV2ViU29ja2V0IGNvbm5lY3Rpb25zIGFuZCBmb3J3YXJkcyByZXF1ZXN0cy4iCiAgICAgICAgICAgICAgICB3b3Jrc3BhY2VDb250cm9sbGVyID0gY29tcG9uZW50ICJXb3Jrc3BhY2VDb250cm9sbGVyIiAiSGFuZGxlcyB3b3Jrc3BhY2Ugb3BlcmF0aW9ucy4iCiAgICAgICAgICAgICAgICBkb2N1bWVudENvbnRyb2xsZXIgPSBjb21wb25lbnQgIkRvY3VtZW50IENvbnRyb2xsZXIiICJIYW5kbGVzIGRvY3VtZW50IG9wZXJhdGlvbnMuIgogICAgICAgICAgICAgICAgd29ya3NwYWNlTW9kZWwgPSBjb21wb25lbnQgIldvcmtzcGFjZSBNb2RlbCIgIkhvbGRzIHdvcmtzcGFjZSBkYXRhLiIKICAgICAgICAgICAgICAgIGRvY3VtZW50TW9kZWwgPSBjb21wb25lbnQgIkRvY3VtZW50IE1vZGVsIiAiSG9sZHMgZG9jdW1lbnQgZGF0YS4iCiAgICAgICAgICAgICAgICBjbGllbnRNb2RlbCA9IGNvbXBvbmVudCAiQ2xpZW50IE1vZGVsIiAiSG9sZHMgaW5mb3JtYXRpb24gYWJvdXQgY2xpZW50cy4iCiAgICAgICAgICAgICAgICBkYXRhYmFzZUFkYXB0ZXJXZWJTb2NrZXQgPSBjb21wb25lbnQgIkRhdGFiYXNlIEFkYXB0ZXIiICJIYW5kbGVzIGRhdGFiYXNlIGNvbW11bmljYXRpb24uIgogICAgICAgICAgICB9CiAgICAgICAgfQoKICAgICAgICB1c2VyIC0+IG1haW4gIlVzZXMiCgogICAgICAgIHVzZXIgLT4gbWFpblZpZXcgIlZpc2l0cyB0aGUgbWFpbiBwYWdlIgogICAgICAgIHVzZXIgLT4gd29ya3NwYWNlVmlldyAiRWRpdHMgZG9jdW1lbnRzIHVzaW5nIgoKICAgICAgICBtYWluVmlldyAtPiB3b3Jrc3BhY2VWaWV3ICJSZWRpcmVjdHMiCiAgICAgICAgbWFpblZpZXcgLT4gY29udHJvbGxlclNlcnZlciAiU2VuZHMgcmVxdWVzdHMiICJIVFRQL0pTT04iCiAgICAgICAgbWFpblZpZXcgLT4gcmVzdEFQSSAiU2VuZHMgcmVxdWVzdHMiICJIVFRQL0pTT04iCgogICAgICAgIHdvcmtzcGFjZVZpZXcgLT4gY2xpZW50SW50ZXJmYWNlICJTZW5kcyBjaGFuZ2VzIiAiSlNPTi9XZWJTb2NrZXQiCgogICAgICAgIC8vY29udHJvbGxlclNlcnZlcgogICAgICAgIGNvbnRyb2xsZXJTZXJ2ZXIgLT4gZGF0YWJhc2UgIlBlcnNpc3RzIHVzZXIgYW5kIHdvcmtzcGFjZSBkYXRhIgoKICAgICAgICByZXN0QVBJIC0+IGNvbnRyb2xsZXJDb21wb25lbnQgIkZvcndhcmRzIHJlcXVlc3RzIgoKICAgICAgICBjb250cm9sbGVyQ29tcG9uZW50IC0+IGRhdGFiYXNlQWRhcHRlckNvbnRyb2xsZXIgIlJlY2VpdmVzL0NoYW5nZXMgZGF0YSB1c2luZyIKCiAgICAgICAgZGF0YWJhc2VBZGFwdGVyQ29udHJvbGxlciAtPiBkYXRhYmFzZSAiUGVyc2lzdHMgZGF0YSIKCiAgICAgICAgLy8gd29ya3NwYWNlU2VydmVyCiAgICAgICAgY2xpZW50SW50ZXJmYWNlIC0+IHdvcmtzcGFjZUNvbnRyb2xsZXIgIkZvcndhcmRzIHdvcmtzcGFjZSByZXF1ZXN0cyIKICAgICAgICBjbGllbnRJbnRlcmZhY2UgLT4gZG9jdW1lbnRDb250cm9sbGVyICJGb3J3YXJkcyBkb2N1bWVudCByZXF1ZXN0cyIKICAgICAgICBjbGllbnRJbnRlcmZhY2UgLT4gY2xpZW50TW9kZWwgIkFkZHMgY2xpZW50cyIKCiAgICAgICAgd29ya3NwYWNlQ29udHJvbGxlciAtPiB3b3Jrc3BhY2VNb2RlbCAiTWFuYWdlcyB3b3Jrc3BhY2UgZGF0YSIKICAgICAgICB3b3Jrc3BhY2VDb250cm9sbGVyIC0+IGRvY3VtZW50Q29udHJvbGxlciAiSW5pdGlhbGl6ZXMgZG9jdW1lbnRzLiIKICAgICAgICB3b3Jrc3BhY2VDb250cm9sbGVyIC0+IGNsaWVudE1vZGVsICJWZXJpZmllcyByZXF1ZXN0IGF1dGhvcml6YXRpb24gdXNpbmciCgogICAgICAgIGRvY3VtZW50Q29udHJvbGxlciAtPiBkb2N1bWVudE1vZGVsICJNYW5hZ2VzIGRvY3VtZW50IGRhdGEiCiAgICAgICAgd29ya3NwYWNlQ29udHJvbGxlciAtPiBjbGllbnRNb2RlbCAiVmVyaWZpZXMgcmVxdWVzdCBhdXRob3JpemF0aW9uIHVzaW5nIgoKICAgICAgICB3b3Jrc3BhY2VNb2RlbCAtPiBkYXRhYmFzZUFkYXB0ZXJXZWJTb2NrZXQKICAgICAgICBkb2N1bWVudE1vZGVsIC0+IGRhdGFiYXNlQWRhcHRlcldlYlNvY2tldAogICAgICAgIGNsaWVudE1vZGVsIC0+IGRhdGFiYXNlQWRhcHRlcldlYlNvY2tldAoKCiAgICAgICAgd29ya3NwYWNlU2VydmVyIC0+IGRhdGFiYXNlICJQZXJzaXN0cyB1c2VyLCB3b3Jrc3BhY2UgYW5kIGRvY3VtZW50IGRhdGEiCiAgICAgICAgd29ya3NwYWNlU2VydmVyIC0+IHdvcmtzcGFjZVZpZXcgIkJyb2FkY2FzdHMgY2hhbmdlcyIgIkpTT04vV2ViU29ja2V0IgoKICAgIH0KCiAgICB2aWV3cyB7CiAgICAgICAgc3lzdGVtQ29udGV4dCBtYWluICJTeXN0ZW0iIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBjb250YWluZXIgbWFpbiAiU2hhcmVkV2ViRWRpdG9yIiB7CiAgICAgICAgICAgIGluY2x1ZGUgKgogICAgICAgIH0KCiAgICAgICAgY29tcG9uZW50IGNvbnRyb2xsZXJTZXJ2ZXIgImNvbnRyb2xsZXJTZXJ2ZXIiIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBjb21wb25lbnQgd29ya3NwYWNlU2VydmVyICJ3b3Jrc3BhY2VTZXJ2ZXIiIHsKICAgICAgICAgICAgaW5jbHVkZSAqCiAgICAgICAgfQoKICAgICAgICBzdHlsZXMgewogICAgICAgICAgICBlbGVtZW50ICJQZXJzb24iIHsKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgICAgIGJhY2tncm91bmQgIzMzMTFjYwogICAgICAgICAgICAgICAgZm9udFNpemUgMjIKICAgICAgICAgICAgICAgIHNoYXBlIFBlcnNvbgogICAgICAgICAgICB9CiAgICAgICAgICAgIGVsZW1lbnQgIlNvZnR3YXJlIFN5c3RlbSIgewogICAgICAgICAgICAgICAgYmFja2dyb3VuZCAjMTE2OGJkCiAgICAgICAgICAgICAgICBjb2xvciAjZmZmZmZmCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQ29udGFpbmVyIiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM0MzhkZDUKICAgICAgICAgICAgICAgIGNvbG9yICNmZmZmZmYKICAgICAgICAgICAgfQogICAgICAgICAgICBlbGVtZW50ICJCcm93c2VyIiB7CiAgICAgICAgICAgICAgICBzaGFwZSBXZWJCcm93c2VyCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiTW9iaWxlIEFwcCIgewogICAgICAgICAgICAgICAgc2hhcGUgTW9iaWxlRGV2aWNlTGFuZHNjYXBlCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiRGF0YWJhc2UiIHsKICAgICAgICAgICAgICAgIHNoYXBlIEN5bGluZGVyCiAgICAgICAgICAgIH0KICAgICAgICAgICAgZWxlbWVudCAiQ29tcG9uZW50IiB7CiAgICAgICAgICAgICAgICBiYWNrZ3JvdW5kICM4NWJiZjAKICAgICAgICAgICAgICAgIGNvbG9yICMwMDAwMDAKICAgICAgICAgICAgfQogICAgICAgIH0KCiAgICAgICAgLy90aGVtZSBkZWZhdWx0CiAgICB9Cgp9Cg=="
   },
   "configuration" : { },
   "model" : {
     "people" : [ {
       "id" : "1",
       "tags" : "Element,Person",
+      "properties" : {
+        "structurizr.dsl.identifier" : "user"
+      },
       "name" : "User",
       "relationships" : [ {
-        "id" : "24",
+        "id" : "18",
+        "tags" : "Relationship",
+        "sourceId" : "1",
+        "destinationId" : "2",
+        "description" : "Uses"
+      }, {
+        "id" : "19",
         "tags" : "Relationship",
         "sourceId" : "1",
         "destinationId" : "3",
         "description" : "Visits the main page"
       }, {
-        "id" : "25",
+        "id" : "20",
         "tags" : "Relationship",
         "sourceId" : "1",
         "destinationId" : "4",
         "description" : "Edits documents using"
-      }, {
-        "id" : "22",
-        "tags" : "Relationship",
-        "sourceId" : "1",
-        "destinationId" : "2",
-        "description" : "Uses"
       } ],
       "location" : "Unspecified"
     } ],
     "softwareSystems" : [ {
-      "id" : "21",
-      "tags" : "Element,Software System",
-      "name" : "Authentication Service",
-      "location" : "Unspecified"
-    }, {
       "id" : "2",
       "tags" : "Element,Software System",
+      "properties" : {
+        "structurizr.dsl.identifier" : "main"
+      },
       "name" : "Shared Web Editor",
-      "relationships" : [ {
-        "id" : "23",
-        "tags" : "Relationship",
-        "sourceId" : "2",
-        "destinationId" : "21",
-        "description" : "Authenticates user"
-      } ],
       "location" : "Unspecified",
       "containers" : [ {
         "id" : "3",
         "tags" : "Element,Container,Browser",
-        "name" : "Main Page",
-        "description" : "Authenticates users and allows them to create and view documents.",
+        "properties" : {
+          "structurizr.dsl.identifier" : "mainview"
+        },
+        "name" : "Main View",
+        "description" : "Authenticates users and allows them to access workspaces.",
         "relationships" : [ {
-          "id" : "27",
+          "id" : "21",
+          "tags" : "Relationship",
+          "sourceId" : "3",
+          "destinationId" : "4",
+          "description" : "Redirects"
+        }, {
+          "id" : "22",
           "tags" : "Relationship",
           "sourceId" : "3",
           "destinationId" : "6",
-          "description" : "Sends requests to",
-          "technology" : "HTTP"
+          "description" : "Sends requests",
+          "technology" : "HTTP/JSON"
         }, {
-          "id" : "26",
-          "tags" : "Relationship",
-          "sourceId" : "3",
-          "destinationId" : "4"
-        }, {
-          "id" : "28",
+          "id" : "23",
           "tags" : "Relationship",
           "sourceId" : "3",
           "destinationId" : "7",
-          "description" : "Sends requests to",
-          "technology" : "HTTP"
+          "description" : "Sends requests",
+          "technology" : "HTTP/JSON"
         } ],
-        "technology" : "JavaScript and React"
-      }, {
-        "id" : "12",
-        "tags" : "Element,Container",
-        "name" : "Document Control Server",
-        "description" : "Starts/closes Document Instance Servers based on user requests. Sends connection information to users.",
-        "relationships" : [ {
-          "id" : "42",
-          "tags" : "Relationship",
-          "sourceId" : "12",
-          "destinationId" : "15",
-          "description" : "Starts/closes"
-        } ],
-        "technology" : "Node.js",
-        "components" : [ {
-          "id" : "14",
-          "tags" : "Element,Component",
-          "name" : "Document Controller",
-          "description" : "Starts/closes Document instance Servers",
-          "relationships" : [ {
-            "id" : "44",
-            "tags" : "Relationship",
-            "sourceId" : "14",
-            "destinationId" : "15",
-            "description" : "Starts/closes"
-          } ],
-          "size" : 0
-        }, {
-          "id" : "13",
-          "tags" : "Element,Component",
-          "name" : "HTTP Server",
-          "relationships" : [ {
-            "id" : "43",
-            "tags" : "Relationship",
-            "sourceId" : "13",
-            "destinationId" : "14",
-            "description" : "Makes API calls to"
-          } ],
-          "technology" : "HTTP Server",
-          "size" : 0
-        } ]
-      }, {
-        "id" : "15",
-        "tags" : "Element,Container",
-        "name" : "Document Instance Server",
-        "description" : "Provides main document editing functionality.",
-        "relationships" : [ {
-          "id" : "46",
-          "tags" : "Relationship",
-          "sourceId" : "15",
-          "destinationId" : "4",
-          "description" : "Updates client's document",
-          "technology" : "JSON/WebSocket"
-        }, {
-          "id" : "45",
-          "tags" : "Relationship",
-          "sourceId" : "15",
-          "destinationId" : "5",
-          "description" : "Reads from and writes to"
-        } ],
-        "technology" : "Node.js",
-        "components" : [ {
-          "id" : "20",
-          "tags" : "Element,Component",
-          "name" : "Document Model",
-          "description" : "Holds the document's content and metadata.",
-          "relationships" : [ {
-            "id" : "55",
-            "tags" : "Relationship",
-            "sourceId" : "20",
-            "destinationId" : "5",
-            "description" : "Persists the document"
-          } ],
-          "size" : 0
-        }, {
-          "id" : "17",
-          "tags" : "Element,Component",
-          "name" : "Operation Controller",
-          "description" : "Relays operations to other users and updates local document state. Also manages garbage collection.",
-          "relationships" : [ {
-            "id" : "51",
-            "tags" : "Relationship",
-            "sourceId" : "17",
-            "destinationId" : "4",
-            "description" : "Updates client's document"
-          }, {
-            "id" : "50",
-            "tags" : "Relationship",
-            "sourceId" : "17",
-            "destinationId" : "19",
-            "description" : "Uses to access client metadata"
-          }, {
-            "id" : "49",
-            "tags" : "Relationship",
-            "sourceId" : "17",
-            "destinationId" : "20",
-            "description" : "Updates the document"
-          } ],
-          "size" : 0
-        }, {
-          "id" : "16",
-          "tags" : "Element,Component",
-          "name" : "WebSocket Server",
-          "relationships" : [ {
-            "id" : "47",
-            "tags" : "Relationship",
-            "sourceId" : "16",
-            "destinationId" : "17",
-            "description" : "Uses to process operations"
-          }, {
-            "id" : "48",
-            "tags" : "Relationship",
-            "sourceId" : "16",
-            "destinationId" : "18",
-            "description" : "Uses to manage clients"
-          } ],
-          "technology" : "WebSocket Server",
-          "size" : 0
-        }, {
-          "id" : "18",
-          "tags" : "Element,Component",
-          "name" : "Client Controller",
-          "description" : "Initializes or removes clients.",
-          "relationships" : [ {
-            "id" : "52",
-            "tags" : "Relationship",
-            "sourceId" : "18",
-            "destinationId" : "20",
-            "description" : "Reads the document"
-          }, {
-            "id" : "53",
-            "tags" : "Relationship",
-            "sourceId" : "18",
-            "destinationId" : "19",
-            "description" : "Updates client metadata"
-          }, {
-            "id" : "54",
-            "tags" : "Relationship",
-            "sourceId" : "18",
-            "destinationId" : "4",
-            "description" : "Initializes local client document"
-          } ],
-          "size" : 0
-        }, {
-          "id" : "19",
-          "tags" : "Element,Component",
-          "name" : "Client Model",
-          "description" : "Holds information about clients.",
-          "size" : 0
-        } ]
-      }, {
-        "id" : "4",
-        "tags" : "Element,Container,Browser",
-        "name" : "Document Page",
-        "description" : "Shows the contents of a document and allows users to edit it.",
-        "relationships" : [ {
-          "id" : "29",
-          "tags" : "Relationship",
-          "sourceId" : "4",
-          "destinationId" : "16",
-          "description" : "Sends changes to the document",
-          "technology" : "JSON/WebSocket"
-        }, {
-          "id" : "30",
-          "tags" : "Relationship",
-          "sourceId" : "4",
-          "destinationId" : "15",
-          "description" : "Sends changes to the document",
-          "technology" : "JSON/WebSocket"
-        }, {
-          "id" : "31",
-          "tags" : "Relationship",
-          "sourceId" : "4",
-          "destinationId" : "12",
-          "description" : "Requests Document Instance Server port from",
-          "technology" : "Websocket?"
-        }, {
-          "id" : "41",
-          "tags" : "Relationship",
-          "sourceId" : "4",
-          "destinationId" : "13",
-          "description" : "Requests Document Instance Server port from"
-        } ],
-        "technology" : "JavaScript and React"
+        "technology" : "JavaScript, React",
+        "documentation" : { }
       }, {
         "id" : "6",
         "tags" : "Element,Container",
-        "name" : "PHP Server",
-        "description" : "Manages user authentication, document creation/deletion and document access.",
+        "properties" : {
+          "structurizr.dsl.identifier" : "controllerserver"
+        },
+        "name" : "Controller Server",
+        "description" : "Manages user authentication and workspace creation/deletion.",
         "relationships" : [ {
-          "id" : "32",
+          "id" : "26",
           "tags" : "Relationship",
           "sourceId" : "6",
           "destinationId" : "5",
-          "description" : "Creates and deletes files from"
-        }, {
-          "id" : "33",
-          "tags" : "Relationship",
-          "sourceId" : "6",
-          "destinationId" : "21",
-          "description" : "Authenticates users using"
+          "description" : "Persists user and workspace data"
         } ],
-        "technology" : "PHP Apache",
+        "technology" : "Express.js",
         "components" : [ {
-          "id" : "11",
-          "tags" : "Element,Component",
-          "name" : "User Model",
-          "description" : "Holds information about users (privileges, document ownerships, document names, document access parameters)",
-          "size" : 0
-        }, {
           "id" : "7",
           "tags" : "Element,Component",
-          "name" : "Front Controller",
-          "description" : "Processes user requests and generates HTML pages.",
+          "properties" : {
+            "structurizr.dsl.identifier" : "restapi"
+          },
+          "name" : "REST API",
+          "description" : "Received user requests and returns responses.",
           "relationships" : [ {
-            "id" : "35",
-            "tags" : "Relationship",
-            "sourceId" : "7",
-            "destinationId" : "9",
-            "description" : "Creates and deletes documents using"
-          }, {
-            "id" : "34",
+            "id" : "27",
             "tags" : "Relationship",
             "sourceId" : "7",
             "destinationId" : "8",
-            "description" : "Authenticates using"
-          }, {
-            "id" : "36",
-            "tags" : "Relationship",
-            "sourceId" : "7",
-            "destinationId" : "10",
-            "description" : "Validates access using"
+            "description" : "Forwards requests"
           } ],
-          "technology" : "PHP",
-          "size" : 0
+          "documentation" : { }
         }, {
           "id" : "8",
           "tags" : "Element,Component",
-          "name" : "Login Controller",
-          "description" : "Processes user authentication requests.",
+          "properties" : {
+            "structurizr.dsl.identifier" : "controllercomponent"
+          },
+          "name" : "Controller",
+          "description" : "Resolves requests, serves pages or JSON data.",
           "relationships" : [ {
-            "id" : "37",
+            "id" : "28",
             "tags" : "Relationship",
             "sourceId" : "8",
-            "destinationId" : "21",
-            "description" : "Authenticates users using"
+            "destinationId" : "9",
+            "description" : "Receives/Changes data using"
           } ],
-          "size" : 0
+          "documentation" : { }
         }, {
           "id" : "9",
           "tags" : "Element,Component",
-          "name" : "Document Management Controller",
-          "description" : "Processes document creation and deletion requests.",
+          "properties" : {
+            "structurizr.dsl.identifier" : "databaseadaptercontroller"
+          },
+          "name" : "Database Adapter",
+          "description" : "Handles database communication.",
           "relationships" : [ {
-            "id" : "38",
+            "id" : "29",
             "tags" : "Relationship",
             "sourceId" : "9",
             "destinationId" : "5",
-            "description" : "Creates or deletes documents from"
-          }, {
+            "description" : "Persists data"
+          } ],
+          "documentation" : { }
+        } ],
+        "documentation" : { }
+      }, {
+        "id" : "10",
+        "tags" : "Element,Container",
+        "properties" : {
+          "structurizr.dsl.identifier" : "workspaceserver"
+        },
+        "name" : "Workspace Server",
+        "description" : "Supervises clients, provides workspace managment and document editing functionality.",
+        "relationships" : [ {
+          "id" : "40",
+          "tags" : "Relationship",
+          "sourceId" : "10",
+          "destinationId" : "5",
+          "description" : "Persists user, workspace and document data"
+        }, {
+          "id" : "41",
+          "tags" : "Relationship",
+          "sourceId" : "10",
+          "destinationId" : "4",
+          "description" : "Broadcasts changes",
+          "technology" : "JSON/WebSocket"
+        } ],
+        "technology" : "Node.js",
+        "components" : [ {
+          "id" : "16",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "clientmodel"
+          },
+          "name" : "Client Model",
+          "description" : "Holds information about clients.",
+          "relationships" : [ {
             "id" : "39",
             "tags" : "Relationship",
-            "sourceId" : "9",
-            "destinationId" : "11",
-            "description" : "Checks for permissions"
+            "sourceId" : "16",
+            "destinationId" : "17"
           } ],
-          "size" : 0
+          "documentation" : { }
         }, {
-          "id" : "10",
+          "id" : "12",
           "tags" : "Element,Component",
-          "name" : "Document Access Controller",
-          "description" : "Processes document access requests. If the user has access, returns the access parameters for the document.",
+          "properties" : {
+            "structurizr.dsl.identifier" : "workspacecontroller"
+          },
+          "name" : "WorkspaceController",
+          "description" : "Handles workspace operations.",
           "relationships" : [ {
-            "id" : "40",
+            "id" : "33",
             "tags" : "Relationship",
-            "sourceId" : "10",
-            "destinationId" : "11",
-            "description" : "Checks for permissions and gets access parameters from"
+            "sourceId" : "12",
+            "destinationId" : "14",
+            "description" : "Manages workspace data"
+          }, {
+            "id" : "34",
+            "tags" : "Relationship",
+            "sourceId" : "12",
+            "destinationId" : "13",
+            "description" : "Initializes documents."
+          }, {
+            "id" : "35",
+            "tags" : "Relationship",
+            "sourceId" : "12",
+            "destinationId" : "16",
+            "description" : "Verifies request authorization using"
           } ],
-          "size" : 0
-        } ]
+          "documentation" : { }
+        }, {
+          "id" : "17",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "databaseadapterwebsocket"
+          },
+          "name" : "Database Adapter",
+          "description" : "Handles database communication.",
+          "documentation" : { }
+        }, {
+          "id" : "15",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "documentmodel"
+          },
+          "name" : "Document Model",
+          "description" : "Holds document data.",
+          "relationships" : [ {
+            "id" : "38",
+            "tags" : "Relationship",
+            "sourceId" : "15",
+            "destinationId" : "17"
+          } ],
+          "documentation" : { }
+        }, {
+          "id" : "13",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "documentcontroller"
+          },
+          "name" : "Document Controller",
+          "description" : "Handles document operations.",
+          "relationships" : [ {
+            "id" : "36",
+            "tags" : "Relationship",
+            "sourceId" : "13",
+            "destinationId" : "15",
+            "description" : "Manages document data"
+          } ],
+          "documentation" : { }
+        }, {
+          "id" : "11",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "clientinterface"
+          },
+          "name" : "Client Interface",
+          "description" : "Accepts WebSocket connections and forwards requests.",
+          "relationships" : [ {
+            "id" : "30",
+            "tags" : "Relationship",
+            "sourceId" : "11",
+            "destinationId" : "12",
+            "description" : "Forwards workspace requests"
+          }, {
+            "id" : "31",
+            "tags" : "Relationship",
+            "sourceId" : "11",
+            "destinationId" : "13",
+            "description" : "Forwards document requests"
+          }, {
+            "id" : "32",
+            "tags" : "Relationship",
+            "sourceId" : "11",
+            "destinationId" : "16",
+            "description" : "Adds clients"
+          } ],
+          "documentation" : { }
+        }, {
+          "id" : "14",
+          "tags" : "Element,Component",
+          "properties" : {
+            "structurizr.dsl.identifier" : "workspacemodel"
+          },
+          "name" : "Workspace Model",
+          "description" : "Holds workspace data.",
+          "relationships" : [ {
+            "id" : "37",
+            "tags" : "Relationship",
+            "sourceId" : "14",
+            "destinationId" : "17"
+          } ],
+          "documentation" : { }
+        } ],
+        "documentation" : { }
+      }, {
+        "id" : "4",
+        "tags" : "Element,Container,Browser",
+        "properties" : {
+          "structurizr.dsl.identifier" : "workspaceview"
+        },
+        "name" : "Workspace View",
+        "description" : "Displays a workspace and allows the user to make changes.",
+        "relationships" : [ {
+          "id" : "24",
+          "tags" : "Relationship",
+          "sourceId" : "4",
+          "destinationId" : "11",
+          "description" : "Sends changes",
+          "technology" : "JSON/WebSocket"
+        }, {
+          "id" : "25",
+          "sourceId" : "4",
+          "destinationId" : "10",
+          "description" : "Sends changes",
+          "technology" : "JSON/WebSocket",
+          "linkedRelationshipId" : "24"
+        } ],
+        "technology" : "JavaScript, React",
+        "documentation" : { }
       }, {
         "id" : "5",
         "tags" : "Element,Container,Database",
-        "name" : "Document Database",
-        "description" : "Stores documents."
-      } ]
+        "properties" : {
+          "structurizr.dsl.identifier" : "database"
+        },
+        "name" : "Database",
+        "description" : "Stores workspaces, user data and configurations.",
+        "technology" : "File System",
+        "documentation" : { }
+      } ],
+      "documentation" : { }
     } ]
   },
   "documentation" : { },
   "views" : {
     "systemContextViews" : [ {
-      "softwareSystemId" : "2",
       "key" : "System",
+      "order" : 1,
+      "softwareSystemId" : "2",
       "paperSize" : "A5_Portrait",
       "dimensions" : {
         "width" : 866,
@@ -385,250 +351,171 @@
         "id" : "2",
         "x" : 210,
         "y" : 905
-      }, {
-        "id" : "21",
-        "x" : 208,
-        "y" : 1508
       } ],
       "relationships" : [ {
-        "id" : "23"
-      }, {
-        "id" : "22"
+        "id" : "18"
       } ]
     } ],
     "containerViews" : [ {
-      "softwareSystemId" : "2",
       "key" : "SharedWebEditor",
+      "order" : 2,
+      "softwareSystemId" : "2",
       "dimensions" : {
-        "width" : 2304,
-        "height" : 2520
+        "width" : 1678,
+        "height" : 2640
       },
       "externalSoftwareSystemBoundariesVisible" : true,
       "elements" : [ {
         "id" : "1",
-        "x" : 950,
-        "y" : 70
-      }, {
-        "id" : "12",
-        "x" : 920,
-        "y" : 1245
+        "x" : 651,
+        "y" : 200
       }, {
         "id" : "3",
-        "x" : 257,
-        "y" : 722
-      }, {
-        "id" : "15",
-        "x" : 1597,
-        "y" : 1252
+        "x" : 221,
+        "y" : 850
       }, {
         "id" : "4",
-        "x" : 1592,
-        "y" : 726
+        "x" : 1005,
+        "y" : 850
       }, {
         "id" : "5",
-        "x" : 882,
-        "y" : 1702
+        "x" : 633,
+        "y" : 2049
       }, {
         "id" : "6",
-        "x" : 257,
-        "y" : 1242
+        "x" : 220,
+        "y" : 1449
       }, {
-        "id" : "21",
-        "x" : 825,
-        "y" : 2160
+        "id" : "10",
+        "x" : 1008,
+        "y" : 1449
       } ],
       "relationships" : [ {
-        "id" : "27"
-      }, {
         "id" : "26"
       }, {
-        "id" : "25"
+        "id" : "25",
+        "vertices" : [ {
+          "x" : 1083,
+          "y" : 1299
+        } ]
+      }, {
+        "id" : "40"
+      }, {
+        "id" : "41",
+        "vertices" : [ {
+          "x" : 1383,
+          "y" : 1299
+        } ]
+      }, {
+        "id" : "22"
+      }, {
+        "id" : "21"
+      }, {
+        "id" : "20"
+      }, {
+        "id" : "19"
+      } ]
+    } ],
+    "componentViews" : [ {
+      "key" : "workspaceServer",
+      "order" : 4,
+      "containerId" : "10",
+      "externalContainerBoundariesVisible" : true,
+      "elements" : [ {
+        "id" : "11",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "12",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "13",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "14",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "15",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "4",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "16",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "17",
+        "x" : 0,
+        "y" : 0
+      } ],
+      "relationships" : [ {
+        "id" : "37"
+      }, {
+        "id" : "36"
+      }, {
+        "id" : "35"
       }, {
         "id" : "24"
       }, {
-        "id" : "42"
+        "id" : "34"
       }, {
         "id" : "33"
       }, {
         "id" : "32"
       }, {
-        "id" : "45"
-      }, {
         "id" : "31"
       }, {
-        "id" : "30",
-        "vertices" : [ {
-          "x" : 1710,
-          "y" : 1155
-        } ]
-      }, {
-        "id" : "46",
-        "vertices" : [ {
-          "x" : 1945,
-          "y" : 1150
-        } ]
-      } ]
-    } ],
-    "componentViews" : [ {
-      "key" : "phpServer",
-      "dimensions" : {
-        "width" : 2980,
-        "height" : 2248
-      },
-      "containerId" : "6",
-      "externalContainerBoundariesVisible" : true,
-      "elements" : [ {
-        "id" : "11",
-        "x" : 1870,
-        "y" : 1445
-      }, {
-        "id" : "3",
-        "x" : 1600,
-        "y" : 40
-      }, {
-        "id" : "5",
-        "x" : 1330,
-        "y" : 1875
-      }, {
-        "id" : "7",
-        "x" : 1600,
-        "y" : 485
-      }, {
-        "id" : "8",
-        "x" : 1055,
-        "y" : 970
-      }, {
-        "id" : "9",
-        "x" : 1594,
-        "y" : 968
-      }, {
-        "id" : "10",
-        "x" : 2140,
-        "y" : 965
-      }, {
-        "id" : "21",
-        "x" : 275,
-        "y" : 965
-      } ],
-      "relationships" : [ {
-        "id" : "28"
-      }, {
-        "id" : "37"
-      }, {
-        "id" : "36"
-      }, {
-        "id" : "40"
-      }, {
-        "id" : "35"
-      }, {
-        "id" : "34"
+        "id" : "30"
       }, {
         "id" : "38"
       }, {
         "id" : "39"
       } ]
     }, {
-      "key" : "DocumentServer",
-      "dimensions" : {
-        "width" : 2680,
-        "height" : 1948
-      },
-      "containerId" : "15",
-      "externalContainerBoundariesVisible" : true,
-      "elements" : [ {
-        "id" : "4",
-        "x" : 945,
-        "y" : 15
-      }, {
-        "id" : "5",
-        "x" : 2190,
-        "y" : 1415
-      }, {
-        "id" : "16",
-        "x" : 930,
-        "y" : 485
-      }, {
-        "id" : "17",
-        "x" : 225,
-        "y" : 860
-      }, {
-        "id" : "18",
-        "x" : 1640,
-        "y" : 875
-      }, {
-        "id" : "19",
-        "x" : 620,
-        "y" : 1410
-      }, {
-        "id" : "20",
-        "x" : 1310,
-        "y" : 1400
-      } ],
-      "relationships" : [ {
-        "id" : "29"
-      }, {
-        "id" : "50"
-      }, {
-        "id" : "51"
-      }, {
-        "id" : "52"
-      }, {
-        "id" : "53"
-      }, {
-        "id" : "54"
-      }, {
-        "id" : "55"
-      }, {
-        "id" : "47"
-      }, {
-        "id" : "48"
-      }, {
-        "id" : "49"
-      } ]
-    }, {
-      "key" : "documentControlServer",
+      "key" : "controllerServer",
+      "order" : 3,
       "paperSize" : "A5_Landscape",
       "dimensions" : {
         "width" : 2480,
         "height" : 1748
       },
-      "containerId" : "12",
+      "containerId" : "6",
       "externalContainerBoundariesVisible" : true,
       "elements" : [ {
-        "id" : "13",
-        "x" : 945,
-        "y" : 760
+        "id" : "3",
+        "x" : 0,
+        "y" : 0
       }, {
-        "id" : "14",
-        "x" : 945,
-        "y" : 1215
+        "id" : "5",
+        "x" : 0,
+        "y" : 0
       }, {
-        "id" : "15",
-        "x" : 1760,
-        "y" : 720
+        "id" : "7",
+        "x" : 0,
+        "y" : 0
       }, {
-        "id" : "4",
-        "x" : 940,
-        "y" : 150
+        "id" : "8",
+        "x" : 0,
+        "y" : 0
+      }, {
+        "id" : "9",
+        "x" : 0,
+        "y" : 0
       } ],
       "relationships" : [ {
-        "id" : "41"
+        "id" : "29"
       }, {
-        "id" : "43"
+        "id" : "28"
       }, {
-        "id" : "44"
+        "id" : "27"
       }, {
-        "id" : "30",
-        "vertices" : [ {
-          "x" : 1495,
-          "y" : 630
-        } ]
-      }, {
-        "id" : "46",
-        "vertices" : [ {
-          "x" : 1670,
-          "y" : 465
-        } ]
+        "id" : "23"
       } ]
     } ],
     "configuration" : {

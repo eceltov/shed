@@ -4,88 +4,66 @@ workspace {
         user = person "User"
 
         main = softwareSystem "Shared Web Editor" {
-            mainPage = container "Main Page" "Authenticates users and allows them to create and view documents." "JavaScript and React" "Browser"
-            documentPage = container "Document Page" "Shows the contents of a document and allows users to edit it." "JavaScript and React" "Browser"
-            database = container "Document Database" "Stores documents." "" "Database"
+            mainView = container "Main View" "Authenticates users and allows them to access workspaces." "JavaScript, React" "Browser"
+            workspaceView = container "Workspace View" "Displays a workspace and allows the user to make changes." "JavaScript, React" "Browser"
+            database = container "Database" "Stores workspaces, user data and configurations." "File System" "Database"
 
-            phpServer = container "PHP Server" "Manages user authentication, document creation/deletion and document access." "PHP Apache" {
-                frontController = component "Front Controller" "Processes user requests and generates HTML pages." "PHP"
-                loginController = component "Login Controller" "Processes user authentication requests."
-                documentManagementController = component "Document Management Controller" "Processes document creation and deletion requests."
-                documentAccessController = component "Document Access Controller" "Processes document access requests. If the user has access, returns the access parameters for the document."
-                userModel = component "User Model" "Holds information about users (privileges, document ownerships, document names, document access parameters)"
+            controllerServer = container "Controller Server" "Manages user authentication and workspace creation/deletion." "Express.js" {
+                restAPI = component "REST API" "Received user requests and returns responses."
+                controllerComponent = component "Controller" "Resolves requests, serves pages or JSON data."
+                databaseAdapterController = component "Database Adapter" "Handles database communication."
             }
 
-            controlServer = container "Document Control Server" "Starts/closes Document Instance Servers based on user requests. Sends connection information to users." "Node.js" {
-                httpServer = component "HTTP Server" "" "HTTP Server"
-                documentController = component "Document Controller" "Starts/closes Document instance Servers"
-            }
-
-            documentServer = container "Document Instance Server" "Provides main document editing functionality." "Node.js" {
-                websocketServer = component "WebSocket Server" "" "WebSocket Server"
-                operationController = component "Operation Controller" "Relays operations to other users and updates local document state. Also manages garbage collection."
-                clientController = component "Client Controller" "Initializes or removes clients."
+            workspaceServer = container "Workspace Server" "Supervises clients, provides workspace managment and document editing functionality." "Node.js" {
+                clientInterface = component "Client Interface" "Accepts WebSocket connections and forwards requests."
+                workspaceController = component "WorkspaceController" "Handles workspace operations."
+                documentController = component "Document Controller" "Handles document operations."
+                workspaceModel = component "Workspace Model" "Holds workspace data."
+                documentModel = component "Document Model" "Holds document data."
                 clientModel = component "Client Model" "Holds information about clients."
-                documentModel = component "Document Model" "Holds the document's content and metadata."
+                databaseAdapterWebSocket = component "Database Adapter" "Handles database communication."
             }
         }
 
-        authenticator = softwareSystem "Authentication Service"
-
         user -> main "Uses"
-        main -> authenticator "Authenticates user"
 
-        user -> mainPage "Visits the main page"
-        user -> documentPage "Edits documents using"
+        user -> mainView "Visits the main page"
+        user -> workspaceView "Edits documents using"
 
-        mainPage -> documentPage 
-        mainPage -> phpServer "Sends requests to" "HTTP"
-        mainPage -> frontController "Sends requests to" "HTTP"
+        mainView -> workspaceView "Redirects"
+        mainView -> controllerServer "Sends requests" "HTTP/JSON"
+        mainView -> restAPI "Sends requests" "HTTP/JSON"
 
-        documentPage -> websocketServer "Sends changes to the document" "JSON/WebSocket"
-        documentPage -> controlServer "Requests Document Instance Server port from" "Websocket?"
+        workspaceView -> clientInterface "Sends changes" "JSON/WebSocket"
+
+        //controllerServer
+        controllerServer -> database "Persists user and workspace data"
+
+        restAPI -> controllerComponent "Forwards requests"
+
+        controllerComponent -> databaseAdapterController "Receives/Changes data using"
+
+        databaseAdapterController -> database "Persists data"
+
+        // workspaceServer
+        clientInterface -> workspaceController "Forwards workspace requests"
+        clientInterface -> documentController "Forwards document requests"
+        clientInterface -> clientModel "Adds clients"
+
+        workspaceController -> workspaceModel "Manages workspace data"
+        workspaceController -> documentController "Initializes documents."
+        workspaceController -> clientModel "Verifies request authorization using"
+
+        documentController -> documentModel "Manages document data"
+        workspaceController -> clientModel "Verifies request authorization using"
+
+        workspaceModel -> databaseAdapterWebSocket
+        documentModel -> databaseAdapterWebSocket
+        clientModel -> databaseAdapterWebSocket
 
 
-        
-
-        //phpServer
-        phpServer -> database "Creates and deletes files from"
-        phpServer -> authenticator "Authenticates users using"
-
-        frontController -> loginController "Authenticates using"
-        frontController -> documentManagementController "Creates and deletes documents using"
-        frontController -> documentAccessController "Validates access using"
-
-        loginController -> authenticator "Authenticates users using"
-
-        documentManagementController -> database "Creates or deletes documents from"
-        documentManagementController -> userModel "Checks for permissions"
-
-        documentAccessController -> userModel "Checks for permissions and gets access parameters from"
-
-        //controlServer
-        documentPage -> httpServer "Requests Document Instance Server port from"
-        controlServer -> documentServer "Starts/closes"
-        httpServer -> documentController "Makes API calls to"
-        documentController -> documentServer "Starts/closes"
-
-
-        // documentServer
-        documentServer -> database "Reads from and writes to"
-        documentServer -> documentPage "Updates client's document" "JSON/WebSocket"
-
-        websocketServer -> operationController "Uses to process operations"
-        websocketServer -> clientController "Uses to manage clients"
-
-        operationController -> documentModel "Updates the document"
-        operationController -> clientModel "Uses to access client metadata"
-        operationController -> documentPage "Updates client's document"
-
-        clientController -> documentModel "Reads the document"
-        clientController -> clientModel "Updates client metadata"
-        clientController -> documentPage "Initializes local client document"
-
-        documentModel -> database "Persists the document"
+        workspaceServer -> database "Persists user, workspace and document data"
+        workspaceServer -> workspaceView "Broadcasts changes" "JSON/WebSocket"
 
     }
 
@@ -98,15 +76,11 @@ workspace {
             include *
         }
 
-        component phpServer "phpServer" {
+        component controllerServer "controllerServer" {
             include *
         }
 
-        component controlServer "documentControlServer" {
-            include *
-        }
-
-        component documentServer "DocumentServer" {
+        component workspaceServer "workspaceServer" {
             include *
         }
 
