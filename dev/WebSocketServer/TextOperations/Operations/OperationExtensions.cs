@@ -77,9 +77,13 @@ namespace TextOperations.Operations
                 // handle local dependency
                 if (wdHB[i].LocallyDependent(wdMessage))
                     dependent = true;
+                // finding out directly dependent operations
                 else
                 {
-                    // filtering out directly dependent operations
+                    // because additional operations could be totally ordered before the DD,
+                    // flagging the whole HB block up to the DD as dependent would be wrong
+                    // (due to possible, unreceived at the time of generation, operation chains
+                    // that were inserted before the DD)
                     for (int j = 0; j <= DDIndex; j++)
                     {
                         // deep comparison between the HB operation metadata and SO operation metadata
@@ -99,7 +103,9 @@ namespace TextOperations.Operations
                         postDependentSectionDependentIndices.Add(i);
                 }
                 else
-                {   
+                {
+                    ///TODO: PartOfSameChain is more restrictive than LocallyDependent, the following two ifs will never be hit
+                    /// (because the LocallyDependent if will be hit first)
                     // handle message chains
                     if (dependentSection && wdMessage.PartOfSameChain(wdHB[i]))
                         dependentSectionEndIdx = i;
