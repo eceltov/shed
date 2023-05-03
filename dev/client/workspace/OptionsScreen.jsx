@@ -81,7 +81,7 @@ class OptionsScreen extends React.Component {
               onChange={this.onAccessTypeChange}
               defaultValue={this.props.accessType}
             >
-              <option value={workspaceAccessTypes.accessTypes.priviledged}>Priviledged</option>
+              <option value={workspaceAccessTypes.accessTypes.privileged}>Privileged</option>
               <option value={workspaceAccessTypes.accessTypes.allReadOnly}>All (Read Only)</option>
             </select>
           </label>

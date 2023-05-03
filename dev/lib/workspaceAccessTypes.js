@@ -1,9 +1,9 @@
 const accessTypes = {
   // only those with access can view and edit the workspace
-  priviledged: 0,
+  privileged: 0,
   // only those with access can view the workspace
   ///TODO: not implemented
-  priviledgedReadOnly: 1,
+  privilegedReadOnly: 1,
   // all can view and edit the workspace
   ///TODO: not implemented
   all: 2,

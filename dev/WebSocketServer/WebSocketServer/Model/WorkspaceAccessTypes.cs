@@ -9,10 +9,10 @@ namespace WebSocketServer.Model
     public enum WorkspaceAccessTypes
     {
         // only those with access can view and edit the workspace
-        Priviledged = 0,
+        Privileged = 0,
         // only those with access can view the workspace
         ///TODO: not implemented
-        PriviledgedReadOnly = 1,
+        PrivilegedReadOnly = 1,
         // all can view and edit the workspace
         ///TODO: not implemented
         All = 2,

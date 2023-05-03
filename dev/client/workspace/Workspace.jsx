@@ -44,7 +44,7 @@ class Workspace extends React.Component {
     this.changeWorkspaceAccessType = this.changeWorkspaceAccessType.bind(this);
     this.state = {
       role: roles.none,
-      accessType: workspaceAccessTypes.accessTypes.priviledged,
+      accessType: workspaceAccessTypes.accessTypes.privileged,
       fileStructure: null,
       activeTab: null, // fileID of active document
       activeFile: fsOps.rootID, // set root as the default active file

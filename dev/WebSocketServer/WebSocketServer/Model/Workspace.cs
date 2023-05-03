@@ -445,7 +445,7 @@ namespace WebSocketServer.Model
 
         /// <summary>
         /// Adds a user to a workspace if its username and role are valid and the
-        /// one to add the user is priviledged to do so.
+        /// one to add the user is privileged to do so.
         /// If already present, its role is updated instead.
         /// </summary>
         /// <param name="client">The client that wishes to add a user.</param>
@@ -456,7 +456,7 @@ namespace WebSocketServer.Model
         {
             if (!RoleHandler.CanAddUsers(client.Role))
             {
-                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Unpriviledged user tried to add a user.");
+                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Unprivileged user tried to add a user.");
                 return false;
             }
 
@@ -484,16 +484,18 @@ namespace WebSocketServer.Model
             {
                 if (userWorkspaceEntry.Role == Roles.Owner)
                 {
-                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: The owner cannot be made less priviledged.");
+                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: The owner cannot be made less privileged.");
                     return false;
                 }
 
                 if (client.Role == Roles.Admin && userWorkspaceEntry.Role == Roles.Admin)
                 {
-                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less priviledged.");
+                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less privileged.");
                     return false;
                 }
             }
+
+            ///TODO: change access type of client
 
             return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
         }
@@ -502,7 +504,7 @@ namespace WebSocketServer.Model
         {
             if (!RoleHandler.CanChangeWorkspaceAccessType(client.Role))
             {
-                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Unpriviledged user tried to change access type.");
+                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Unprivileged user tried to change access type.");
                 return false;
             }
 

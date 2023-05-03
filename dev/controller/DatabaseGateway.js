@@ -2,6 +2,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const { roles } = require('../lib/roles');
+const { accessTypes } = require('../lib/workspaceAccessTypes');
 
 class DatabaseGateway {
   constructor() {
@@ -46,6 +47,10 @@ class DatabaseGateway {
 
   getWorkspaceUsersPath(workspaceHash) {
     return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceUsersPath}`;
+  }
+
+  getWorkspaceConfigPath(workspaceHash) {
+    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceConfigPath}`;
   }
 
   getUserJson(userID) {
@@ -246,11 +251,18 @@ class DatabaseGateway {
         [ownerID]: roles.owner,
       };
 
+      const defaultConfig = {
+        "access": accessTypes.privileged,
+      };
+
       // create structure.json file
       fs.writeFileSync(this.getFileStructurePath(hash), JSON.stringify(defaultStructure));
 
       // create users.json file
       fs.writeFileSync(this.getWorkspaceUsersPath(hash), JSON.stringify(defaultUsers));
+
+      // create config.json file
+      fs.writeFileSync(this.getWorkspaceConfigPath(hash), JSON.stringify(defaultConfig));
 
       // add workspace entry to owner
       // this is added last so that all workspaces listed in user config are valid
