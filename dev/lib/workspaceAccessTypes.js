@@ -1,3 +1,5 @@
+const roles = require('./roles');
+
 const accessTypes = {
   // only those with access can view and edit the workspace
   privileged: 0,
@@ -11,6 +13,15 @@ const accessTypes = {
   allReadOnly: 3,
 };
 
+function allowsGuests(accessType) {
+  return (accessType === accessTypes.all)
+    || (accessType === accessTypes.allReadOnly);
+}
+
+function canAccessWorkspace(accessType, userRole) {
+  return roles.canView(userRole) || allowsGuests(accessType);
+}
+
 module.exports = {
-  accessTypes,
+  accessTypes, allowsGuests, canAccessWorkspace,
 };

@@ -2,7 +2,7 @@ const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
 const { roles } = require('../lib/roles');
-const { accessTypes } = require('../lib/workspaceAccessTypes');
+const accessTypeHandler = require('../lib/workspaceAccessTypes');
 
 class DatabaseGateway {
   constructor() {
@@ -33,35 +33,47 @@ class DatabaseGateway {
     return this.getWorkspaceRootPath(workspaceHash) + relativePath;
   }
 
+  getWorkspacePath(workspaceHash) {
+    return this.paths.workspacesPath + workspaceHash;
+  }
+
   /**
      * @param {*} workspaceHash The hash of a workspace.
      * @returns Returns the absolute path to the root folder of a workspace ending with '/'.
      */
   getWorkspaceRootPath(workspaceHash) {
-    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceRootFolderPath}`;
+    return `${this.getWorkspacePath(workspaceHash)}/${this.paths.workspaceRootFolderPath}`;
   }
 
   getFileStructurePath(workspaceHash) {
-    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.fileStructurePath}`;
+    return `${this.getWorkspacePath(workspaceHash)}/${this.paths.fileStructurePath}`;
   }
 
   getWorkspaceUsersPath(workspaceHash) {
-    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceUsersPath}`;
+    return `${this.getWorkspacePath(workspaceHash)}/${this.paths.workspaceUsersPath}`;
   }
 
   getWorkspaceConfigPath(workspaceHash) {
-    return `${this.paths.workspacesPath + workspaceHash}/${this.paths.workspaceConfigPath}`;
+    return `${this.getWorkspacePath(workspaceHash)}/${this.paths.workspaceConfigPath}`;
   }
 
   getUserJson(userID) {
-    const userPath = this.getUserPath(userID);
-    const JSONString = fs.readFileSync(userPath);
-    const userMeta = JSON.parse(JSONString);
-    return userMeta;
+    try {
+      const userPath = this.getUserPath(userID);
+      const JSONString = fs.readFileSync(userPath);
+      const userMeta = JSON.parse(JSONString);
+      return userMeta;
+    }
+    catch (err) {
+      console.error(err);
+      return null;
+    }
   }
 
   getUserWorkspaces(userID) {
     const userMeta = this.getUserJson(userID);
+    if (userMeta === null)
+      return null;
     return userMeta.workspaces;
   }
 
@@ -77,10 +89,13 @@ class DatabaseGateway {
      * @note The role is a number specified in 'roles.js'.
      * @param {*} userID The ID of the user.
      * @param {*} workspaceHash The hash of the workspace.
-     * @returns Returns the role number.
+     * @returns Returns the role. If an inner exception occured, returns roles.none;
      */
   getUserWorkspaceRole(userID, workspaceHash) {
     const workspaces = this.getUserWorkspaces(userID);
+    if (workspaces === null)
+      return roles.none;
+    
     let role = roles.none;
 
     for (let i = 0; i < workspaces.length; i++) {
@@ -252,7 +267,7 @@ class DatabaseGateway {
       };
 
       const defaultConfig = {
-        "access": accessTypes.privileged,
+        "access": accessTypeHandler.accessTypes.privileged,
       };
 
       // create structure.json file
@@ -278,7 +293,7 @@ class DatabaseGateway {
 
   deleteWorkspace(ownerID, workspaceHash) {
     try {
-      const workspacePath = this.paths.workspacesPath + workspaceHash;
+      const workspacePath = this.getWorkspacePath(workspaceHash);
 
       // get all user IDs
       const usersData = JSON.parse(fs.readFileSync(this.getWorkspaceUsersPath(workspaceHash), 'utf8'));
@@ -311,11 +326,41 @@ class DatabaseGateway {
 
     const userHash = map[username];
     const meta = this.getUserJson(userHash);
+    if (meta === null)
+      return { valid: false };
     if (meta.password === password) {
       return { valid: true, id: userHash, role: meta.role };
     }
 
     return { valid: false };
+  }
+
+  getWorkspaceConfig(workspaceHash) {
+    try {
+      const configPath = this.getWorkspaceConfigPath(workspaceHash);
+      const JSONString = fs.readFileSync(configPath);
+      const config = JSON.parse(JSONString);
+      return config;
+    }
+    catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
+
+  /**
+   * @param {*} workspaceHash The ID of the workspace.
+   * @returns Returns the workspace access type if the configuration file exists, otherwise null.
+   */
+  getWorkspaceAccessType(workspaceHash) {
+    const config = this.getWorkspaceConfig(workspaceHash);
+    if (config === null)
+      return null;
+    return config.access;
+  }
+
+  workspaceExists(workspaceHash) {
+    return fs.existsSync(this.getWorkspacePath(workspaceHash));
   }
 }
 

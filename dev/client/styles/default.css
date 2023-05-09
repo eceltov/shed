@@ -474,3 +474,17 @@ TODO: handle bigger and smaller resolutions
     width: 100%;
     height: 100%;
 }
+
+#htmlErrorPage {
+    text-align: center;
+    margin: 0 10vw 0 10vw;
+}
+
+#htmlErrorPage h1 {
+    margin: 5vh 0 5vh 0;
+    font-size: 5rem;
+}
+
+#htmlErrorPage p {
+    font-size: 2rem;
+}
