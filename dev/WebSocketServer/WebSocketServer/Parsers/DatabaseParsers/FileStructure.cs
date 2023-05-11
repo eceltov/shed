@@ -295,22 +295,45 @@ namespace WebSocketServer.Parsers.DatabaseParsers
             }
         }
 
-        public bool RenameFile(int fileID, string newName)
+        /// <summary>
+        /// Renames a file in the FileStructure in a thread-safe manner.
+        /// </summary>
+        /// <param name="fileID">The ID of the file.</param>
+        /// <param name="newName">The new name of the file.</param>
+        /// <returns>
+        /// Return a tuple describing whether the operation succeeded, and the old and new
+        /// relative file paths of the renamed file.
+        /// </returns>
+        public (bool succeeded, string? oldPath, string? newPath) RenameFile(int fileID, string newName)
         {
+            (bool succeeded, string? oldPath, string? newPath) failedResult = (false, null, null);
+
             lock (FileLock)
             {
                 if (fileID == ID || !pathMap.ContainsKey(fileID))
-                    return false;
+                    return failedResult;
 
                 Folder parentFolder = GetParentFolder(fileID)!;
                 if (CheckIfFolderHasFileName(parentFolder, newName))
-                    return false;
+                    return failedResult;
+
+                if (GetRelativePath(fileID) is not string oldPath)
+                    return failedResult;
 
                 // it is safe to index into items of the parent folder, because fileID !== parentID
                 //    due to fileID !== fileStructure.ID and the root folder being the only folder with it as its parent
                 File file = parentFolder.Items[fileID.ToString()];
+                string oldName = file.Name;
                 file.Name = newName;
-                return true;
+
+                // restore old name if operation failed
+                if (GetRelativePath(fileID) is not string newPath)
+                {
+                    file.Name = oldName;
+                    return failedResult;
+                }
+
+                return (true, oldPath, newPath);
             }
         }
 

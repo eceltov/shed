@@ -274,6 +274,7 @@ namespace WebSocketServer.Model
             if (!await DatabaseProvider.Database.DeleteDocumentAsync(ID, relativePath))
             {
                 ///TODO: retry it later
+                Console.WriteLine($"Error in {nameof(DeleteDocumentAsync)}: Database could not delete document.");
             }
 
             return true;
@@ -318,13 +319,11 @@ namespace WebSocketServer.Model
             if (!RoleHandler.CanManageFiles(client.Role))
                 return false;
 
-            if (FileStructure.GetRelativePath(fileID) is not string oldPath)
-                return false;
+            // when multiple rename requests attempt to rename the same file with the same original
+            // name, only the first one will succeed
+            (bool succeeded, string? oldPath, string? newPath) = FileStructure.RenameFile(fileID, newName);
 
-            if (!FileStructure.RenameFile(fileID, newName))
-                return false;
-
-            if (FileStructure.GetRelativePath(fileID) is not string newPath)
+            if (!succeeded || oldPath == null || newPath == null)
                 return false;
 
             if (!await DatabaseProvider.Database.RenameFileAsync(ID, oldPath, newPath))
