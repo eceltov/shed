@@ -11,7 +11,7 @@ namespace TextOperationsUnitTests.Library
     {
         public static (int localNextWrapID, WrappedHB wHB, SO SO, List<string> document) GetInitialState()
         {
-            return (SubdifWrap.nextWrapID, new(), new(), new() { "" });
+            return (SubdifWrap.NextWrapID, new(), new(), new() { "" });
         }
 
         public static WrappedOperation WOFactory(int clientID, int csn, int prevClientID, int prevCSN, params Subdif[] subdifs)

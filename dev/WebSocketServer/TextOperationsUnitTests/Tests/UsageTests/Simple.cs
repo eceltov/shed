@@ -22,7 +22,7 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             Client = new ClientInterface();
         }
 
-        public void Connect(string workspaceHash)
+        public async void ConnectAsync(string workspaceHash)
         {
             ClientConnectMessage connectMessage = new()
             {
@@ -31,10 +31,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 WorkspaceHash = workspaceHash,
             };
             string messageString = JsonConvert.SerializeObject(connectMessage);
-            Client.HandleMessage(messageString);
+            await Client.HandleMessageAsync(messageString);
         }
 
-        public void GetDocument(int documentID)
+        public async void GetDocumentAsync(int documentID)
         {
             ClientGetDocumentMessage documentMessage = new()
             {
@@ -42,14 +42,14 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 FileID = documentID,
             };
             string messageString = JsonConvert.SerializeObject(documentMessage);
-            Client.HandleMessage(messageString);
+            await Client.HandleMessageAsync(messageString);
         }
 
-        public void SendOperation(Operation operation, int documentID)
+        public async void SendOperationAsync(Operation operation, int documentID)
         {
             OperationMessage operationMessage = new(operation, documentID);
             string messageString = JsonConvert.SerializeObject(operationMessage);
-            Client.HandleMessage(messageString);
+            await Client.HandleMessageAsync(messageString);
         }
     }
 
@@ -72,10 +72,11 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
-            client1.Connect("testworkspace");
-            client2.Connect("testworkspace");
-            client1.GetDocument(1);
-            client2.GetDocument(1);
+            ///TODO: await this, does the TestMethod operator make async methods unavaitable?
+            client1.ConnectAsync("testworkspace");
+            client2.ConnectAsync("testworkspace");
+            client1.GetDocumentAsync(1);
+            client2.GetDocumentAsync(1);
 
             var op1 = new Operation(new(2, 7, -1, -1), new() {
                 new Newline(0, 0),
@@ -133,12 +134,12 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 new Newline(2, 2),
             });
 
-            client2.SendOperation(op1, 1);
-            client1.SendOperation(op2, 1);
-            client1.SendOperation(op3, 1);
-            client2.SendOperation(op4, 1);
-            client2.SendOperation(op5, 1);
-            client2.SendOperation(op6, 1);
+            client2.SendOperationAsync(op1, 1);
+            client1.SendOperationAsync(op2, 1);
+            client1.SendOperationAsync(op3, 1);
+            client2.SendOperationAsync(op4, 1);
+            client2.SendOperationAsync(op5, 1);
+            client2.SendOperationAsync(op6, 1);
 
             Thread.Sleep(1000000);
         }
@@ -149,10 +150,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
-            client1.Connect("testworkspace");
-            client2.Connect("testworkspace");
-            client1.GetDocument(1);
-            client2.GetDocument(1);
+            client1.ConnectAsync("testworkspace");
+            client2.ConnectAsync("testworkspace");
+            client1.GetDocumentAsync(1);
+            client2.GetDocumentAsync(1);
 
             var op1 = new Operation(new(2, 7, -1, -1), new() {
                 new Newline(0, 0),
@@ -176,10 +177,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 new Add(1, 0, "p"),
             });
 
-            client2.SendOperation(op1, 1);
-            client1.SendOperation(op2, 1);
-            client2.SendOperation(op3, 1);
-            client2.SendOperation(op4, 1);
+            client2.SendOperationAsync(op1, 1);
+            client1.SendOperationAsync(op2, 1);
+            client2.SendOperationAsync(op3, 1);
+            client2.SendOperationAsync(op4, 1);
 
             Thread.Sleep(1000000);
         }
@@ -190,10 +191,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
-            client1.Connect("testworkspace");
-            client2.Connect("testworkspace");
-            client1.GetDocument(1);
-            client2.GetDocument(1);
+            client1.ConnectAsync("testworkspace");
+            client2.ConnectAsync("testworkspace");
+            client1.GetDocumentAsync(1);
+            client2.GetDocumentAsync(1);
 
             var op1 = new Operation(new(2, 7, -1, -1), new() {
                 new Newline(0, 0),
@@ -220,10 +221,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 new Add(1, 0, "p"),
             });
 
-            client2.SendOperation(op1, 1);
-            client1.SendOperation(op2, 1);
-            client2.SendOperation(op3, 1);
-            client2.SendOperation(op4, 1);
+            client2.SendOperationAsync(op1, 1);
+            client1.SendOperationAsync(op2, 1);
+            client2.SendOperationAsync(op3, 1);
+            client2.SendOperationAsync(op4, 1);
 
             Thread.Sleep(1000000);
         }
@@ -300,10 +301,10 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
-            client1.Connect("testworkspace");
-            client2.Connect("testworkspace");
-            client1.GetDocument(8);
-            client2.GetDocument(8);
+            client1.ConnectAsync("testworkspace");
+            client2.ConnectAsync("testworkspace");
+            client1.GetDocumentAsync(8);
+            client2.GetDocumentAsync(8);
 
             /*
             [[2,0,-1,-1],[[0,0,7],[1,0,6],[2,0,11],[0,0,false],[0,0,false],[0,0,"kop"],[0,3,true]],35]
@@ -366,12 +367,12 @@ namespace TextOperationsUnitTests.Tests.UsageTests
                 new Add(3, 0, "k"),
             });
 
-            client2.SendOperation(op1, 8);
-            client2.SendOperation(op2, 8);
-            client1.SendOperation(op3, 8);
-            client1.SendOperation(op4, 8);
-            client1.SendOperation(op5, 8);
-            client1.SendOperation(op6, 8);
+            client2.SendOperationAsync(op1, 8);
+            client2.SendOperationAsync(op2, 8);
+            client1.SendOperationAsync(op3, 8);
+            client1.SendOperationAsync(op4, 8);
+            client1.SendOperationAsync(op5, 8);
+            client1.SendOperationAsync(op6, 8);
 
             Thread.Sleep(1000000);
         }
