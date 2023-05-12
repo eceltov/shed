@@ -29,6 +29,9 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             const int opLength = 20;
             const int documentIdx = 1;
 
+            // clean document
+            await DatabaseProvider.Database.WriteDocumentDataAsync("testworkspace", $"test{documentIdx}.txt", new List<string> { "" });
+
             List<ClientInterfaceWrapper> clients = new();
             for (int i = 0; i < clientCount; i++)
                 clients.Add(new ClientInterfaceWrapper());
@@ -95,6 +98,9 @@ namespace TextOperationsUnitTests.Tests.UsageTests
             const int opCount = 5;
             const int opLength = 20;
             const int documentIdx = 2;
+
+            // clean document
+            await DatabaseProvider.Database.WriteDocumentDataAsync("testworkspace", $"test{documentIdx}.txt", new List<string> { "" });
 
             List<ClientInterfaceWrapper> clients = new();
             for (int i = 0; i < clientCount; i++)
