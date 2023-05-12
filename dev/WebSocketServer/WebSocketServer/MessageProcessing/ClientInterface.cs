@@ -24,7 +24,6 @@ namespace WebSocketServer.MessageProcessing
             HandleMessageAsync(e.Data).GetAwaiter().GetResult();
         }
 
-        ///TODO: this should not be public
         public async Task HandleMessageAsync(string messageString)
         {
             // only an operation uses JSON arrays
