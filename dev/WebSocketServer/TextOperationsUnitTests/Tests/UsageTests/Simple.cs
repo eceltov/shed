@@ -13,63 +13,15 @@ using WebSocketServer.Parsers.MessageParsers;
 
 namespace TextOperationsUnitTests.Tests.UsageTests
 {
-    class ClientInterfaceWrapper
-    {
-        public ClientInterface Client { get; private set; }
-
-        public ClientInterfaceWrapper()
-        {
-            Client = new ClientInterface();
-        }
-
-        public async void ConnectAsync(string workspaceHash)
-        {
-            ClientConnectMessage connectMessage = new()
-            {
-                MsgType = WebSocketServer.Model.ClientMessageTypes.Connect,
-                Token = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpZCI6IjAwMDAwMDAwIiwiZmlyc3ROYW1lIjoiQWRhbSIsImxhc3ROYW1lIjoiVGVzdGVyIiwibWFpbCI6ImFkYW0udGVzdGVyQGV4YW1wbGUuY29tIiwicm9sZSI6InRlc3QiLCJuYmYiOjE2Nzg1MjE1NjEsImV4cCI6MTY3OTEyNjM2MSwiaWF0IjoxNjc4NTIxNTYxfQ.4wYUUqT8KR9f0PWheBk5wymYlfdEIwBRDxdr_s81qoc",
-                WorkspaceHash = workspaceHash,
-            };
-            string messageString = JsonConvert.SerializeObject(connectMessage);
-            await Client.HandleMessageAsync(messageString);
-        }
-
-        public async void GetDocumentAsync(int documentID)
-        {
-            ClientGetDocumentMessage documentMessage = new()
-            {
-                MsgType = WebSocketServer.Model.ClientMessageTypes.GetDocument,
-                FileID = documentID,
-            };
-            string messageString = JsonConvert.SerializeObject(documentMessage);
-            await Client.HandleMessageAsync(messageString);
-        }
-
-        public async void SendOperationAsync(Operation operation, int documentID)
-        {
-            OperationMessage operationMessage = new(operation, documentID);
-            string messageString = JsonConvert.SerializeObject(operationMessage);
-            await Client.HandleMessageAsync(messageString);
-        }
-    }
-
     //these tests are for debugging scenarios generated from a live editing session
     ///TODO: add assertions
     //[TestClass]
     public class Simple
     {
-        void EnvSetup()
-        {
-            string pathToVolumes = "../../../../../volumes";
-            Environment.SetEnvironmentVariable("PATH_TO_VOLUMES", pathToVolumes);
-            Environment.SetEnvironmentVariable("PATH_TO_CONFIG", pathToVolumes + "/Configuration/config.json");
-            Environment.SetEnvironmentVariable("PATH_TO_DATA", pathToVolumes + "/Data/");
-        }
-
         [TestMethod]
         public void A()
         {
-            EnvSetup();
+            UsageTestsLibrary.EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
             ///TODO: await this, does the TestMethod operator make async methods unavaitable?
@@ -147,7 +99,7 @@ namespace TextOperationsUnitTests.Tests.UsageTests
         [TestMethod]
         public void B()
         {
-            EnvSetup();
+            UsageTestsLibrary.EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
             client1.ConnectAsync("testworkspace");
@@ -188,7 +140,7 @@ namespace TextOperationsUnitTests.Tests.UsageTests
         [TestMethod]
         public void C()
         {
-            EnvSetup();
+            UsageTestsLibrary.EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
             client1.ConnectAsync("testworkspace");
@@ -298,7 +250,7 @@ namespace TextOperationsUnitTests.Tests.UsageTests
         [TestMethod]
         public void D()
         {
-            EnvSetup();
+            UsageTestsLibrary.EnvSetup();
             ClientInterfaceWrapper client1 = new ClientInterfaceWrapper();
             ClientInterfaceWrapper client2 = new ClientInterfaceWrapper();
             client1.ConnectAsync("testworkspace");

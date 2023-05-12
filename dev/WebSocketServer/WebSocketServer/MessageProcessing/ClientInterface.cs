@@ -16,7 +16,7 @@ namespace WebSocketServer.MessageProcessing
 {
     internal class ClientInterface : WebSocketBehavior
     {
-        Client? client = null;
+        public Client? client = null;
 
         protected override void OnMessage(MessageEventArgs e)
         {

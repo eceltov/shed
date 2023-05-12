@@ -196,8 +196,8 @@ namespace WebSocketServer.Model
             DocumentInstance documentInstance = new(documentFile, document, SaveDocumentCallback);
             if (!ActiveDocuments.TryAdd(documentID, documentInstance))
             {
-                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Could not add document to ActiveDocuments.");
-                return null;
+                // the document was already added by another thread
+                return ActiveDocuments[documentID];
             }
             return documentInstance;
         }
