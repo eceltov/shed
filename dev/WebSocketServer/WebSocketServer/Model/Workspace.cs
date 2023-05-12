@@ -141,7 +141,9 @@ namespace WebSocketServer.Model
         {
             try
             {
-                string contentString = await DatabaseProvider.Database.GetDocumentDataAsync(workspaceID, relativePath);
+                if (await DatabaseProvider.Database.GetDocumentDataAsync(workspaceID, relativePath) is not string contentString)
+                    return null;
+
                 return Regex.Split(contentString, "\r\n|\r|\n").ToList();
             }
             catch

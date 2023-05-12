@@ -1,5 +1,6 @@
 ﻿using Newtonsoft.Json;
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
 using System.Security.Cryptography;
@@ -9,23 +10,32 @@ using WebSocketServer.Configuration;
 using WebSocketServer.Model;
 using WebSocketServer.Parsers.DatabaseParsers;
 
-///TODO: possible race condition: delete and add operation on the same user
-
 namespace WebSocketServer.Database
 {
     internal class Database : IDatabase
     {
-        private string WorkspacesPath { get; set; }
-        private string UsersPath { get; set; }
+        string workspacesPath { get; set; }
+        string usersPath { get; set; }
+
+        // lock collections used for thread-safe file manipulation and access
+        // key: userID
+        FileLocker<string> userLocker = new();
+        // key: absolute filePath
+        FileLocker<string> documentAndFolderLocker = new();
+        // key: workspaceID
+        FileLocker<string> fileStructureLocker = new();
+        // key: workspaceID
+        FileLocker<string> workspaceMetaLocker = new();
+
 
         public Database()
         {
-            WorkspacesPath = Path.Combine(
+            workspacesPath = Path.Combine(
                 EnvironmentVariables.DataPath,
                 ConfigurationManager.Configuration.Database.Paths.WorkspacesPath
             );
 
-            UsersPath = Path.Combine(
+            usersPath = Path.Combine(
                 EnvironmentVariables.DataPath,
                 ConfigurationManager.Configuration.Database.Paths.UsersPath
             );
@@ -34,7 +44,7 @@ namespace WebSocketServer.Database
         string GetWorkspacePath(string workspaceHash)
         {
             return Path.Combine(
-               WorkspacesPath,
+               workspacesPath,
                workspaceHash
            );
         }
@@ -42,7 +52,7 @@ namespace WebSocketServer.Database
         string GetUsernameToIdMapPath()
         {
             return Path.Combine(
-               UsersPath,
+               usersPath,
                "../usernameToIdMap.json"
            );
         }
@@ -69,12 +79,29 @@ namespace WebSocketServer.Database
         string GetUserPath(string userID)
         {
             return Path.Combine(
-                UsersPath,
+                usersPath,
                 $"{userID}.json"
             );
         }
 
         public async Task<User?> GetUserAsync(string userID)
+        {
+            try
+            {
+                await userLocker.WaitAsync(userID);
+                return await GetUserLocklessAsync(userID);
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                userLocker.Release(userID);
+            }
+        }
+
+        async Task<User?> GetUserLocklessAsync(string userID)
         {
             try
             {
@@ -109,16 +136,29 @@ namespace WebSocketServer.Database
             return role;
         }
 
-        public async Task<string> GetDocumentDataAsync(string workspaceHash, string relativePath)
+        public async Task<string?> GetDocumentDataAsync(string workspaceHash, string relativePath)
         {
-            using var sr = new StreamReader(GetFilePath(workspaceHash, relativePath));
-            return await sr.ReadToEndAsync();
+            string filePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(filePath);
+            try
+            {
+                using var sr = new StreamReader(filePath);
+                return await sr.ReadToEndAsync();
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                documentAndFolderLocker.Release(filePath);
+            }
         }
 
         public string GetFileStructurePath(string workspaceHash)
         {
             return Path.Combine(
-                WorkspacesPath,
+                workspacesPath,
                 workspaceHash,
                 ConfigurationManager.Configuration.Database.Paths.FileStructurePath
             );
@@ -126,9 +166,11 @@ namespace WebSocketServer.Database
 
         public async Task<FileStructure?> GetFileStructureAsync(string workspaceHash)
         {
+            await fileStructureLocker.WaitAsync(workspaceHash);
+            string path = GetFileStructurePath(workspaceHash);
             try
             {
-                using var sr = new StreamReader(GetFileStructurePath(workspaceHash));
+                using var sr = new StreamReader(path);
                 string jsonString = await sr.ReadToEndAsync();
                 var fileStructure = new FileStructure(jsonString);
                 return fileStructure;
@@ -136,6 +178,10 @@ namespace WebSocketServer.Database
             catch
             {
                 return null;
+            }
+            finally
+            {
+                fileStructureLocker.Release(workspaceHash);
             }
         }
 
@@ -146,10 +192,12 @@ namespace WebSocketServer.Database
         /// <param name="fileStructure">The data to be written.</param>
         public async Task<bool> UpdateFileStructureAsync(string workspaceHash, FileStructure fileStructure)
         {
-            string jsonString = JsonConvert.SerializeObject(fileStructure);
+            var asyncLock = fileStructureLocker.WaitAsync(workspaceHash);
 
             try
             {
+                string jsonString = JsonConvert.SerializeObject(fileStructure);
+                await asyncLock;
                 using var sw = new StreamWriter(GetFileStructurePath(workspaceHash));
                 await sw.WriteAsync(jsonString);
 
@@ -159,7 +207,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
-
+            finally
+            {
+                fileStructureLocker.Release(workspaceHash);
+            }
         }
 
         /// <summary>
@@ -171,6 +222,7 @@ namespace WebSocketServer.Database
         public async Task<bool> CreateDocumentAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(absolutePath);
             try
             {
                 await Task.Run(() =>
@@ -185,6 +237,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                documentAndFolderLocker.Release(absolutePath);
+            }
         }
 
         /// <summary>
@@ -196,6 +252,7 @@ namespace WebSocketServer.Database
         public async Task<bool> CreateFolderAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(absolutePath);
             try
             {
                 await Task.Run(() =>
@@ -209,6 +266,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                documentAndFolderLocker.Release(absolutePath);
+            }
         }
 
         /// <summary>
@@ -220,6 +281,7 @@ namespace WebSocketServer.Database
         public async Task<bool> DeleteDocumentAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(absolutePath);
             try
             {
                 await Task.Run(() =>
@@ -233,6 +295,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                documentAndFolderLocker.Release(absolutePath);
+            }
         }
 
         /// <summary>
@@ -244,6 +310,7 @@ namespace WebSocketServer.Database
         public async Task<bool> DeleteFolderAsync(string workspaceHash, string relativePath)
         {
             string absolutePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(absolutePath);
             try
             {
                 await Task.Run(() =>
@@ -256,6 +323,10 @@ namespace WebSocketServer.Database
             catch
             {
                 return false;
+            }
+            finally
+            {
+                documentAndFolderLocker.Release(absolutePath);
             }
         }
 
@@ -270,6 +341,12 @@ namespace WebSocketServer.Database
         {
             string oldAbsolutePath = GetFilePath(workspaceHash, oldRelativePath);
             string newAbsolutePath = GetFilePath(workspaceHash, newRelativePath);
+
+            // when two files swap names at the same time, the FileStructure will not allow it,
+            // meaning that the situation will not produce two database calls
+            await documentAndFolderLocker.WaitAsync(oldAbsolutePath);
+
+            ///TODO: renaming a file will make all operations targeting the file with the old name invalid
 
             try
             {
@@ -288,6 +365,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                documentAndFolderLocker.Release(oldAbsolutePath);
+            }
         }
 
         /// <summary>
@@ -299,10 +380,11 @@ namespace WebSocketServer.Database
         /// <returns>Returns whether the file was modified successfully.</returns>
         public async Task<bool> WriteDocumentDataAsync(string workspaceHash, string relativePath, List<string> documentRows)
         {
+            string absolutePath = GetFilePath(workspaceHash, relativePath);
+            await documentAndFolderLocker.WaitAsync(absolutePath);
+
             try
             {
-                string absolutePath = GetFilePath(workspaceHash, relativePath);
-
                 await Task.Run(() =>
                 {
                     using var sw = new StreamWriter(absolutePath);
@@ -311,12 +393,16 @@ namespace WebSocketServer.Database
                         sw.WriteLine(row);
                     }
                 });
-                
+
                 return true;
             }
             catch
             {
                 return false;
+            }
+            finally
+            {
+                documentAndFolderLocker.Release(absolutePath);
             }
         }
 
@@ -331,31 +417,33 @@ namespace WebSocketServer.Database
         /// <returns>Returns whether the operation succeeded.</returns>
         public async Task<bool> AddUserWorkspaceAsync(string userID, string workspaceHash, string workspaceName, Roles role)
         {
-            var user = await GetUserAsync(userID);
-
-            if (user == null)
-                return false;
-
-            var foundWorkspace = user.Workspaces.Find((workspace) => workspace.ID == workspaceHash);
-
-            // change the role to the one provided
-            if (foundWorkspace != null)
-            {
-                foundWorkspace.Role = role;
-            }
-            else
-            {
-                var workspace = new Parsers.DatabaseParsers.Workspace
-                {
-                    ID = workspaceHash,
-                    Name = workspaceName,
-                    Role = role
-                };
-                user.Workspaces.Add(workspace);
-            }
+            await userLocker.WaitAsync(userID);
+            var user = await GetUserLocklessAsync(userID);
 
             try
             {
+
+                if (user == null)
+                return false;
+
+                var foundWorkspace = user.Workspaces.Find((workspace) => workspace.ID == workspaceHash);
+
+                // change the role to the one provided
+                if (foundWorkspace != null)
+                {
+                    foundWorkspace.Role = role;
+                }
+                else
+                {
+                    var workspace = new Parsers.DatabaseParsers.Workspace
+                    {
+                        ID = workspaceHash,
+                        Name = workspaceName,
+                        Role = role
+                    };
+                    user.Workspaces.Add(workspace);
+                }
+
                 string jsonString = JsonConvert.SerializeObject(user);
                 using var sw = new StreamWriter(GetUserPath(userID));
                 await sw.WriteAsync(jsonString);
@@ -365,11 +453,16 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                userLocker.Release(userID);
+            }
         }
 
         public async Task<bool> RemoveUserWorkspaceAsync(string userID, string workspaceHash)
         {
-            var user = await GetUserAsync(userID);
+            await userLocker.WaitAsync(userID);
+            var user = await GetUserLocklessAsync(userID);
 
             if (user == null)
                 return false;
@@ -396,6 +489,10 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                userLocker.Release(userID);
+            }
         }
 
         string GetWorkspaceID(string workspaceName, string ownerID)
@@ -420,6 +517,7 @@ namespace WebSocketServer.Database
 
         public async Task<bool> CreateWorkspaceAsync(string ownerID, string name)
         {
+            // no locking of files is done, as no operations can access the files yet
             try
             {
                 string workspaceID = GetWorkspaceID(name, ownerID);
@@ -455,42 +553,10 @@ namespace WebSocketServer.Database
             }
         }
 
-        public async Task<bool> DeleteWorkspaceAsync(string workspaceHash)
-        {
-            try
-            {
-                string workspacePath = GetWorkspacePath(workspaceHash);
-
-                // get all user IDs
-                var workspaceUsers = await GetWorkspaceUsersAsync(workspaceHash);
-
-                if (workspaceUsers == null)
-                    return false;
-
-                var userIDs = workspaceUsers.Users.Keys.ToArray();
-
-                // remove user entries
-                foreach (string userID in userIDs)
-                    await RemoveUserWorkspaceAsync(userID, workspaceHash);
-
-                await Task.Run(() =>
-                {
-                    // remove workspace folder
-                    System.IO.Directory.Delete(workspacePath, true);
-                });
-
-                return true;
-            }
-            catch
-            {
-                return false;
-            }
-        }
-
         string GetWorkspaceUsersPath(string workspaceHash)
         {
             return Path.Combine(
-                WorkspacesPath,
+                workspacesPath,
                 workspaceHash,
                 ConfigurationManager.Configuration.Database.Paths.WorkspaceUsersPath
             );
@@ -499,7 +565,7 @@ namespace WebSocketServer.Database
         string GetWorkspaceConfigPath(string workspaceHash)
         {
             return Path.Combine(
-                WorkspacesPath,
+                workspacesPath,
                 workspaceHash,
                 ConfigurationManager.Configuration.Database.Paths.WorkspaceConfigPath
             );
@@ -508,6 +574,7 @@ namespace WebSocketServer.Database
         public async Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash)
         {
             string path = GetWorkspaceUsersPath(workspaceHash);
+            await workspaceMetaLocker.WaitAsync(workspaceHash);
 
             try
             {
@@ -520,11 +587,16 @@ namespace WebSocketServer.Database
             {
                 return null;
             }
+            finally
+            {
+                workspaceMetaLocker.Release(workspaceHash);
+            }
         }
 
         public async Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers)
         {
             string jsonString = JsonConvert.SerializeObject(workspaceUsers.Users);
+            await workspaceMetaLocker.WaitAsync(workspaceHash);
 
             try
             {
@@ -537,9 +609,31 @@ namespace WebSocketServer.Database
             {
                 return false;
             }
+            finally
+            {
+                workspaceMetaLocker.Release(workspaceHash);
+            }
         }
 
         public async Task<WorkspaceConfig?> GetWorkspaceConfigAsync(string workspaceHash)
+        {
+            await workspaceMetaLocker.WaitAsync(workspaceHash);
+
+            try
+            {
+                return await GetWorkspaceConfigLocklessAsync(workspaceHash);
+            }
+            catch
+            {
+                return null;
+            }
+            finally
+            {
+                workspaceMetaLocker.Release(workspaceHash);
+            }
+        }
+
+        async Task<WorkspaceConfig?> GetWorkspaceConfigLocklessAsync(string workspaceHash)
         {
             string path = GetWorkspaceConfigPath(workspaceHash);
 
@@ -558,6 +652,24 @@ namespace WebSocketServer.Database
 
         public async Task<bool> UpdateWorkspaceConfigAsync(string workspaceHash, WorkspaceConfig workspaceConfig)
         {
+            await workspaceMetaLocker.WaitAsync(workspaceHash);
+
+            try
+            {
+                return await UpdateWorkspaceConfigLocklessAsync(workspaceHash, workspaceConfig);
+            }
+            catch
+            {
+                return false;
+            }
+            finally
+            {
+                workspaceMetaLocker.Release(workspaceHash);
+            }
+        }
+
+        async Task<bool> UpdateWorkspaceConfigLocklessAsync(string workspaceHash, WorkspaceConfig workspaceConfig)
+        {
             string jsonString = JsonConvert.SerializeObject(workspaceConfig);
 
             try
@@ -575,21 +687,34 @@ namespace WebSocketServer.Database
 
         public async Task<bool> ChangeWorkspaceAccessTypeAsync(string workspaceHash, WorkspaceAccessTypes accessType)
         {
-            if (await GetWorkspaceConfigAsync(workspaceHash) is not WorkspaceConfig config)
+            await workspaceMetaLocker.WaitAsync(workspaceHash);
+
+            try
             {
-                Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config not found.");
+                if (await GetWorkspaceConfigLocklessAsync(workspaceHash) is not WorkspaceConfig config)
+                {
+                    Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config not found.");
+                    return false;
+                }
+
+                config.AccessType = accessType;
+
+                if (!await UpdateWorkspaceConfigLocklessAsync(workspaceHash, config))
+                {
+                    Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config could not be updated.");
+                    return false;
+                }
+
+                return true;
+            }
+            catch
+            {
                 return false;
             }
-
-            config.AccessType = accessType;
-
-            if (!await UpdateWorkspaceConfigAsync(workspaceHash, config))
+            finally
             {
-                Console.Write($"Error in {nameof(ChangeWorkspaceAccessTypeAsync)}: Config could not be updated.");
-                return false;
+                workspaceMetaLocker.Release(workspaceHash);
             }
-
-            return true;
         }
 
         public async Task<UsernameToIdMap?> GetUsernameToIdMapAsync()

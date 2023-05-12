@@ -14,7 +14,7 @@ namespace WebSocketServer.Database
 
         Task<Roles> GetUserWorkspaceRoleAsync(string userID, string workspaceHash);
 
-        Task<string> GetDocumentDataAsync(string workspaceHash, string relativePath);
+        Task<string?> GetDocumentDataAsync(string workspaceHash, string relativePath);
 
         Task<FileStructure?> GetFileStructureAsync(string workspaceHash);
 
@@ -88,8 +88,6 @@ namespace WebSocketServer.Database
         Task<bool> RemoveUserWorkspaceAsync(string userID, string workspaceHash);
 
         Task<bool> CreateWorkspaceAsync(string ownerID, string name);
-
-        Task<bool> DeleteWorkspaceAsync(string workspaceHash);
 
         Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash);
 
