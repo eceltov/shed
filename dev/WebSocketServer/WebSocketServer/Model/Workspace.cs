@@ -24,7 +24,6 @@ namespace WebSocketServer.Model
         public string Name { get; private set; }
         public string ID { get; private set; }
 
-        ///TODO: this should be concurrent
         /// <summary>
         /// Maps client IDs to Client instances.
         /// </summary>

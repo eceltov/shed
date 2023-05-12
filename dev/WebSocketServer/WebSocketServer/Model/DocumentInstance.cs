@@ -16,11 +16,9 @@ using WebSocketServer.Utilities;
 
 namespace WebSocketServer.Model
 {
-    ///TODO: make all the variables concurrent (especially the GC ones)
     internal class DocumentInstance
     {
         // Maps client IDs to Client instances.
-        ///TODO: this should be concurrent
         ConcurrentDictionary<int, Client> clients = new();
 
         Document documentFile;

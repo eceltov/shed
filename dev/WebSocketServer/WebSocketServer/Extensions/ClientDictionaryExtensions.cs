@@ -10,7 +10,6 @@ namespace WebSocketServer.Extensions
 {
     internal static class ClientDictionaryExtensions
     {
-        ///TODO: make this concurrent
         public static void SendMessage(this ConcurrentDictionary<int, Client> clients, object message)
         {
             foreach (var (clientID, client) in clients)
