@@ -69,7 +69,7 @@ namespace WebSocketServer.Model
         {
             if (client == null)
             {
-                Console.WriteLine($"Error in ClientCanJoin: client is null.");
+                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client is null.");
                 return false;
             }
 
