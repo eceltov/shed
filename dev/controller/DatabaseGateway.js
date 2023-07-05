@@ -1,8 +1,8 @@
 const fs = require('fs');
 const crypto = require('crypto');
 const path = require('path');
-const { roles } = require('../lib/roles');
-const accessTypeHandler = require('../lib/workspaceAccessTypes');
+const { roles } = require('./lib/roles');
+const accessTypeHandler = require('./lib/workspaceAccessTypes');
 
 class DatabaseGateway {
   constructor() {

@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const jwt = require('jsonwebtoken');
 
-const appConfigPath = path.join(__dirname, '../../config.json');
+const appConfigPath = path.join(__dirname, '../volumes/Configuration/config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
 /**
@@ -14,7 +14,7 @@ const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 function verifyJWTCookie(req, res) {
   if (req.cookies.jwt !== undefined) {
     try {
-      const payload = jwt.verify(req.cookies.jwt, appConfig.jwtSecret);
+      const payload = jwt.verify(req.cookies.jwt, appConfig.JWT.Secret);
       /// TODO: make sure the payload has the correct shape
       /// TODO: check expiration
       return payload;

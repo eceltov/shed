@@ -6,7 +6,7 @@ const { verifyJWTCookie } = require('../jwtUtils');
 
 const DatabaseGateway = require('../DatabaseGateway');
 
-const appConfigPath = path.join(__dirname, '../../../config.json');
+const appConfigPath = path.join(__dirname, '../../volumes/Configuration/config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
 /// TODO: should the route make its own gateway?
@@ -51,7 +51,7 @@ function register(app) {
     // if the user authenticates, set the jwt cookie
     if (req.query.token !== undefined) {
       try {
-        const newPayload = jwt.verify(req.query.token, appConfig.jwtSecret);
+        const newPayload = jwt.verify(req.query.token, appConfig.JWT.Secret);
         jwtPayload = newPayload;
         /// TODO: make sure the payload has the correct shape
         // refresh the cookie
@@ -128,7 +128,7 @@ function register(app) {
         id: verificationObj.id,
         role: verificationObj.role,
         exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24),
-      }, appConfig.jwtSecret)
+      }, appConfig.JWT.Secret)
       res.send({token});
     }
     else {

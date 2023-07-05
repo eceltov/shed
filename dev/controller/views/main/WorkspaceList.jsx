@@ -1,5 +1,5 @@
 const React = require('react');
-const roles = require('../../../lib/roles');
+const roles = require('../../lib/roles');
 
 class WorkspaceList extends React.Component {
   constructor(props) {

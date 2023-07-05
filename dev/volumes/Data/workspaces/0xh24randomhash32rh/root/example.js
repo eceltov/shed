@@ -28,3 +28,6 @@ function onInitDocument(message) {
 }
 
 bad syntax
+
+
+
