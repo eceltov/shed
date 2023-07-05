@@ -14,6 +14,7 @@ const utils = require('../../lib/utils');
 const HeaderBar = require('./HeaderBar');
 const OptionsScreen = require('./OptionsScreen');
 const Editor = require('./Editor');
+const WaitingForInit = require('./ErrorComponents/WaitingForInit');
 
 const CSLatency = 0;
 const SCLatency = 0;
@@ -665,6 +666,27 @@ class Workspace extends React.Component {
     );
   }
 
+  renderFileStructure() {
+    if (this.state.fileStructure === null) {
+      return (
+        <WaitingForInit />
+      );
+    }
+
+    return (
+      <FileStructure
+        sendMessageToServer={this.sendMessageToServer}
+        fileStructure={this.state.fileStructure}
+        pathMap={this.pathMap}
+        activeFile={this.state.activeFile}
+        selectFile={this.selectFile}
+        divergedDocuments={this.state.divergedDocuments}
+        forceDocument={this.forceDocument}
+        userCanEdit={roles.canEdit(this.state.role)}
+      />
+    );
+  }
+
   render() {
     // set readonly if necessary and mount correct session
     if (this.state.activeTab !== null && this.editor.mounted) {
@@ -682,16 +704,7 @@ class Workspace extends React.Component {
       <div className="main">
         <HeaderBar showOptionsView={this.showOptionsView} />
         <div id="leftBar">
-          <FileStructure
-            sendMessageToServer={this.sendMessageToServer}
-            fileStructure={this.state.fileStructure}
-            pathMap={this.pathMap}
-            activeFile={this.state.activeFile}
-            selectFile={this.selectFile}
-            divergedDocuments={this.state.divergedDocuments}
-            forceDocument={this.forceDocument}
-            userCanEdit={roles.canEdit(this.state.role)}
-          />
+          {this.renderFileStructure()}
         </div>
 
         {this.renderContent()}

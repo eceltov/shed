@@ -3,7 +3,7 @@ const FileStructureFolder = require('./FileStructureFolder');
 const FileOperation = require('./FileOperation');
 const fsOps = require('../../lib/fileStructureOps');
 const msgFactory = require('../../lib/clientMessageFactory');
-const DivergenceSolver = require('./DivergenceSolver');
+const DivergenceSolver = require('./ErrorComponents/DivergenceSolver');
 
 class FileStructure extends React.Component {
   constructor(props) {
@@ -156,14 +156,6 @@ class FileStructure extends React.Component {
   }
 
   getContent() {
-    if (this.props.fileStructure === null) {
-      return (
-        <div className="waitingMessage">
-          Waiting on server...
-        </div>
-      );
-    }
-
     let diverged = this.props.activeFile !== null
       && this.props.divergedDocuments.has(this.props.activeFile);
 

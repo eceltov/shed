@@ -64,6 +64,10 @@ const msgTypes = {
     forceDocument: 64,
     // sent to inform about the change of the access type of the workspace: {msgType, accessType}
     changeWorkspaceAccessType: 65,
+    // sent to clients that cannot join the workspace due to insufficient permissions: {msgType}
+    clientCannotJoin: 66,
+    // sent when the requested workspace does not exist: {msgType}
+    workspaceDoesNotExist: 67
   },
 };
 
