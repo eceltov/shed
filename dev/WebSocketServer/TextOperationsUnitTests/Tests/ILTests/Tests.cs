@@ -165,7 +165,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
             }.Wrap();
 
             var wdTransformedDif = wdDif2.MakeIndependent().LIT(wdDif1);
-            var wdTransformedDif2 = wdTransformedDif.MakeIndependent().LET(wdDif1).MakeDependent();
+            var wdTransformedDif2 = wdTransformedDif.MakeIndependent().LET(wdDif1.CopyAndReverse()).MakeDependent();
 
             Assert.IsTrue(wdTransformedDif2.SameAs(wdDif2));
         }
@@ -185,7 +185,7 @@ namespace TextOperationsUnitTests.Tests.ILTests
             }.Wrap();
 
             var wdTransformedDif = wdDif2.MakeIndependent().LIT(wdDif1);
-            var wdTransformedDif2 = wdTransformedDif.MakeIndependent().LET(wdDif1).MakeDependent();
+            var wdTransformedDif2 = wdTransformedDif.MakeIndependent().LET(wdDif1.CopyAndReverse()).MakeDependent();
 
             Assert.IsTrue(wdTransformedDif2.SameAs(wdDif2));
         }
