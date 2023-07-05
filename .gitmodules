@@ -1,3 +1,3 @@
-[submodule "dev/controller/editor/ace"]
-	path = dev/controller/editor/ace
-	url = https://github.com/ajaxorg/ace.git
+[submodule "dev/controller/editor/ace-builds"]
+	path = dev/controller/editor/ace-builds
+	url = https://github.com/ajaxorg/ace-builds.git
