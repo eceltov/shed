@@ -21,6 +21,12 @@ class LoginPage extends React.Component {
           </label>
         </div>
 
+        <div hidden className="createSegment" id="errorMessage">
+          <label className="createName logInError">
+            Bad credentials, please try again.
+          </label>
+        </div>
+
         <div className="createSegment">
           <button className="loginButton" type="submit" id="loginButton">
             Log In

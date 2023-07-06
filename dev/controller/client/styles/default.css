@@ -394,6 +394,11 @@ TODO: handle bigger and smaller resolutions
     margin: 0;
 }
 
+.logInError {
+    display: inline-block;
+    background-color: red;
+}
+
 .workspacesTitle {
     margin-left: var(--workspace-link-margin-left);
     margin-right: var(--workspace-link-margin-left);

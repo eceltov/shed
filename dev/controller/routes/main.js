@@ -120,6 +120,7 @@ function register(app) {
       const verificationObj = database.verifyCredentials(req.body.username, req.body.password);
       if (!verificationObj.valid) {
         console.log('Login unsuccessful: Bad credentials.');
+        res.send({error: "Bad Credentials."});
         return;
       }
 
