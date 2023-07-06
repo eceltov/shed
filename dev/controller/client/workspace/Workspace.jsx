@@ -702,7 +702,7 @@ class Workspace extends React.Component {
 
     return (
       <div className="main">
-        <HeaderBar showOptionsView={this.showOptionsView} />
+        <HeaderBar showOptionsView={this.showOptionsView} role={this.state.role} />
         <div id="leftBar">
           {this.renderFileStructure()}
         </div>
