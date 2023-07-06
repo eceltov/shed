@@ -1,8 +1,14 @@
+const path = require('path');
+const fs = require('fs');
+
 const { verifyJWTCookie } = require('../jwtUtils');
 const { roles } = require('../lib/roles');
 const accessTypeHandler = require('../lib/workspaceAccessTypes');
 
 const DatabaseGateway = require('../DatabaseGateway');
+
+const appConfigPath = path.join(__dirname, '../../volumes/Configuration/config.json');
+const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
 /// TODO: should the route make its own gateway?
 const database = new DatabaseGateway();
@@ -33,7 +39,11 @@ function register(app) {
       return;
     }
 
-    const WebSocketServerURL = `ws://${process.env.WORKSPACE_SERVER_URL}:${process.env.WORKSPACE_SERVER_PORT}`;
+    // attempt to get info from .env primarily
+    const url = process.env.WORKSPACE_SERVER_URL ?? appConfig.FallbackSettings.workspaceServerUrl;
+    const port = process.env.WORKSPACE_SERVER_PORT ?? appConfig.FallbackSettings.workspaceServerPort;
+
+    const WebSocketServerURL = `ws://${url}:${port}`;
     const script = `var WebSocketServerURL = "${WebSocketServerURL}";`;
     res.render('Workspace.jsx', { script });
   });

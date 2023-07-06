@@ -10,7 +10,7 @@ services:
       context: .
       dockerfile: WebSocketServer/Dockerfile
     ports:
-      - '8061:80'
+      - '8061:8061'
     volumes:
       - ${PATH_TO_VOLUMES}/Configuration:/app/Configuration
       - ${PATH_TO_VOLUMES}/Data:/app/Data

@@ -1,12 +1,12 @@
 {
     "id": "00000001",
     "role": "user",
-    "username": "admin2",
+    "username": "demo2",
     "password": "password2",
     "workspaces": [
         {
             "id": "0xh24randomhash32rh",
-            "name": "My Workspace 1",
+            "name": "Demo Workspace",
             "role": 2
         }
     ]

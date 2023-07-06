@@ -14,10 +14,13 @@ class Controller {
   constructor() {
     this.app = null;
     this.database = null;
+    this.appConfig = null;
+    this.appConfigPath = path.join(__dirname, '../volumes/Configuration/config.json');
     this.routesFolder = path.join(__dirname, 'routes');
   }
 
   initialize() {
+    this.appConfig = JSON.parse(fs.readFileSync(this.appConfigPath));
     this.database = new DatabaseGateway();
     this.database.initialize();
     this.initializeHttpServer();
@@ -27,7 +30,7 @@ class Controller {
     this.app = express();
     const app = this.app;
     const database = this.database;
-    const port = 80;
+    const port = this.appConfig.FallbackSettings.controllerServerPort;
 
     app.set('views', `${__dirname}/views`);
     app.set('view engine', 'jsx');

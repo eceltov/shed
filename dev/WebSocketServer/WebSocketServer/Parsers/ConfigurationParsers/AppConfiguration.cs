@@ -14,10 +14,12 @@ namespace WebSocketServer.Parsers.ConfigurationParsers
             var source = JsonConvert.DeserializeObject<AppConfiguration>(jsonString);
             JWT = source.JWT;
             Database = source.Database;
+            FallbackSettings = source.FallbackSettings;
         }
 
         [JsonProperty("JWT")] public JWT JWT { get; set; }
         [JsonProperty("Database")] public Database Database { get; set; }
+        [JsonProperty("FallbackSettings")] public FallbackSettings FallbackSettings { get; set; }
     }
 
     public class JWT
@@ -39,5 +41,13 @@ namespace WebSocketServer.Parsers.ConfigurationParsers
     {
         [JsonProperty("paths")] public Paths Paths { get; set; }
         [JsonProperty("workspaceHashSalt")] public string WorkspaceHashSalt { get; set; }
+    }
+
+    public class FallbackSettings
+    {
+        [JsonProperty("controllerServerPort")] public int ControllerServerPort { get; set; }
+        [JsonProperty("workspaceServerPort")] public int WorkspaceServerPort { get; set; }
+        [JsonProperty("workspaceServerUrl")] public string WorkspaceServerUrl { get; set; }
+        [JsonProperty("workspaceServerPathToVolumes")] public string WorkspaceServerPathToVolumes { get; set; }
     }
 }

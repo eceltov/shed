@@ -12,5 +12,11 @@
       "workspaceConfigPath": "config.json"
     },
     "workspaceHashSalt": "some salt"
+  },
+  "FallbackSettings": {
+    "controllerServerPort": 8060,
+    "workspaceServerPort": 8061,
+    "workspaceServerUrl": "localhost",
+    "pathToVolumes": "./dev/volumes"
   }
 }

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+using WebSocketServer.Configuration;
 using WebSocketServer.MessageProcessing;
 using WebSocketSharp.Server;
 
@@ -12,7 +13,7 @@ namespace WebSocketServer.Model
     {
         public void Start()
         {
-            var httpsv = new HttpServer(80);
+            var httpsv = new HttpServer(ConfigurationManager.Configuration.FallbackSettings.WorkspaceServerPort);
 
             httpsv.AddWebSocketService<ClientInterface>("/");
 
@@ -26,7 +27,7 @@ namespace WebSocketServer.Model
                     Console.WriteLine("- {0}", path);
             }
 
-            Console.ReadLine();
+            while (Console.ReadLine() != null) ;
         }
     }
 }

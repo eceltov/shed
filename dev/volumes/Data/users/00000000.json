@@ -1,18 +1,13 @@
 {
-    "id": "00000000",
-    "role": "user",
-    "username": "admin",
-    "password": "password",
-    "workspaces": [
-        {
-            "id": "0xh24randomhash32rh",
-            "name": "My Workspace 1",
-            "role": 5
-        },
-        {
-            "id": "testworkspace",
-            "name": "TestWorkspace",
-            "role": 5
-        }
-    ]
+  "id": "00000000",
+  "role": "user",
+  "username": "demo",
+  "password": "password",
+  "workspaces": [
+    {
+      "id": "0xh24randomhash32rh",
+      "name": "Demo Workspace",
+      "role": 5
+    }
+  ]
 }

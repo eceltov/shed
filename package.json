@@ -5,11 +5,11 @@
   "scripts": {
     "test": "npx jest",
     "start-controller-server": "node dev/controller/controllerServer.js",
-    "start-workspace-server": "node dev/workspaceServer.js",
+    "start-workspace-server": "dotnet run --project dev/WebSocketServer/WebSocketServer",
     "init": "npm i && npm run get-editor-repo && npm run build-client",
     "get-editor-repo": "cd dev/editor && git clone https://github.com/ajaxorg/ace-builds.git && cd ace-builds && git checkout d979a82c6198802cfb6df5be236379d29f116b2d",
     "build-client": "npm run bundle-workspace",
-    "bundle-workspace": "mkdir -p dev/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/workspace/main.jsx -o dev/client/bundles/workspace.js --extension=.jsx"
+    "bundle-workspace": "mkdir -p dev/controller/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/controller/client/workspace/main.jsx -o dev/controller/client/bundles/workspace.js --extension=.jsx"
   },
   "jest": {
     "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|js?|tsx?|ts?|mjs?)$",
