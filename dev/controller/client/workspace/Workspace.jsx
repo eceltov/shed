@@ -80,7 +80,7 @@ class Workspace extends React.Component {
     const workspaceHash = urlParams.get('hash');
 
     // use default value "" for guest users
-    const token = utils.getCookie('jwt') ?? "";
+    const token = utils.getCookie('jwt') ?? '';
 
     // redirect user to login screen if unauthenticated
     // this was removed so that unauthenticated users can join workspaces that support them
@@ -682,7 +682,7 @@ class Workspace extends React.Component {
         selectFile={this.selectFile}
         divergedDocuments={this.state.divergedDocuments}
         forceDocument={this.forceDocument}
-        userCanEdit={roles.canEdit(this.state.role)}
+        userCanEdit={workspaceAccessTypes.canEdit(this.state.accessType, this.state.role)}
       />
     );
   }
@@ -692,7 +692,8 @@ class Workspace extends React.Component {
     if (this.state.activeTab !== null && this.editor.mounted) {
       this.editor.setSession(this.openedDocuments.get(this.state.activeTab).getSession());
 
-      if (!roles.canEdit(this.state.role) || this.state.divergedDocuments.has(this.state.activeTab)) {
+      if (!workspaceAccessTypes.canEdit(this.state.accessType, this.state.role)
+        || this.state.divergedDocuments.has(this.state.activeTab)) {
         this.editor.setReadOnly(true);
       }
       else {

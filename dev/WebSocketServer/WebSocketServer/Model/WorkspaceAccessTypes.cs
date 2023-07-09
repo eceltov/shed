@@ -14,7 +14,6 @@ namespace WebSocketServer.Model
         ///TODO: not implemented
         PrivilegedReadOnly = 1,
         // all can view and edit the workspace
-        ///TODO: not implemented
         All = 2,
         // all can view the workspace
         AllReadOnly = 3,
@@ -36,6 +35,14 @@ namespace WebSocketServer.Model
         public static bool CanAccessWorkspace(WorkspaceAccessTypes accessType, Roles userRole)
         {
             return RoleHandler.CanView(userRole) || AllowsGuests(accessType);
+        }
+
+        /// <param name="accessType">The access type of the workspace.</param>
+        /// <param name="userRole">The role of the user.</param>
+        /// <returns>Returns whether the user can edit documents of the workspace.</returns>
+        public static bool CanEdit(WorkspaceAccessTypes accessType, Roles userRole)
+        {
+            return RoleHandler.CanEdit(userRole) || accessType == WorkspaceAccessTypes.All;
         }
     }
 }

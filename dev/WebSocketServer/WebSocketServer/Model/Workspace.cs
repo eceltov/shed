@@ -88,6 +88,35 @@ namespace WebSocketServer.Model
             return true;
         }
 
+        /// <summary>
+        /// Returns whether a client can edit a document.
+        /// </summary>
+        /// <param name="client">The client that would make changes to the document.</param>
+        /// <param name="documentInstance">The document the client wants to change.</param>
+        /// <returns>Returns whether a client can edit a document.</returns>
+        bool ClientCanEdit(Client client, DocumentInstance documentInstance)
+        {
+            if (client == null)
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
+                return false;
+            }
+
+            if (!WorkspaceAccessHandler.CanEdit(Config.AccessType, client.Role))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
+                return false;
+            }
+
+            if (!documentInstance.ClientPresent(client.ID))
+            {
+                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
+                return false;
+            }
+
+            return true;
+        }
+
         async Task<bool> ConnectClientToDocumentAsync(Client client, int fileID)
         {
             if (!WorkspaceAccessHandler.CanAccessWorkspace(Config.AccessType, client.Role))
@@ -191,9 +220,12 @@ namespace WebSocketServer.Model
                 return null;
             }
 
-            Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(async () => await SaveDocumentAsync(documentID, documentContent));
+            DocumentInstance documentInstance = new(documentFile, document);
 
-            DocumentInstance documentInstance = new(documentFile, document, SaveDocumentCallback);
+            Action<List<string>> SaveDocumentCallback = (documentContent) => ScheduleAction(async () => await SaveDocumentAsync(documentID, documentContent));
+            Predicate<Client> ClientCanEditCallback = (client) => ClientCanEdit(client, documentInstance);
+
+            documentInstance.InitializeCallbacks(SaveDocumentCallback, ClientCanEditCallback);
             if (!ActiveDocuments.TryAdd(documentID, documentInstance))
             {
                 // the document was already added by another thread

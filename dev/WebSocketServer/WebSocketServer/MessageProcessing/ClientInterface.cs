@@ -88,7 +88,7 @@ namespace WebSocketServer.MessageProcessing
             string? userID = ConnectionAuthenticator.ValidateJWT(message);
 
             // if the workspace does not allow everyone to join, validate the JWT
-            if (workspace.Config.AccessType == WorkspaceAccessTypes.Privileged && userID == null)
+            if (userID == null && !WorkspaceAccessHandler.AllowsGuests(workspace.Config.AccessType))
                 return;
 
             if (await Client.CreateClientAsync(userID, workspace, this) is not Client newClient)

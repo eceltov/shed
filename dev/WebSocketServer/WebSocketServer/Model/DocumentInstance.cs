@@ -56,20 +56,27 @@ namespace WebSocketServer.Model
         Task lastTextOperationTask = Task.CompletedTask;
 
         // callback used to save the document (so that all IO operations are executed in workspaces)
-        Action<List<string>> SaveDocumentCallback;
+        Action<List<string>> SaveDocumentCallback = (documentContent) => throw new InvalidOperationException("The SaveDocumentCallback is not initialized.");
+
+        // callback used to check whether a client can make changes to the document
+        Predicate<Client> ClientCanEditCallback = (client) => throw new InvalidOperationException("The ClientCanEditCallback is not initialized.");
 
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
 
-        public DocumentInstance(Document documentFile, List<string> document, Action<List<string>> SaveDocumentCallback)
+        public DocumentInstance(Document documentFile, List<string> document)
         {
             this.documentFile = documentFile;
             Document = document;
 
-            this.SaveDocumentCallback = SaveDocumentCallback;
-
             // initialize a default StatusChecker
             garbageRosterChecker = new StatusChecker(0, GC);
+        }
+
+        public void InitializeCallbacks(Action<List<string>> SaveDocumentCallback, Predicate<Client> ClientCanEditCallback)
+        {
+            this.SaveDocumentCallback = SaveDocumentCallback;
+            this.ClientCanEditCallback = ClientCanEditCallback;
         }
 
         public void ScheduleAddClient(Client client)
@@ -135,29 +142,6 @@ namespace WebSocketServer.Model
             }
         }
 
-        bool ClientCanEdit(Client client)
-        {
-            if (client == null)
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
-                return false;
-            }
-
-            if (!RoleHandler.CanEdit(client.Role))
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
-                return false;
-            }
-
-            if (!ClientPresent(client.ID))
-            {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
-                return false;
-            }
-
-            return true;
-        }
-
         void AddClient(Client client)
         {
             if (clients.ContainsKey(client.ID) || !clients.TryAdd(client.ID, client))
@@ -192,7 +176,7 @@ namespace WebSocketServer.Model
 
         bool HandleOperation(Client authoringClient, Operation operation)
         {
-            if (!ClientCanEdit(authoringClient))
+            if (!ClientCanEditCallback(authoringClient))
             {
                 Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
                 return false;
@@ -327,7 +311,7 @@ namespace WebSocketServer.Model
 
         bool HandleForceDocument(Client client, List<string> document)
         {
-            if (!ClientCanEdit(client))
+            if (!ClientCanEditCallback(client))
             {
                 Console.WriteLine($"Error: {nameof(HandleForceDocument)}: Unauthorized client tried to force document.");
                 return false;

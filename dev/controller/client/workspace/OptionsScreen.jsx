@@ -25,7 +25,7 @@ class OptionsScreen extends React.Component {
       && role < roles.roles.owner
     ) {
       this.props.addUserToWorkspace(username, role);
-      usernameInput.value = "";
+      usernameInput.value = '';
       return;
     }
 
@@ -82,7 +82,8 @@ class OptionsScreen extends React.Component {
               defaultValue={this.props.accessType}
             >
               <option value={workspaceAccessTypes.accessTypes.privileged}>Privileged</option>
-              <option value={workspaceAccessTypes.accessTypes.allReadOnly}>All (Read Only)</option>
+              <option value={workspaceAccessTypes.accessTypes.all}>Everyone with link</option>
+              <option value={workspaceAccessTypes.accessTypes.allReadOnly}>Everyone with link (read-only)</option>
             </select>
           </label>
         </div>
