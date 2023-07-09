@@ -53,6 +53,7 @@ class Workspace extends React.Component {
       tabs: [], // fileIDs in the same order as the final tabs
       aceTheme: 'ace/theme/chaos',
       divergedDocuments: new Set(), // fileIDs of diverged documents
+      loggedIn: true,
     };
 
     // eslint-disable-next-line react/no-unused-class-component-methods
@@ -81,12 +82,11 @@ class Workspace extends React.Component {
 
     // use default value "" for guest users
     const token = utils.getCookie('jwt') ?? '';
-
-    // redirect user to login screen if unauthenticated
-    // this was removed so that unauthenticated users can join workspaces that support them
-    /*if (!token) {
-      window.location.href = '/';
-    }*/
+    if (token === '') {
+      this.setState({
+        loggedIn: false,
+      });
+    }
 
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
@@ -704,7 +704,11 @@ class Workspace extends React.Component {
 
     return (
       <div className="main">
-        <HeaderBar showOptionsView={this.showOptionsView} role={this.state.role} />
+        <HeaderBar
+          showOptionsView={this.showOptionsView}
+          role={this.state.role}
+          loggedIn={this.state.loggedIn}
+        />
         <div id="leftBar">
           {this.renderFileStructure()}
         </div>

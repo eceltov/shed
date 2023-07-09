@@ -25,6 +25,22 @@ class HeaderBar extends React.Component {
     );
   }
 
+  renderLogIn() {
+    if (!this.props.loggedIn) {
+      return (
+        <a href="/login" className="login barLink">
+          Log In
+        </a>
+      );
+    }
+
+    return (
+      <a href="/logout" className="login barLink">
+        Log Out
+      </a>
+    );
+  }
+
   render() {
     return (
       <div className="headerBar">
@@ -33,9 +49,7 @@ class HeaderBar extends React.Component {
         </a>
         <div className="right">
           {this.renderOptions()}
-          <a href="/logout" className="login barLink">
-            Log Out
-          </a>
+          {this.renderLogIn()}
         </div>
       </div>
     );
