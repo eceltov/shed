@@ -683,6 +683,7 @@ class Workspace extends React.Component {
         divergedDocuments={this.state.divergedDocuments}
         forceDocument={this.forceDocument}
         userCanEdit={workspaceAccessTypes.canEdit(this.state.accessType, this.state.role)}
+        userRole={this.state.role}
       />
     );
   }

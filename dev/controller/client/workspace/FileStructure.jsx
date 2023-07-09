@@ -2,6 +2,7 @@ const React = require('react');
 const FileStructureFolder = require('./FileStructureFolder');
 const FileOperation = require('./FileOperation');
 const fsOps = require('../../lib/fileStructureOps');
+const roles = require('../../lib/roles');
 const msgFactory = require('../../lib/clientMessageFactory');
 const DivergenceSolver = require('./ErrorComponents/DivergenceSolver');
 
@@ -155,18 +156,27 @@ class FileStructure extends React.Component {
     this.clearState();
   }
 
+  renderFileOperations() {
+    return (
+      <div className="fileOperations">
+        <FileOperation key="a" text="Add Document" func={this.onCreateDocument} />
+        <FileOperation key="b" text="Add Folder" func={this.onCreateFolder} />
+        <FileOperation key="c" text="Rename" func={this.onRenameFile} />
+        <FileOperation key="d" text="Delete" func={this.onDeleteFile} />
+      </div>
+    );
+  }
+
   getContent() {
     let diverged = this.props.activeFile !== null
       && this.props.divergedDocuments.has(this.props.activeFile);
 
     return (
       <div>
-        <div className="fileOperations">
-          <FileOperation key="a" text="+doc" func={this.onCreateDocument} />
-          <FileOperation key="b" text="+folder" func={this.onCreateFolder} />
-          <FileOperation key="c" text="rename" func={this.onRenameFile} />
-          <FileOperation key="d" text="delete" func={this.onDeleteFile} />
-        </div>
+        {
+        !roles.canManageFiles(this.props.userRole) ? null :
+          this.renderFileOperations()
+        }
         {
         !diverged ? null :
           <DivergenceSolver
