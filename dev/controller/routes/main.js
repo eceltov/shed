@@ -13,13 +13,15 @@ const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 const database = new DatabaseGateway();
 database.initialize();
 
-function renderDefaultUnauthView(res) {
-  res.render('Main.jsx', { activeView: views.about, authenticated: false });
-}
-
 function renderLoginView(res) {
   res.render('Main.jsx', { activeView: views.login, authenticated: false });
 }
+
+// the default view is always the login view
+function renderDefaultUnauthView(res) {
+  renderLoginView(res);
+}
+
 
 /**
  * @brief Renders the users' workspaces if authenticated or the about screen otherwise.
