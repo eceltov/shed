@@ -1,10 +1,10 @@
-const { UDR } = require('../lib/dif');
-const StatusChecker = require('../lib/status_checker');
-const { canEdit } = require('../lib/roles');
-const { msgTypes } = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const fsOps = require('../lib/fileStructureOps');
-const { GCRemove } = require('../lib/GC');
+const { UDR } = require('../controller/lib/dif');
+const StatusChecker = require('../controller/lib/status_checker');
+const { canEdit } = require('../controller/lib/roles');
+const { msgTypes } = require('../controller/lib/messageTypes');
+const msgFactory = require('../controller/lib/serverMessageFactory');
+const fsOps = require('../controller/lib/fileStructureOps');
+const { GCRemove } = require('../controller/lib/GC');
 
 class DocumentInstance {
   constructor() {

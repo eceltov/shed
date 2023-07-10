@@ -5,9 +5,9 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const WorkspaceInstance = require('./WorkspaceInstance');
-const { msgTypes } = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const { roles } = require('../lib/roles');
+const { msgTypes } = require('../controller/lib/messageTypes');
+const msgFactory = require('../controller/lib/serverMessageFactory');
+const { roles } = require('../controller/lib/roles');
 const DatabaseGateway = require('../controller/DatabaseGateway');
 
 class Server {
@@ -39,7 +39,7 @@ class Server {
     this.database = new DatabaseGateway();
     this.database.initialize();
 
-    const appConfigPath = path.join(__dirname, '../../config.json');
+    const appConfigPath = path.join(__dirname, '../volumes/Configuration/config.json');
     const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
     this.jwtSecret = appConfig.jwtSecret;
 

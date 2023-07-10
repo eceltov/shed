@@ -16,8 +16,6 @@ using System.Text.RegularExpressions;
 
 namespace TextOperationsUnitTests.Tests.UsageTests
 {
-    
-    [TestClass]
     public class ParallelTests
     {
         [TestMethod]

@@ -3,7 +3,8 @@
   "version": "0.0.1",
   "main": "",
   "scripts": {
-    "test": "npx jest",
+    "test-randomized": "node dev/testing/randomizedTests/indepDepIdentity/test.js",
+    "test-randomized-failed": "node dev/testing/randomizedTests/indepDepIdentity/testFailed.js",
     "start-controller-server": "node dev/controller/controllerServer.js",
     "start-workspace-server": "dotnet run --project dev/WebSocketServer/WebSocketServer",
     "init": "npm i && npm run get-editor-repo && npm run build-client",

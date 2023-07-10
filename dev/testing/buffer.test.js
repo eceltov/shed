@@ -1,6 +1,6 @@
-var to = require('../lib/dif');
+var to = require('../controller/lib/dif');
 var lib = require('./test_lib');
-var StatusChecker = require('../lib/status_checker');
+var StatusChecker = require('../controller/lib/status_checker');
 const Server = require('../server/WorkspaceServer');
 
 jest.setTimeout(90 * 1000);

@@ -1,6 +1,6 @@
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { add, del, move, newline, remline } = require('../controller/lib/subdifOps');
 const lib = require('./test_lib');
-const StatusChecker = require('../lib/status_checker');
+const StatusChecker = require('../controller/lib/status_checker');
 const Server = require('../server/WorkspaceServer');
 
 jest.setTimeout(90 * 1000);

@@ -1,8 +1,8 @@
 const Client = require('./TestClient');
-const DatabaseGateway = require('./database/DatabaseGateway');
-const fsOps = require('../lib/fileStructureOps');
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
-const { deepEqual } = require('../lib/utils');
+const DatabaseGateway = require('../controller/DatabaseGateway');
+const fsOps = require('../controller/lib/fileStructureOps');
+const { add, del, move, newline, remline } = require('../controller/lib/subdifOps');
+const { deepEqual } = require('../controller/lib/utils');
 
 const workspaceHash = 'testworkspace';
 const database = new DatabaseGateway();

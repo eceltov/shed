@@ -178,4 +178,27 @@ All of the user and workspace data is stored in the `volumes` folder.
 Additionally, it also contains the configuration of the servers in the `Configuration` folder.
 The `Data` folder holds the `users` and `workspaces` subfolders, that hold information users and workspaces, respectively.
 
+## Testing
+
+There are several test suits in this project written in JavaScript or C#.
+
+### C# Tests
+
+All of the C# tests can be found in the project located in `dev/WebSocketServer/TextOperationsUnitTests`.
+If you want to go through them and see the results, you can open the solution file of the server located at `dev/WebSocketServer/WebSocketServer.sln` using Visual Studio and run the tests there.
+Currently, 5 tests are failing due to the issues described in the thesis.
+
+### JavaScript Tests
+
+A randomized testing framework was devised that generates random sequences of dif elements and then tries including and excluding them.
+If everything went well, the result should be identical to the input.
+The framework takes a number of test scenarios to generate as an input, generates them, and them runs them.
+Any failed scenarios will be saved and can be run using a different script.
+Example usage:
+
+```bash 
+npm run test-randomized 123456
+npm run test-randomized-failed
+```
+
 [1]: https://github.com/ajaxorg/ace-builds

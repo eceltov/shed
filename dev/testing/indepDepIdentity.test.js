@@ -1,4 +1,4 @@
-const { add, del, newline, remline } = require('../lib/subdifOps');
+const { add, del, newline, remline } = require('../controller/lib/subdifOps');
 const { testIndepDepArray } = require('./primTestingLib');
 
 const tests = [

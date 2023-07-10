@@ -1,5 +1,5 @@
 const { useDebugValue } = require('react/cjs/react.production.min');
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
+const { add, del, move, newline, remline } = require('../controller/lib/subdifOps');
 const { createMetaArr, testLITArray } = require('./primTestingLib');
 
 const tests = [
