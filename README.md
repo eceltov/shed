@@ -88,13 +88,20 @@ npm run start-workspace-server
 ## Configuring ShEd
 
 ShEd can be configured to run on different ports and to use a different secret for JWT tokens.
+Whether debug logs are shown can be configured as well.
+
+The servers do not support hot reloading; to see the effects of the new configuration, you need to restart them.
 
 There are two files used for configuration.
 The first one is the `.env` file in the root of the repository.
 The second is the `config.json` file located in `dev/volumes/Configuration/`.
 
 When running manually, the `.env` file does not need to be changed, as it will have no effect.
-When running in Docker, the `config.json` file should only be used for changing the JWT secret; the `.env` file should be used instead.
+In the `config.json`, to change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
+To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
+To see debug logs, change `ShowDebugLogs` to `true`.
+
+When running in Docker, the `config.json` file should only be used for changing the JWT secret and whether debug logs are shown; the `.env` file should be used for everything else.
 
 ## Using ShEd
 
@@ -133,10 +140,30 @@ node dev/userOperations/changeUserPassword.js test new
 node dev/userOperations/removeUser.js test
 ```
 
-In order to use the scripts, it is necessary to have Node installed and the packages initialized by running:
+To use the scripts, it is necessary to have Node installed and the packages initialized by running:
 
 ```bash 
 npm install
 ```
+
+## Repository Structure
+
+All of the source code and application data is located in the `dev` folder.
+
+The source code of the controller server can be found in the `controller` folder.
+It stores the workspace client in the `client` folder, the transformation library in the `lib` folder, and the routes and views used for server side rendering in the `routes` and `views` folder.
+The main entrypoint is the `controllerServer.js` file, that initializes the `Controller` class in `Controller.js`.
+
+The source code of the workspace server is in the `WebSocketServer` folder.
+It is structured into three main parts: the server itself is in the `WebSocketServer` folder, the transformation library is in the `TextOperations` folder, and the `TextOperationsUnitTests` folder holds the unit tests of the project.
+
+The `userOperations` folder holds three utility scripts for managing users.
+
+The `testing` folder contains tests written in JavaScript.
+It contains the `randomizedTests/indepDepIdentity` subfolder that contains a generator of randomized scenarios that can be used to test the transformation library.
+
+All of the user and workspace data is stored in the `volumes` folder.
+Additionally, it also contains the configuration of the servers in the `Configuration` folder.
+The `Data` folder holds the `users` and `workspaces` subfolders, that hold information users and workspaces, respectively.
 
 [1]: https://github.com/ajaxorg/ace-builds
