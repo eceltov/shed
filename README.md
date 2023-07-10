@@ -125,7 +125,8 @@ To edit a document and see the effects from the point of view of a different cli
 To see a workspace from the perspective of multiple users at once, you can open the workspace in a different browser that does not share cookies with your primary one.
 Alternatively, you can also open the workspace in incognito mode, because it usually does not share cookies with the main browser.
 
-To add a user to an existing workspace, you have to navigate to the Options in the top right corner, type in the username, select their role, and finally add them using the Add button.
+To change the role of a user in the workspace, navigate to the `Options` in the top right corner of the workspace, type in their username, select their new role, and finally change it using the `Change Role` button.
+The same interface can be used to add new users to the workspace.
 
 The workspace can be in one of three access modes:
   - `Privileged`: allows only authenticated users with access to the workspace to connect to it.
