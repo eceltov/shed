@@ -41,6 +41,9 @@ class OptionsScreen extends React.Component {
       <div>
         <h1 className="optionsTitle">Add Users To Workspace</h1>
 
+        <p className="optionsText">Adds a new user to the workspace with the selected role.</p>
+        <p className="optionsText">This interface can also be used to change user roles if they are already present and you have the right to change their role.</p>
+
         <div className="createSegment">
           <label className="createName">
             Username
@@ -73,6 +76,8 @@ class OptionsScreen extends React.Component {
     return (
       <div>
         <h1 className="optionsTitle">Change Workspace Access Type</h1>
+
+        <p className="optionsText">Changes the workspace access type to one of the following options.</p>
 
         <div className="createSegment">
           <label className="createName">

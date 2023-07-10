@@ -526,9 +526,26 @@ namespace WebSocketServer.Model
                     Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less privileged.");
                     return false;
                 }
-            }
 
-            ///TODO: change access type of client
+                int? existingClientID = null;
+                foreach (var (clientID, existingClient) in Clients)
+                {
+                    if (existingClient.User.Username == username)
+                    {
+                        existingClientID = clientID;
+                        existingClient.Role = role;
+                    }
+                }
+
+                if (existingClientID == null)
+                {
+                    Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: User {username} is missing in the workspace instance.");
+                    return false;
+                }
+
+                ChangeUserWorkspaceRoleMessage message = new(role);
+                Clients[existingClientID.Value].ClientInterface.Send(message);
+            }
 
             return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
         }
