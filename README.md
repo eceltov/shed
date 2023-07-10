@@ -129,7 +129,7 @@ The workspace can be in one of three access modes:
   - `Everyone with link`: additionally allows unauthenticated users to connect to the workspace and edit documents.
   - `Everyone with link (read-only)`: does not allow unauthenticated users to edit documents.
 
-Authenticated users can still make changes to the workspace, if their role is sufficient, in the latter two modes.
+Authenticated users can still make changes to the workspace, if their role is sufficient in the latter two modes.
 
 ### Managing Users
 
