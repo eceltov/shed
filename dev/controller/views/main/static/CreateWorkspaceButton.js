@@ -7,7 +7,20 @@ function onCreateWorkspaceButtonClick() {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({ name: workspaceNameElement.value }),
-    });
+    })
+      .then((res) => res.json())
+      .then((data) => {
+        if (data.error !== '') {
+          const errorMessage = document.getElementById('errorMessage');
+          errorMessage.hidden = false;
+
+          const errorMessageText = document.getElementById('errorMessageText');
+          errorMessageText.innerText = `Workspace creation failed with error: ${data.error}.`;
+          return;
+        }
+
+        window.location.href = '/';
+      });
   }
 }
 

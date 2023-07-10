@@ -1,0 +1,13 @@
+{
+  "id": "testclient",
+  "role": "user",
+  "username": "testclient",
+  "password": "testclient",
+  "workspaces": [
+    {
+      "id": "testworkspace",
+      "name": "testworkspace",
+      "role": 5
+    }
+  ]
+}

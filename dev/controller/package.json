@@ -1,0 +1,65 @@
+{
+  "name": "shared-web-editor",
+  "version": "0.0.1",
+  "main": "",
+  "scripts": {
+    "test": "npx jest",
+    "start-controller-server": "node dev/controller/controllerServer.js",
+    "start-workspace-server": "node dev/workspaceServer.js",
+    "init": "npm i && npm run get-editor-repo && npm run build-client",
+    "get-editor-repo": "cd dev/editor && git clone https://github.com/ajaxorg/ace-builds.git && cd ace-builds && git checkout d979a82c6198802cfb6df5be236379d29f116b2d",
+    "build-client": "npm run bundle-workspace",
+    "bundle-workspace": "mkdir -p dev/client/bundles && npx browserify -t [ babelify --presets [ @babel/preset-env @babel/preset-react ] ] dev/client/workspace/main.jsx -o dev/client/bundles/workspace.js --extension=.jsx"
+  },
+  "jest": {
+    "testRegex": "(/__tests__/.*|(\\.|/)(test|spec))\\.(jsx?|js?|tsx?|ts?|mjs?)$",
+    "transform": {
+      "^.+\\.jsx?$": "babel-jest",
+      "^.+\\.mjs$": "babel-jest"
+    },
+    "testPathIgnorePatterns": [
+      "<rootDir>/node_modules/"
+    ],
+    "moduleFileExtensions": [
+      "js",
+      "jsx",
+      "mjs"
+    ]
+  },
+  "repository": {
+    "type": "git",
+    "url": "git@gitlab.mff.cuni.cz:teaching/nprg045/krulis/2021-kloda-shared-web-editor.git"
+  },
+  "author": "Vojtech Kloda",
+  "dependencies": {
+    "@babel/preset-react": "^7.16.7",
+    "axios": "^0.27.2",
+    "babelify": "^10.0.0",
+    "body-parser": "^1.20.0",
+    "browserify": "^17.0.0",
+    "cookie-parser": "^1.4.6",
+    "core-js": "^3.21.1",
+    "crypto": "^1.0.1",
+    "express": "^4.17.1",
+    "express-jwt": "^7.7.5",
+    "express-react-view": "^1.1.7",
+    "express-react-views": "^0.11.0",
+    "jest": "^27.2.4",
+    "js-cookie": "^3.0.1",
+    "jsonwebtoken": "^8.5.1",
+    "node-walker": "^0.1.0",
+    "react": "^16.14.0",
+    "seedrandom": "^3.0.5",
+    "websocket": "^1.0.34"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.17.8",
+    "@babel/plugin-transform-modules-commonjs": "^7.17.7",
+    "eslint": "^8.9.0",
+    "eslint-config-airbnb": "^19.0.4",
+    "eslint-plugin-import": "^2.25.4",
+    "eslint-plugin-jsx-a11y": "^6.5.1",
+    "eslint-plugin-react": "^7.28.0",
+    "eslint-plugin-react-hooks": "^4.3.0"
+  }
+}

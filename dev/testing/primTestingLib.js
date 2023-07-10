@@ -1,6 +1,6 @@
-const { makeDependant, makeIndependant, LIT, LET } = require('../lib/dif');
-const { add, del, move, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../lib/subdifOps');
-const { joinSiblings } = require('../lib/metaOps');
+const { makeDependant, makeIndependant, LIT, LET } = require('../controller/lib/dif');
+const { add, del, move, newline, remline, wrapDif, unwrapDif, wrapSubdif, unwrapSubdif } = require('../controller/lib/subdifOps');
+const { joinSiblings } = require('../controller/lib/metaOps');
 
 function createMetaObj(
   dif, wTransformer, wTransformed, informationLost = undefined, relative = undefined, originalIndex = undefined,

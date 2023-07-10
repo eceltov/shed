@@ -1,9 +1,9 @@
-const to = require('../lib/dif');
-const { msgTypes } = require('../lib/messageTypes.js');
-const { wrapDif } = require('../lib/subdifOps');
-const fsOps = require('../lib/fileStructureOps');
-const { roles } = require('../lib/roles');
-const ManagedSession = require('../lib/ManagedSession');
+const to = require('../controller/lib/dif');
+const { msgTypes } = require('../controller/lib/messageTypes.js');
+const { wrapDif } = require('../controller/lib/subdifOps');
+const fsOps = require('../controller/lib/fileStructureOps');
+const { roles } = require('../controller/lib/roles');
+const ManagedSession = require('../controller/lib/ManagedSession');
 var WebSocketClient = require('websocket').client;
 const ace = require('./aceTesting');
 const EditSession = ace.require('ace/edit_session').EditSession;
@@ -236,7 +236,7 @@ class Client {
   connect() {
     this.WSClient = new WebSocketClient();
     const workspaceHash = 'testworkspace';
-    const token = '0000';
+    const token = 'testclient';
 
     const that = this;
     this.WSClient.on('connect', function(connection) {

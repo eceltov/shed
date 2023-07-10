@@ -1,5 +1,5 @@
-const { add, del } = require('../lib/subdifOps');
-const { compress } = require('../lib/compress');
+const { add, del } = require('../controller/lib/subdifOps');
+const { compress } = require('../controller/lib/compress');
 
 function testCompress(testName, inputDif, expected) {
   test(testName, () => {

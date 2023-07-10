@@ -4,6 +4,7 @@ const SelectionBar = require('./SelectionBar');
 const AboutPage = require('./AboutPage');
 const HeaderBar = require('./HeaderBar');
 const WorkspaceList = require('./WorkspaceList');
+const LoginPage = require('./LoginPage');
 const CreateWorkspacePage = require('./CreateWorkspacePage');
 
 class Controller extends React.Component {
@@ -37,7 +38,7 @@ class Controller extends React.Component {
         );
       case views.login:
         return (
-          <Login />
+          <LoginPage />
         );
       case views.createWorkspace:
         return (

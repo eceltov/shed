@@ -6,5 +6,7 @@ dev/testing/document_states/docPlayground.txt
 dev/testing/aceTesting.js
 dev/testing/randomizedTests/indepDepIdentity/failedScenarios.json
 node_modules
-dev/client/bundles/
-dev/editor/
+dev/controller/client/bundles/
+.vs
+bin
+obj

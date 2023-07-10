@@ -1,5 +1,5 @@
 const React = require('react');
-const roles = require('../../../lib/roles');
+const roles = require('../../lib/roles');
 
 class WorkspaceList extends React.Component {
   constructor(props) {
@@ -14,6 +14,16 @@ class WorkspaceList extends React.Component {
         <a href={`/workspace?hash=${workspace.id}`} className="workspaceLink">
           {`${workspace.name} (${roles.getRoleName(workspace.role)})`}
         </a>
+        {!roles.canDeleteWorkspace(workspace.role) ? null :
+          <button className="deleteButton"
+            type="submit"
+            name="deleteWorkspaceButton"
+            id={workspace.id}
+            workspacename={workspace.name}
+          >
+            Delete
+          </button>
+        }
       </li>
     );
   }

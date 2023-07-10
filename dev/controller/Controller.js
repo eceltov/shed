@@ -8,14 +8,14 @@ const fs = require('fs');
 const walker = require('node-walker');
 const reactViews = require('express-react-views');
 
-const DatabaseGateway = require('../database/DatabaseGateway');
+const DatabaseGateway = require('./DatabaseGateway');
 
 class Controller {
   constructor() {
     this.app = null;
     this.database = null;
     this.appConfig = null;
-    this.appConfigPath = path.join(__dirname, '../../config.json');
+    this.appConfigPath = path.join(__dirname, '../volumes/Configuration/config.json');
     this.routesFolder = path.join(__dirname, 'routes');
   }
 
@@ -30,7 +30,7 @@ class Controller {
     this.app = express();
     const app = this.app;
     const database = this.database;
-    const port = this.appConfig.portSettings.controllerServerPort;
+    const port = this.appConfig.FallbackSettings.controllerServerPort;
 
     app.set('views', `${__dirname}/views`);
     app.set('view engine', 'jsx');
@@ -50,9 +50,9 @@ class Controller {
       }
     });*/
 
-    app.use('/client', express.static(path.join(__dirname, '/../client/bundles')));
-    app.use('/styles', express.static(path.join(__dirname, '/../client/styles')));
-    app.use('/editor', express.static(path.join(__dirname, '/../editor')));
+    app.use('/client', express.static(path.join(__dirname, '/client/bundles')));
+    app.use('/styles', express.static(path.join(__dirname, '/client/styles')));
+    app.use('/editor', express.static(path.join(__dirname, '/editor')));
     app.use('/main/static', express.static(path.join(__dirname, '/views/main/static')));
 
     // load routes

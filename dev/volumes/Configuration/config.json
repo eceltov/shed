@@ -1,0 +1,24 @@
+{
+  "JWT": {
+    "Secret": "secretsecretsecretsecretsecretsecret"
+  },
+  "Database": {
+    "paths": {
+      "workspacesPath": "workspaces",
+      "usersPath": "users",
+      "workspaceRootFolderPath": "root/",
+      "fileStructurePath": "structure.json",
+      "workspaceUsersPath": "users.json",
+      "workspaceConfigPath": "config.json"
+    },
+    "workspaceHashSalt": "some salt",
+    "userHashSalt": "different salt"
+  },
+  "FallbackSettings": {
+    "controllerServerPort": 8060,
+    "workspaceServerPort": 8061,
+    "workspaceServerUrl": "localhost",
+    "pathToVolumes": "./dev/volumes"
+  },
+  "ShowDebugLogs": false
+}

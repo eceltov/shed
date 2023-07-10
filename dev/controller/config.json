@@ -1,0 +1,10 @@
+{
+    "paths": {
+        "workspaceRootFolderPath": "root/",
+        "fileStructurePath": "structure.json",
+        "workspaceUsersPath": "users.json",
+        "workspaceConfigPath": "config.json"
+    },
+    "workspaceHashSalt": "some salt",
+    "userHashSalt": "different salt"
+}

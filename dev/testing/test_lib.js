@@ -1,8 +1,8 @@
 const Client = require('./TestClient');
-const DatabaseGateway = require('../database/DatabaseGateway');
-const fsOps = require('../lib/fileStructureOps');
-const { add, del, move, newline, remline } = require('../lib/subdifOps');
-const { deepEqual } = require('../lib/utils');
+const DatabaseGateway = require('../controller/DatabaseGateway');
+const fsOps = require('../controller/lib/fileStructureOps');
+const { add, del, move, newline, remline } = require('../controller/lib/subdifOps');
+const { deepEqual } = require('../controller/lib/utils');
 
 const workspaceHash = 'testworkspace';
 const database = new DatabaseGateway();
@@ -274,6 +274,18 @@ function sendDels(clientMsgCount, subdifCount, clients) {
     }
 }
 
+function getAdds(minPos, maxPos, row, count) {
+    let range = maxPos - minPos;
+    let currentPos = minPos;
+    const dif = [];
+    for (let i = 0; i < count; i++) {
+        dif.push(add(row, currentPos, 'abc'));
+        range += 3;
+        currentPos = ((currentPos - minPos + 5) % (range + 1)) + minPos; 
+    }
+    return dif;
+}
+
 /**
  * @brief Returns a dif simulating an Enter keypress on a specific row and position
  */
@@ -292,5 +304,5 @@ module.exports = {
     connectClients, reorderClients, setOrdering, disableDifBuffering, sameDocumentState,
     checkSameDocumentState, sameServerOrdering, checkSameServerOrdering, sameHBLength,
     checkSameHBLength, bijectionSOHB, checkBijectionSOHB, setCSGlobalLatency, sendAdds,
-    sendAddsClientID, sendDels, getRowSplitDif,
+    sendAddsClientID, sendDels, getRowSplitDif, getAdds,
 };

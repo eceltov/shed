@@ -5,10 +5,10 @@ const fs = require('fs');
 const path = require('path');
 const http = require('http');
 const WorkspaceInstance = require('./WorkspaceInstance');
-const { msgTypes } = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const { roles } = require('../lib/roles');
-const DatabaseGateway = require('../database/DatabaseGateway');
+const { msgTypes } = require('../controller/lib/messageTypes');
+const msgFactory = require('../controller/lib/serverMessageFactory');
+const { roles } = require('../controller/lib/roles');
+const DatabaseGateway = require('../controller/DatabaseGateway');
 
 class Server {
   constructor() {
@@ -26,6 +26,10 @@ class Server {
     this.nextclientID = 0;
     this.clients = new Map(); // maps clientIDs to an object:  { connection, workspace }
     this.loggingEnabled = false;
+
+    // this will disable JWT token validation and handle the token as clientHash
+    // has to be set externally
+    this.testing = false;
   }
 
   /**
@@ -35,7 +39,7 @@ class Server {
     this.database = new DatabaseGateway();
     this.database.initialize();
 
-    const appConfigPath = path.join(__dirname, '../../config.json');
+    const appConfigPath = path.join(__dirname, '../volumes/Configuration/config.json');
     const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
     this.jwtSecret = appConfig.jwtSecret;
 
@@ -219,6 +223,9 @@ class Server {
      * @param {*} token The JWT provided by the authentization service.
      */
   getUserHash(token) {
+    if (this.testing)
+      return token;
+    
     try {
       const payload = jwt.verify(token, this.jwtSecret);
       return payload.id;

@@ -14,6 +14,10 @@ class CreateWorkspacePage extends React.Component {
           </label>
         </div>
 
+        <div hidden className="createSegment" id="errorMessage">
+          <label id="errorMessageText" className="createName logInError" />
+        </div>
+
         <div className="createSegment">
           <button className="createWorkspaceButton" type="submit" id="createWorkspaceButton">
             Create

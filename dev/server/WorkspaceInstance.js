@@ -1,8 +1,8 @@
 const DocumentInstance = require('./DocumentInstance');
-const { msgTypes } = require('../lib/messageTypes');
-const msgFactory = require('../lib/serverMessageFactory');
-const fsOps = require('../lib/fileStructureOps');
-const { canManageFiles, canView, roles } = require('../lib/roles');
+const { msgTypes } = require('../controller/lib/messageTypes');
+const msgFactory = require('../controller/lib/serverMessageFactory');
+const fsOps = require('../controller/lib/fileStructureOps');
+const { canManageFiles, canView, roles } = require('../controller/lib/roles');
 
 /// TODO: save structure.json and pathMap.json regularly, else progress may be lost
 

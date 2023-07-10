@@ -1,4 +1,4 @@
-const { add, del, newline, remline } = require('../lib/subdifOps');
+const { add, del, newline, remline } = require('../controller/lib/subdifOps');
 const { testIndepDepArray } = require('./primTestingLib');
 
 const tests = [
@@ -301,6 +301,18 @@ const tests = [
   [
     '[del, remline] 12.',
     [del(1, 1, 1), remline(0, 1)],
+  ],
+  [
+    '[newline, remline] 1.',
+    [newline(0, 0), remline(0, 0)],
+  ],
+  [
+    '[newline, remline] 2.',
+    [newline(0, 1), remline(0, 1)],
+  ],
+  [
+    '[newline, remline] 1.',
+    [newline(2, 3), remline(2, 3)],
   ],
   [
     '[newline, newline, newline] 1.',

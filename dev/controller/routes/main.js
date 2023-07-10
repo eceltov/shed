@@ -2,42 +2,26 @@ const jwt = require('jsonwebtoken');
 const fs = require('fs');
 const path = require('path');
 const views = require('../views/main/viewEnum');
+const { verifyJWTCookie } = require('../jwtUtils');
 
-const DatabaseGateway = require('../../database/DatabaseGateway');
+const DatabaseGateway = require('../DatabaseGateway');
 
-const appConfigPath = path.join(__dirname, '../../../config.json');
+const appConfigPath = path.join(__dirname, '../../volumes/Configuration/config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
 /// TODO: should the route make its own gateway?
 const database = new DatabaseGateway();
 database.initialize();
 
-/**
- * @brief Checks if the JWT cookie is valid. The cookie is cleared if invalid.
- * @param {*} req The express req parameter.
- * @param {*} res The express res parameter.
- * @returns Returns the JWT payload. If the token signature is invalid, returns null.
- */
-function handleJWTCookie(req, res) {
-  if (req.cookies.jwt !== undefined) {
-    try {
-      const payload = jwt.verify(req.cookies.jwt, appConfig.jwtSecret);
-      /// TODO: make sure the payload has the correct shape
-      /// TODO: check expiration
-      return payload;
-    }
-    catch {
-      res.clearCookie('jwt');
-      return null;
-    }
-  }
-
-  return null;
+function renderLoginView(res) {
+  res.render('Main.jsx', { activeView: views.login, authenticated: false });
 }
 
+// the default view is always the login view
 function renderDefaultUnauthView(res) {
-  res.render('Main.jsx', { activeView: views.about, authenticated: false });
+  renderLoginView(res);
 }
+
 
 /**
  * @brief Renders the users' workspaces if authenticated or the about screen otherwise.
@@ -63,12 +47,12 @@ function renderDefaultView(res, jwtPayload = null) {
 
 function register(app) {
   app.get('/', (req, res) => {
-    let jwtPayload = handleJWTCookie(req, res);
+    let jwtPayload = verifyJWTCookie(req, res);
 
     // if the user authenticates, set the jwt cookie
     if (req.query.token !== undefined) {
       try {
-        const newPayload = jwt.verify(req.query.token, appConfig.jwtSecret);
+        const newPayload = jwt.verify(req.query.token, appConfig.JWT.Secret);
         jwtPayload = newPayload;
         /// TODO: make sure the payload has the correct shape
         // refresh the cookie
@@ -87,13 +71,23 @@ function register(app) {
     renderDefaultUnauthView(res);
   });
 
+  app.get('/login', (req, res) => {
+    const jwtPayload = verifyJWTCookie(req, res);
+    if (jwtPayload !== null) {
+      renderDefaultView(res, jwtPayload);
+    }
+    else {
+      renderLoginView(res);
+    }
+  });
+
   app.get('/about', (req, res) => {
-    const jwtPayload = handleJWTCookie(req, res);
+    const jwtPayload = verifyJWTCookie(req, res);
     res.render('Main.jsx', { activeView: views.about, authenticated: jwtPayload !== null });
   });
 
   app.get('/create', (req, res) => {
-    const jwtPayload = handleJWTCookie(req, res);
+    const jwtPayload = verifyJWTCookie(req, res);
     if (jwtPayload !== null) {
       res.render('Main.jsx', { activeView: views.createWorkspace, authenticated: true });
     }
@@ -103,12 +97,62 @@ function register(app) {
   });
 
   app.post('/api/createWorkspace', (req, res) => {
-    const jwtPayload = handleJWTCookie(req, res);
+    const jwtPayload = verifyJWTCookie(req, res);
     if (jwtPayload !== null && req.body !== undefined && req.body.name !== undefined) {
-      database.createWorkspace(jwtPayload.id, req.body.name);
+      const result = database.createWorkspace(jwtPayload.id, req.body.name);
+      if (result.workspacePresent) {
+        res.send({
+          status: 'failed',
+          error: 'Workspace name taken',
+        });
+      }
+      else if (!result.successful) {
+        res.send({
+          status: 'failed',
+          error: 'Database failure',
+        });
+      }
+      else {
+        res.send({
+          status: 'successful',
+          error: '',
+        });
+      }
     }
     else {
-      console.log('Invalid create workspace request. Body:', res.body, 'UserID:', jwtPayload.id);
+      console.log('Invalid create workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
+    }
+  });
+
+  app.post('/api/deleteWorkspace', (req, res) => {
+    const jwtPayload = verifyJWTCookie(req, res);
+    if (jwtPayload !== null && req.body !== undefined && req.body.workspaceHash !== undefined) {
+      database.deleteWorkspace(jwtPayload.id, req.body.workspaceHash);
+    }
+    else {
+      console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
+    }
+  });
+
+  app.post('/api/login', (req, res) => {
+    if (req.body !== undefined && req.body.username !== undefined && req.body.password !== undefined) {
+      const verificationObj = database.verifyCredentials(req.body.username, req.body.password);
+      if (!verificationObj.valid) {
+        console.log('Login unsuccessful: Bad credentials.');
+        res.send({error: 'Bad Credentials.'});
+        return;
+      }
+
+      //database.login(jwtPayload.id, req.body.workspaceHash);
+      const token = jwt.sign({
+        id: verificationObj.id,
+        role: verificationObj.role,
+        exp: Math.floor(Date.now() / 1000) + (60 * 60 * 24),
+      }, appConfig.JWT.Secret)
+      res.send({token});
+    }
+    else {
+      console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
     }
   });
 }

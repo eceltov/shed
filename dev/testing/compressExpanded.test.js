@@ -1,4 +1,4 @@
-var to = require('../lib/dif');
+var to = require('../controller/lib/dif');
 
 /*
 dependant: [to.del(0, 3, 1), to.del(0, 1, 5)],

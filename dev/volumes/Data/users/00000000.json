@@ -1,0 +1,13 @@
+{
+  "id": "00000000",
+  "role": "user",
+  "username": "demo",
+  "password": "password",
+  "workspaces": [
+    {
+      "id": "4defe3c1e917d1ecd55cd98ce1377b0ecf13d55d7db64bb5506dcc73e762044b",
+      "name": "Demo Workspace",
+      "role": 5
+    }
+  ]
+}
