@@ -116,9 +116,27 @@ To edit a document and see the effects from the point of view of a different cli
 
 To add a user to an existing workspace, you have to navigate to the Options in the top right corner, type in the username, select their role, and adding them using the Add button.
 
-The workspace can be in one of two access types.
+The workspace can be in one of three access types.
 The first one is `Privileged`, that allows only authenticated users with access to the workspace to connect to it.
-The second one is `All (Read Only)`, that additionally allows unauthenticated users to connect to the workspace, but not be able to make changes to it.
+The second one is `Everyone with link`, that additionally allows unauthenticated users to connect to the workspace and edit documents.
+The third one is `Everyone with link (read-only)`, which does not allow unauthenticated users to edit documents.
 Authenticated users can still make changes to the workspace, if their role is sufficient.
+
+### Managing Users
+
+Adding users, removing them, and changing their passwords can be done using three utility scripts.
+The following example adds a user `test` with password `password`, changes its password to `new`, and finally deletes it.
+
+```bash 
+node dev/userOperations/createUser.js test password
+node dev/userOperations/changeUserPassword.js test new
+node dev/userOperations/removeUser.js test
+```
+
+In order to use the scripts, it is necessary to have Node installed and the packages initialized by running:
+
+```bash 
+npm install
+```
 
 [1]: https://github.com/ajaxorg/ace-builds

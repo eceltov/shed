@@ -11,7 +11,8 @@
       "workspaceUsersPath": "users.json",
       "workspaceConfigPath": "config.json"
     },
-    "workspaceHashSalt": "some salt"
+    "workspaceHashSalt": "some salt",
+    "userHashSalt": "different salt"
   },
   "FallbackSettings": {
     "controllerServerPort": 8060,

@@ -9,6 +9,7 @@ class DatabaseGateway {
     this.paths = null;
     this.configPath = path.join(__dirname, 'config.json');
     this.workspaceHashSalt = null;
+    this.userHashSalt = null;
   }
 
   initialize() {
@@ -19,6 +20,7 @@ class DatabaseGateway {
     this.paths.workspacesPath = path.join(__dirname, '../volumes/Data/workspaces/');
     this.paths.usernameToIdMapPath = path.join(__dirname, '../volumes/Data/usernameToIdMap.json')
     this.workspaceHashSalt = config.workspaceHashSalt;
+    this.userHashSalt = config.userHashSalt;
   }
 
   /**
@@ -70,6 +72,56 @@ class DatabaseGateway {
     }
   }
 
+  createUserJson(userID, username, password) {
+    try {
+      const userPath = this.getUserPath(userID);
+
+      const userJson = {
+        id: userID,
+        role: 'user',
+        username,
+        password,
+        workspaces: [],
+      };
+
+      fs.writeFileSync(userPath, JSON.stringify(userJson));
+
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  deleteUserJson(userID) {
+    try {
+      const userPath = this.getUserPath(userID);
+      fs.rmSync(userPath);
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
+  changeUserPasswordByID(userID, newPassword) {
+    try {
+      const userPath = this.getUserPath(userID);
+      const userJson = this.getUserJson(userID);
+      userJson.password = newPassword;
+
+      fs.writeFileSync(userPath, JSON.stringify(userJson));
+
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
+    }
+  }
+
   getUserWorkspaces(userID) {
     const userMeta = this.getUserJson(userID);
     if (userMeta === null)
@@ -78,10 +130,28 @@ class DatabaseGateway {
   }
 
   getUsernameToIdMap() {
-    const path = this.paths.usernameToIdMapPath;
-    const JSONString = fs.readFileSync(path);
-    const parsed = JSON.parse(JSONString);
-    return parsed;
+    try {
+      const mapPath = this.paths.usernameToIdMapPath;
+      const JSONString = fs.readFileSync(mapPath);
+      const parsed = JSON.parse(JSONString);
+      return parsed;
+    }
+    catch (err) {
+      console.error(err);
+      return null;
+    }
+  }
+
+  updateUsernameToIdMap(updatedMap) {
+    try {
+      const mapPath = this.paths.usernameToIdMapPath;
+      fs.writeFileSync(mapPath, JSON.stringify(updatedMap));
+      return true;
+    }
+    catch (err) {
+      console.error(err);
+      return false;
+    }
   }
 
   /**
@@ -316,6 +386,76 @@ class DatabaseGateway {
       console.error(err);
       return false;
     }
+  }
+
+  /**
+   * @brief Adds a user to the UsernameToIDMap and creates a new JSON file for it.
+   * @param {*} username The username of the new user.
+   * @param {*} password The password of the new user.
+   * @returns Returns an object indicating the result: {successful, userPresent}
+   */
+  addUser(username, password) {
+    // check whether user already present
+    const map = this.getUsernameToIdMap();
+    if (map.hasOwnProperty(username)) {
+      return {
+        successful: false,
+        userPresent: true,
+      };
+    }
+
+    // create userHash
+    const sha256Hasher = crypto.createHmac('sha256', this.userHashSalt);
+    const userID = sha256Hasher.update(username).digest('hex');
+
+    // create new user json
+    map[username] = userID;
+    if (!this.createUserJson(userID, username, password)) {
+      return {
+        successful: false,
+        userPresent: false,
+      };
+    }
+
+    // update map
+    if (!this.updateUsernameToIdMap(map)) {
+      this.deleteUserJson(userID);
+      return {
+        successful: false,
+        userPresent: false,
+      };
+    }
+
+    return {
+      successful: true,
+      userPresent: false,
+    };
+  }
+
+  changeUserPassword(username, newPassword) {
+    const map = this.getUsernameToIdMap();
+    if (!map.hasOwnProperty(username)) {
+      return false;
+    }
+
+    const userID = map[username];
+    return this.changeUserPasswordByID(userID, newPassword);
+  }
+
+  removeUser(username) {
+    const map = this.getUsernameToIdMap();
+    if (!map.hasOwnProperty(username)) {
+      return false;
+    }
+
+    const userID = map[username];
+    delete map[username];
+
+    if (!this.updateUsernameToIdMap(map)) {
+      return false;
+    }
+
+    return this.deleteUserJson(userID);
   }
 
   verifyCredentials(username, password) {
