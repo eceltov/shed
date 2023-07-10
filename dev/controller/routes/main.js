@@ -48,7 +48,6 @@ function renderDefaultView(res, jwtPayload = null) {
 function register(app) {
   app.get('/', (req, res) => {
     let jwtPayload = verifyJWTCookie(req, res);
-    console.log("jwtPayload", jwtPayload);
 
     // if the user authenticates, set the jwt cookie
     if (req.query.token !== undefined) {

@@ -223,7 +223,7 @@ namespace TextOperations.Operations
                         }
                         else
                         {
-                            Console.WriteLine("Error: MergeSubdifs: Invalid element count in compressionResult.");
+                            throw new InvalidOperationException("Error: MergeSubdifs: Invalid element count in compressionResult.");
                         }
                     }
                 }

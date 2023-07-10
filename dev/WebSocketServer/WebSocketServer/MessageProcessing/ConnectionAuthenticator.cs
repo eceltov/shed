@@ -10,6 +10,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WebSocketServer.Configuration;
 using WebSocketServer.Parsers.MessageParsers;
+using WebSocketServer.Utilities;
 
 namespace WebSocketServer.MessageProcessing
 {
@@ -48,7 +49,7 @@ namespace WebSocketServer.MessageProcessing
             }
             catch (Exception e)
             {
-                Console.WriteLine(e.Message);
+                Logger.DebugWriteLine(e.Message);
                 // return null if validation fails
                 return null;
             }

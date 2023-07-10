@@ -13,6 +13,7 @@ using TextOperations.Types;
 using System.Text.RegularExpressions;
 using WebSocketServer.MessageProcessing.ServerMessages;
 using System.Runtime.InteropServices;
+using WebSocketServer.Utilities;
 
 namespace WebSocketServer.Model
 {
@@ -38,7 +39,7 @@ namespace WebSocketServer.Model
 
         public Workspace(string ID, string name, FileStructure fileStructure, WorkspaceUsers users, WorkspaceConfig workspaceConfig)
         {
-            Console.WriteLine($"Creating Workspace {name}, ID {ID}");
+            Logger.DebugWriteLine($"Creating Workspace {name}, ID {ID}");
             this.ID = ID;
             Name = name;
             FileStructure = fileStructure;
@@ -61,7 +62,7 @@ namespace WebSocketServer.Model
                 return true;
             }
 
-            Console.WriteLine($"Error in {nameof(ScheduleDocumentAction)}: Could not schedule document action.");
+            Logger.DebugWriteLine($"Error in {nameof(ScheduleDocumentAction)}: Could not schedule document action.");
             return false;
         }
 
@@ -69,19 +70,19 @@ namespace WebSocketServer.Model
         {
             if (client == null)
             {
-                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client is null.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanJoin)}: client is null.");
                 return false;
             }
 
             if (!WorkspaceAccessHandler.CanAccessWorkspace(Config.AccessType, client.Role))
             {
-                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} has insufficient access rights.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} has insufficient access rights.");
                 return false;
             }
 
             if (Clients.ContainsKey(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} already present.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanJoin)}: client {client.ID} already present.");
                 return false;
             }
 
@@ -98,19 +99,19 @@ namespace WebSocketServer.Model
         {
             if (client == null)
             {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanEdit)}: client is null.");
                 return false;
             }
 
             if (!WorkspaceAccessHandler.CanEdit(Config.AccessType, client.Role))
             {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} has insufficient rights.");
                 return false;
             }
 
             if (!documentInstance.ClientPresent(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
+                Logger.DebugWriteLine($"Error in {nameof(ClientCanEdit)}: client {client.ID} requested to edit a document with which he is not registered.");
                 return false;
             }
 
@@ -121,7 +122,7 @@ namespace WebSocketServer.Model
         {
             if (!WorkspaceAccessHandler.CanAccessWorkspace(Config.AccessType, client.Role))
             {
-                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: client {client.ID} cannot view the document.");
+                Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: client {client.ID} cannot view the document.");
                 return false;
             }
 
@@ -137,7 +138,7 @@ namespace WebSocketServer.Model
                 {
                     // the document could not be instantiated
                     /// TODO: send an error message
-                    Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: DocumentInstance could not be started.");
+                    Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: DocumentInstance could not be started.");
                     return false;
                 }
             }
@@ -150,13 +151,13 @@ namespace WebSocketServer.Model
             /// TODO: this should probably be handled sooner than here
             if (documentInstance.ClientPresent(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Connecting client to a document when already connected.");
+                Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Connecting client to a document when already connected.");
                 return false;
             }
 
             if (!client.OpenDocuments.TryAdd(fileID, documentInstance))
             {
-                Console.WriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Could not add new open document to client.");
+                Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Could not add new open document to client.");
                 return false;
             }
 
@@ -186,13 +187,13 @@ namespace WebSocketServer.Model
 
             if (relativePath == null)
             {
-                Console.WriteLine($"Error in {nameof(SaveDocumentAsync)}: Relative path is null (documentID {documentID}).");
+                Logger.DebugWriteLine($"Error in {nameof(SaveDocumentAsync)}: Relative path is null (documentID {documentID}).");
                 return;
             }
 
             if (!await DatabaseProvider.Database.WriteDocumentDataAsync(ID, relativePath, document))
             {
-                Console.WriteLine($"Error in {nameof(SaveDocumentAsync)}: Could not save document (path {relativePath}).");
+                Logger.DebugWriteLine($"Error in {nameof(SaveDocumentAsync)}: Could not save document (path {relativePath}).");
                 return;
             }
         }
@@ -201,13 +202,13 @@ namespace WebSocketServer.Model
         {
             if (ActiveDocuments.ContainsKey(documentID))
             {
-                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start already active document (ID {documentID}).");
+                Logger.DebugWriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start already active document (ID {documentID}).");
                 return null;
             }
 
             if (FileStructure.GetFileFromID(documentID) is not Document documentFile)
             {
-                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start invalid document (ID {documentID}).");
+                Logger.DebugWriteLine($"Error in {nameof(StartDocumentAsync)}: Attempted to start invalid document (ID {documentID}).");
                 return null;
             }
 
@@ -216,7 +217,7 @@ namespace WebSocketServer.Model
 
             if (await GetDocumentContentAsync(ID, documentPath) is not List<string> document)
             {
-                Console.WriteLine($"Error in {nameof(StartDocumentAsync)}: Could not read document content (path {documentPath}).");
+                Logger.DebugWriteLine($"Error in {nameof(StartDocumentAsync)}: Could not read document content (path {documentPath}).");
                 return null;
             }
 
@@ -307,7 +308,7 @@ namespace WebSocketServer.Model
             if (!await DatabaseProvider.Database.DeleteDocumentAsync(ID, relativePath))
             {
                 ///TODO: retry it later
-                Console.WriteLine($"Error in {nameof(DeleteDocumentAsync)}: Database could not delete document.");
+                Logger.DebugWriteLine($"Error in {nameof(DeleteDocumentAsync)}: Database could not delete document.");
             }
 
             return true;
@@ -361,7 +362,7 @@ namespace WebSocketServer.Model
 
             if (!await DatabaseProvider.Database.RenameFileAsync(ID, oldPath, newPath))
             {
-                Console.WriteLine($"Error in {nameof(RenameFileAsync)}: Database could not rename file.");
+                Logger.DebugWriteLine($"Error in {nameof(RenameFileAsync)}: Database could not rename file.");
                 ///TODO: retry it later
                 return false;
             }
@@ -398,7 +399,7 @@ namespace WebSocketServer.Model
         {
             if (await CreateDocumentAsync(client, parentID, name) is not int documentID)
             {
-                Console.WriteLine($"Error in {nameof(HandleCreateDocumentAsync)}: Document creation failed.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleCreateDocumentAsync)}: Document creation failed.");
                 return false;
             }
 
@@ -412,7 +413,7 @@ namespace WebSocketServer.Model
         {
             if (await CreateFolderAsync(client, parentID, name) is not int folderID)
             {
-                Console.WriteLine($"Error in {nameof(HandleCreateFolderAsync)}: Folder creation failed.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleCreateFolderAsync)}: Folder creation failed.");
                 return false;
             }
 
@@ -426,7 +427,7 @@ namespace WebSocketServer.Model
         {
             if (!await DeleteDocumentAsync(client, fileID))
             {
-                Console.WriteLine($"Error in {nameof(HandleDeleteDocumentAsync)}: Document deletion failed.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteDocumentAsync)}: Document deletion failed.");
                 return false;
             }
 
@@ -440,7 +441,7 @@ namespace WebSocketServer.Model
         {
             if (!await DeleteFolderAsync(client, fileID))
             {
-                Console.WriteLine($"Error in {nameof(HandleDeleteFolderAsync)}: Folder deletion failed.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteFolderAsync)}: Folder deletion failed.");
                 return false;
             }
 
@@ -454,7 +455,7 @@ namespace WebSocketServer.Model
         {
             if (!await RenameFileAsync(client, fileID, newName))
             {
-                Console.WriteLine($"Error in {nameof(HandleRenameFileAsync)}: File rename failed.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleRenameFileAsync)}: File rename failed.");
                 return false;
             }
 
@@ -488,25 +489,25 @@ namespace WebSocketServer.Model
         {
             if (!RoleHandler.CanAddUsers(client.Role))
             {
-                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Unprivileged user tried to add a user.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Unprivileged user tried to add a user.");
                 return false;
             }
 
             if (!ValidateUsername(username))
             {
-                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid username.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid username.");
                 return false;
             }
 
             if (!RoleHandler.ValidWorkspaceAdditionRole(role))
             {
-                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid role.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Invalid role.");
                 return false;
             }
 
             if (await DatabaseProvider.Database.GetUserByUsernameAsync(username) is not User user)
             {
-                Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Could not find user '{username}'.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Could not find user '{username}'.");
                 return false;
             }
 
@@ -516,13 +517,13 @@ namespace WebSocketServer.Model
             {
                 if (userWorkspaceEntry.Role == Roles.Owner)
                 {
-                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: The owner cannot be made less privileged.");
+                    Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: The owner cannot be made less privileged.");
                     return false;
                 }
 
                 if (client.Role == Roles.Admin && userWorkspaceEntry.Role == Roles.Admin)
                 {
-                    Console.WriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less privileged.");
+                    Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: Admin '{client.User.Username}' attempted to make another admin '{username}' less privileged.");
                     return false;
                 }
             }
@@ -536,7 +537,7 @@ namespace WebSocketServer.Model
         {
             if (!RoleHandler.CanChangeWorkspaceAccessType(client.Role))
             {
-                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Unprivileged user tried to change access type.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Unprivileged user tried to change access type.");
                 return false;
             }
 
@@ -545,7 +546,7 @@ namespace WebSocketServer.Model
 
             if (!await DatabaseProvider.Database.ChangeWorkspaceAccessTypeAsync(ID, accessType))
             {
-                Console.WriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Could not update access type.");
+                Logger.DebugWriteLine($"Error in {nameof(HandleChangeWorkspaceAccessTypeAsync)}: Could not update access type.");
                 return false;
             }
 

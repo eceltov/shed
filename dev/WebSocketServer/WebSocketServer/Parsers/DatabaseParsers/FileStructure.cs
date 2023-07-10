@@ -3,6 +3,7 @@ using System.Globalization;
 using System.Text.RegularExpressions;
 using Newtonsoft.Json;
 using Newtonsoft.Json.Converters;
+using WebSocketServer.Utilities;
 
 namespace WebSocketServer.Parsers.DatabaseParsers
 {
@@ -355,7 +356,7 @@ namespace WebSocketServer.Parsers.DatabaseParsers
         {
             if (idPath == null)
             {
-                Console.WriteLine("Relative path is null!");
+                Logger.DebugWriteLine("Relative path is null!");
                 return null;
             }
 

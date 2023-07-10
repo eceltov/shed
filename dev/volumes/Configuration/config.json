@@ -19,5 +19,6 @@
     "workspaceServerPort": 8061,
     "workspaceServerUrl": "localhost",
     "pathToVolumes": "./dev/volumes"
-  }
+  },
+  "ShowDebugLogs": false
 }

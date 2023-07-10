@@ -15,11 +15,13 @@ namespace WebSocketServer.Parsers.ConfigurationParsers
             JWT = source.JWT;
             Database = source.Database;
             FallbackSettings = source.FallbackSettings;
+            ShowDebugLogs = source.ShowDebugLogs;
         }
 
         [JsonProperty("JWT")] public JWT JWT { get; set; }
         [JsonProperty("Database")] public Database Database { get; set; }
         [JsonProperty("FallbackSettings")] public FallbackSettings FallbackSettings { get; set; }
+        [JsonProperty("ShowDebugLogs")] public bool ShowDebugLogs { get; set; }
     }
 
     public class JWT

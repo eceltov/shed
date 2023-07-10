@@ -11,6 +11,7 @@ using WebSocketServer.Model;
 using WebSocketServer.Parsers.MessageParsers;
 using WebSocketSharp;
 using WebSocketSharp.Server;
+using WebSocketServer.Utilities;
 
 namespace WebSocketServer.MessageProcessing
 {
@@ -20,7 +21,7 @@ namespace WebSocketServer.MessageProcessing
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            Console.WriteLine(e.Data);
+            Utilities.Logger.DebugWriteLine(e.Data);
             HandleMessageAsync(e.Data).GetAwaiter().GetResult();
         }
 
@@ -73,7 +74,7 @@ namespace WebSocketServer.MessageProcessing
                     HandleChangeWorkspaceAccessType(messageString);
                     break;
                 default:
-                    Console.WriteLine($"Received unknown message type: {genericMessage.MsgType}");
+                    Utilities.Logger.DebugWriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
             }
         }
@@ -97,7 +98,7 @@ namespace WebSocketServer.MessageProcessing
             client = newClient;
             if (!AllClients.Add(client)) return;
 
-            Console.WriteLine($"Added client {client.ID}");
+            Utilities.Logger.DebugWriteLine($"Added client {client.ID}");
             workspace.ScheduleAction(() => workspace.HandleConnectClient(client));
         }
 
@@ -219,7 +220,7 @@ namespace WebSocketServer.MessageProcessing
             }
 
 
-            Console.WriteLine($"Connection closed (client ID {client?.ID})");
+            Utilities.Logger.DebugWriteLine($"Connection closed (client ID {client?.ID})");
             base.OnClose(e);
         }
 

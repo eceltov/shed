@@ -368,7 +368,7 @@ namespace TextOperations.Operations
             {
                 if (transformer.Position > subdif.Position)
                 {
-                    Console.WriteLine("Error: IT_RN: Newline is on a bigger position than the remline.");
+                    throw new InvalidOperationException("Error: IT_RN: Newline is on a bigger position than the remline.");
                 }
                 else
                 {

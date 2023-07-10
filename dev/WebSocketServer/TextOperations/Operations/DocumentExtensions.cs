@@ -47,7 +47,7 @@ namespace TextOperations.Operations
                 }
                 else
                 {
-                    Console.WriteLine("Error: ApplyDif: Received unknown subdif.");
+                    throw new InvalidOperationException("Error: ApplyDif: Received unknown subdif.");
                 }
             }
         }
@@ -91,7 +91,7 @@ namespace TextOperations.Operations
                 }
                 else
                 {
-                    Console.WriteLine("Error: UndoDif: Received unknown subdif.");
+                    throw new InvalidOperationException("Error: UndoDif: Received unknown subdif.");
                 }
             }
         }

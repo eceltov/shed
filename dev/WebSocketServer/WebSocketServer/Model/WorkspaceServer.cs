@@ -5,6 +5,7 @@ using System.Text;
 using System.Threading.Tasks;
 using WebSocketServer.Configuration;
 using WebSocketServer.MessageProcessing;
+using WebSocketServer.Utilities;
 using WebSocketSharp.Server;
 
 namespace WebSocketServer.Model
@@ -21,10 +22,7 @@ namespace WebSocketServer.Model
 
             if (httpsv.IsListening)
             {
-                Console.WriteLine($"WebSocketServer running on port {httpsv.Port}");
-
-                foreach (var path in httpsv.WebSocketServices.Paths)
-                    Console.WriteLine("- {0}", path);
+                Logger.WriteLine($"WebSocketServer running on port {httpsv.Port}");
             }
 
             while (Console.ReadLine() != null) ;

@@ -79,7 +79,7 @@ namespace TextOperations.Operations
                 }
                 else
                 {
-                    Console.WriteLine("Conversion not implemented!");
+                    ///TODO: Conversion not implemented
                 }
             }
             else if (wrap.Sub is Newline)
@@ -100,7 +100,7 @@ namespace TextOperations.Operations
                 }
                 else
                 {
-                    Console.WriteLine("Conversion not implemented!");
+                    ///TODO: Conversion not implemented
                 }
             }
             else if (wrap.Sub is Remline)
@@ -114,12 +114,12 @@ namespace TextOperations.Operations
                 }
                 else
                 {
-                    Console.WriteLine("Conversion not implemented!");
+                    ///TODO: Conversion not implemented
                 }
             }
             else
             {
-                Console.WriteLine("Unknown addresser in convertAA!");
+                throw new InvalidOperationException("Unknown addresser in convertAA!");
             }
             return wrap;
         }
@@ -165,14 +165,14 @@ namespace TextOperations.Operations
                 // siblings should not have lost information or be relative, because they will be deleted
                 if (wSibling.InformationLost || wSibling.Relative)
                 {
-                    Console.WriteLine("Error: InternalJoinSiblings: A sibling lost information or is relative.");
+                    throw new InvalidOperationException("Error: InternalJoinSiblings: A sibling lost information or is relative.");
                 }
             }
 
             List<Subdif> compressed = dif.Compress();
             if (compressed.Count != 1)
             {
-                Console.WriteLine("Error: InternalJoinSiblings: The length of joined siblings is not 1.");
+                throw new InvalidOperationException("Error: InternalJoinSiblings: The length of joined siblings is not 1.");
             }
             wMain.Sub = compressed[0];
             return wMain;

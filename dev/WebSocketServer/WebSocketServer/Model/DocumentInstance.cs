@@ -146,7 +146,7 @@ namespace WebSocketServer.Model
         {
             if (clients.ContainsKey(client.ID) || !clients.TryAdd(client.ID, client))
             {
-                Console.WriteLine($"Error in {nameof(AddClient)}: Adding already present client to ${nameof(DocumentInstance)}.");
+                Logger.DebugWriteLine($"Error in {nameof(AddClient)}: Adding already present client to ${nameof(DocumentInstance)}.");
                 return;
             }
 
@@ -159,13 +159,13 @@ namespace WebSocketServer.Model
         {
             if (!clients.ContainsKey(client.ID))
             {
-                Console.WriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document, because it is not present.");
+                Logger.DebugWriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document, because it is not present.");
                 return;
             }
 
             if (!clients.TryRemove(client.ID, out Client? _))
             {
-                Console.WriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document.");
+                Logger.DebugWriteLine($"Error in {nameof(RemoveConnection)}: Client {client.ID} cannot be removed from the document.");
                 return;
             }
 
@@ -178,7 +178,7 @@ namespace WebSocketServer.Model
         {
             if (!ClientCanEditCallback(authoringClient))
             {
-                Console.WriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
+                Logger.DebugWriteLine($"Error: {nameof(HandleOperation)}: Operation application failed.");
                 return false;
             }
 
@@ -194,7 +194,7 @@ namespace WebSocketServer.Model
             }
             catch
             {
-                Console.WriteLine($"Error: {nameof(HandleOperation)}: Document divergence detected.");
+                Logger.DebugWriteLine($"Error: {nameof(HandleOperation)}: Document divergence detected.");
                 var divergenceMessage = new DivergenceDetectedMessage(DocumentID);
                 clients.SendMessage(divergenceMessage);
 
@@ -217,7 +217,7 @@ namespace WebSocketServer.Model
                 return true;
             }
 
-            Console.WriteLine($"Error: {nameof(HandleClientClosedDocument)}: A client ({client.ID}) is closing an unopened document ({DocumentID}).");
+            Logger.DebugWriteLine($"Error: {nameof(HandleClientClosedDocument)}: A client ({client.ID}) is closing an unopened document ({DocumentID}).");
             return false;
         }
 
@@ -290,7 +290,7 @@ namespace WebSocketServer.Model
 
             if (!garbageRoster.ContainsKey(client.ID))
             {
-                Console.WriteLine("Error: ProcessGCResponse: Invalid ClientID.");
+                Logger.DebugWriteLine("Error: ProcessGCResponse: Invalid ClientID.");
                 return;
             }
 
@@ -301,11 +301,11 @@ namespace WebSocketServer.Model
             }
             catch (ArgumentException e)
             {
-                Console.WriteLine(e.Message);
+                Logger.DebugWriteLine(e.Message);
             }
             catch (InvalidOperationException e)
             {
-                Console.WriteLine(e.Message);
+                Logger.DebugWriteLine(e.Message);
             }
         }
 
@@ -313,7 +313,7 @@ namespace WebSocketServer.Model
         {
             if (!ClientCanEditCallback(client))
             {
-                Console.WriteLine($"Error: {nameof(HandleForceDocument)}: Unauthorized client tried to force document.");
+                Logger.DebugWriteLine($"Error: {nameof(HandleForceDocument)}: Unauthorized client tried to force document.");
                 return false;
             }
 
@@ -337,7 +337,7 @@ namespace WebSocketServer.Model
         {
             if (SOGarbageIndex < 0 || SOGarbageIndex >= serverOrdering.Count)
             {
-                Console.WriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO.");
+                Logger.DebugWriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO.");
                 return;
             }
 
