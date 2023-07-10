@@ -67,7 +67,9 @@ const msgTypes = {
     // sent to clients that cannot join the workspace due to insufficient permissions: {msgType}
     clientCannotJoin: 66,
     // sent when the requested workspace does not exist: {msgType}
-    workspaceDoesNotExist: 67
+    workspaceDoesNotExist: 67,
+    // sent to inform about the change of the role of a client: {msgType, role}
+    changeUserWorkspaceRole: 68,
   },
 };
 

@@ -360,6 +360,13 @@ TODO: handle bigger and smaller resolutions
     font-size: xx-large;
 }
 
+.optionsText {
+    margin-left: var(--workspace-link-margin-left);
+    margin-right: var(--workspace-link-margin-left);
+    color: var(--main-font-color);
+    max-width: 50vw;
+}
+
 .createInput {
     border-radius: 4px;
     color: black;

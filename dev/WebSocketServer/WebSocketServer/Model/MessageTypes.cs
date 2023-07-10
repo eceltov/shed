@@ -71,5 +71,11 @@ namespace WebSocketServer.Model
         ForceDocument = 64,
         // sent to inform about the change of the access type of the workspace: {msgType, accessType}
         ChangeWorkspaceAccessType = 65,
+        // sent to clients that cannot join the workspace due to insufficient permissions: {msgType}
+        ClientCannotJoin = 66,
+        // sent when the requested workspace does not exist: {msgType}
+        WorkspaceDoesNotExist = 67,
+        // sent to inform about the change of the role of a client: {msgType, role}
+        ChangeUserWorkspaceRole = 68,
     }
 }

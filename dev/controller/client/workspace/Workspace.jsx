@@ -329,9 +329,16 @@ class Workspace extends React.Component {
       case msgTypes.server.changeWorkspaceAccessType:
         this.onChangeWorkspaceAccessType(message);
         break;
+      case msgTypes.server.changeUserWorkspaceRole:
+        this.onChangeUserWorkspaceRole(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
+  }
+
+  onChangeUserWorkspaceRole(message) {
+    this.setState({role: message.role});
   }
 
   onFailedvalidation(message) {
