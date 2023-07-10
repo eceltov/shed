@@ -1,6 +1,6 @@
 # ShEd - Collaborative Shared Editor and Repository
 
-A shared web editor and repository supporting real-time collaborative editing sessions.
+A shared web editor and repository prototype supporting real-time collaborative editing sessions.
 
 ## Features
   - Document Convergence: If multiple users edit the same document at the same time, their local documents will become identical over time.
@@ -11,10 +11,10 @@ A shared web editor and repository supporting real-time collaborative editing se
 ## Overview
 
 ShEd is composed of two servers that need to be running to provide full functionality.
-The first one is the controller server, that serves static pages.
-The second one is the workspace server, which handles the collaborative aspects.
+The first one is the `controller server`, that serves static pages.
+The second one is the `workspace server`, which handles the collaborative aspects.
 
-Users do not need to interact with the endpoints of the workspace server, this is handled by the client provided by the controller server.
+Users do not need to interact with the endpoints of the workspace server; this is handled by the client provided by the controller server.
 
 ## Installing ShEd
 
@@ -48,7 +48,7 @@ npm run build-client
 
 ## Running ShEd
 
-### Running ShEd on Docker
+### Running ShEd in Docker
 
 In order to start ShEd in the Docker environment, make sure that you have Docker installed.
 
@@ -72,7 +72,7 @@ By default, the controller server uses port  `8060` and the workspace server use
 
 ### Running ShEd Manually
 
-To run ShEd manually, you first need to do all the manual installation stept.
+To run ShEd manually, you first need to do all the manual installation steps.
 Once installed, you can start the controller server by running:
 
 ```bash 
@@ -94,7 +94,7 @@ The servers do not support hot reloading; to see the effects of the new configur
 
 There are two files used for configuration.
 The first one is the `.env` file in the root of the repository.
-The second is the `config.json` file located in `dev/volumes/Configuration/`.
+The second one is the `config.json` file located in `dev/volumes/Configuration/`.
 
 When running manually, the `.env` file does not need to be changed, as it will have no effect.
 In the `config.json`, to change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
@@ -107,7 +107,7 @@ When running in Docker, the `config.json` file should only be used for changing 
 
 ShEd can be accessed through the controller server at <http://localhost:8060> by default.
 
-Once you arrive at the welcome screen, you can proceed to Log In using the label at the top-right corner.
+Once you load the page, you will be prompted to log in. 
 By default, two demo accounts are available.
 Their credentials are `demo`, `password` and `demo2`, `password2`, respectively.
 
@@ -116,18 +116,20 @@ You can access an existing one by clicking on its name, or create one by clickin
 Both default users will have access to the `Demo Workspace`.
 
 User `demo` has all privileges inside the workspace, but user `demo2` has only the rights to view and edit documents.
+Many of the features below are thus not available for user `demo2`.
 
 Inside a workspace, you can do basic file operations using the buttons in the top left and open documents and folders by navigating through the file system.
 Opening a document will create a new tab and display the contents of the file.
 To edit a document and see the effects from the point of view of a different client, you can simply duplicate the window, because a single user can have multiple clients.
 
-To add a user to an existing workspace, you have to navigate to the Options in the top right corner, type in the username, select their role, and adding them using the Add button.
+To add a user to an existing workspace, you have to navigate to the Options in the top right corner, type in the username, select their role, and finally add them using the Add button.
 
-The workspace can be in one of three access types.
-The first one is `Privileged`, that allows only authenticated users with access to the workspace to connect to it.
-The second one is `Everyone with link`, that additionally allows unauthenticated users to connect to the workspace and edit documents.
-The third one is `Everyone with link (read-only)`, which does not allow unauthenticated users to edit documents.
-Authenticated users can still make changes to the workspace, if their role is sufficient.
+The workspace can be in one of three access modes:
+  - `Privileged`: allows only authenticated users with access to the workspace to connect to it.
+  - `Everyone with link`: additionally allows unauthenticated users to connect to the workspace and edit documents.
+  - `Everyone with link (read-only)`: does not allow unauthenticated users to edit documents.
+  - 
+Authenticated users can still make changes to the workspace, if their role is sufficient, in the latter two modes.
 
 ### Managing Users
 
@@ -150,17 +152,27 @@ npm install
 
 All of the source code and application data is located in the `dev` folder.
 
+### Controller Server
+
 The source code of the controller server can be found in the `controller` folder.
 It stores the workspace client in the `client` folder, the transformation library in the `lib` folder, and the routes and views used for server side rendering in the `routes` and `views` folder.
 The main entrypoint is the `controllerServer.js` file, that initializes the `Controller` class in `Controller.js`.
 
+### Workspace Server
+
 The source code of the workspace server is in the `WebSocketServer` folder.
 It is structured into three main parts: the server itself is in the `WebSocketServer` folder, the transformation library is in the `TextOperations` folder, and the `TextOperationsUnitTests` folder holds the unit tests of the project.
 
+### User Operations
+
 The `userOperations` folder holds three utility scripts for managing users.
+
+### Testing
 
 The `testing` folder contains tests written in JavaScript.
 It contains the `randomizedTests/indepDepIdentity` subfolder that contains a generator of randomized scenarios that can be used to test the transformation library.
+
+### Data
 
 All of the user and workspace data is stored in the `volumes` folder.
 Additionally, it also contains the configuration of the servers in the `Configuration` folder.
