@@ -21,7 +21,7 @@ class OptionsScreen extends React.Component {
     const role = roleInput.value;
 
     if (this.validateUsername(username)
-      && role > roles.roles.none
+      && role >= roles.roles.none
       && role < roles.roles.owner
     ) {
       this.props.addUserToWorkspace(username, role);
@@ -39,10 +39,10 @@ class OptionsScreen extends React.Component {
   renderAddUsers() {
     return (
       <div>
-        <h1 className="optionsTitle">Add Users To Workspace</h1>
+        <h1 className="optionsTitle">Change User Roles</h1>
 
-        <p className="optionsText">Adds a new user to the workspace with the selected role.</p>
-        <p className="optionsText">This interface can also be used to change user roles if they are already present and you have the right to change their role.</p>
+        <p className="optionsText">Changes the role of the specified user with access to this workspace (if you have sufficient permissions).</p>
+        <p className="optionsText">This interface can also be used to add users if the user was not present already.</p>
 
         <div className="createSegment">
           <label className="createName">
@@ -55,6 +55,7 @@ class OptionsScreen extends React.Component {
           <label className="createName">
             Role
             <select className="credentialsInput" name="label" id="roleInput" required>
+              <option value={roles.roles.none}>{`${roles.getRoleName(roles.roles.none)} (remove from workspace)`}</option>
               <option value={roles.roles.viewer}>{roles.getRoleName(roles.roles.viewer)}</option>
               <option value={roles.roles.editor}>{roles.getRoleName(roles.roles.editor)}</option>
               <option value={roles.roles.workspaceEditor}>{roles.getRoleName(roles.roles.workspaceEditor)}</option>
@@ -65,7 +66,7 @@ class OptionsScreen extends React.Component {
 
         <div className="createSegment">
           <button className="loginButton" type="submit" id="addUserButton" onClick={this.handleAddUser}>
-            Add
+            Change Role
           </button>
         </div>
       </div>
