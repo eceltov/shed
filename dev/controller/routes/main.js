@@ -100,7 +100,25 @@ function register(app) {
   app.post('/api/createWorkspace', (req, res) => {
     const jwtPayload = verifyJWTCookie(req, res);
     if (jwtPayload !== null && req.body !== undefined && req.body.name !== undefined) {
-      database.createWorkspace(jwtPayload.id, req.body.name);
+      const result = database.createWorkspace(jwtPayload.id, req.body.name);
+      if (result.workspacePresent) {
+        res.send({
+          status: 'failed',
+          error: 'Workspace name taken',
+        });
+      }
+      else if (!result.successful) {
+        res.send({
+          status: 'failed',
+          error: 'Database failure',
+        });
+      }
+      else {
+        res.send({
+          status: 'successful',
+          error: '',
+        });
+      }
     }
     else {
       console.log('Invalid create workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
@@ -122,7 +140,7 @@ function register(app) {
       const verificationObj = database.verifyCredentials(req.body.username, req.body.password);
       if (!verificationObj.valid) {
         console.log('Login unsuccessful: Bad credentials.');
-        res.send({error: "Bad Credentials."});
+        res.send({error: 'Bad Credentials.'});
         return;
       }
 

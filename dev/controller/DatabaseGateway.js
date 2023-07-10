@@ -313,10 +313,29 @@ class DatabaseGateway {
     }
   }
 
+  workspaceExists(workspaceHash) {
+    const workspacePath = this.paths.workspacesPath + workspaceHash;
+    return fs.existsSync(workspacePath);
+  }
+
+  /**
+   * @brief Creates a workspace for a given owner.
+   * @param {*} ownerID The ID of the owner.
+   * @param {*} name The name of the workspace.
+   * @returns Return an object with the result of the operation: {successful, workspacePresent}
+   */
   createWorkspace(ownerID, name) {
+    const trimmedName = name.trim();
     try {
       const sha256Hasher = crypto.createHmac('sha256', this.workspaceHashSalt);
-      const hash = sha256Hasher.update(name).digest('hex');
+      const hash = sha256Hasher.update(trimmedName).digest('hex');
+
+      if (this.workspaceExists(hash)) {
+        return {
+          successful: false,
+          workspacePresent: true,
+        };
+      }
 
       const workspacePath = this.paths.workspacesPath + hash;
       // create workspace folder
@@ -328,7 +347,7 @@ class DatabaseGateway {
         nextID: 1,
         type: 1,
         ID: 0,
-        name,
+        name: trimmedName,
         items: {},
       };
 
@@ -351,13 +370,19 @@ class DatabaseGateway {
 
       // add workspace entry to owner
       // this is added last so that all workspaces listed in user config are valid
-      this.addUserWorkspace(ownerID, hash, name, roles.owner);
+      this.addUserWorkspace(ownerID, hash, trimmedName, roles.owner);
 
-      return true;
+      return {
+        successful: true,
+        workspacePresent: false,
+      };
     }
     catch (err) {
       console.error(err);
-      return false;
+      return {
+        successful: false,
+        workspacePresent: false,
+      };
     }
   }
 

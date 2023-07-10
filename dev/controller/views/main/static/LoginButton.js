@@ -20,9 +20,8 @@ function onLoginButtonClick() {
   })
   .then((res) => res.json())
   .then((data) => {
-    console.log(data);
-    if (data.token == undefined || data.token == null) {
-      const errorMessage = document.getElementById("errorMessage");
+    if (data.token === undefined || data.token === null) {
+      const errorMessage = document.getElementById('errorMessage');
       errorMessage.hidden = false;
       return;
     }
