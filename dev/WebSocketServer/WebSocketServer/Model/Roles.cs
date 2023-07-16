@@ -104,7 +104,8 @@ namespace WebSocketServer.Model
         public static bool ValidWorkspaceAdditionRole(Roles role)
         {
             // None and Owner cannot be added.
-            return (role == Roles.Viewer)
+            return (role == Roles.None)
+              || (role == Roles.Viewer)
               || (role == Roles.Editor)
               || (role == Roles.WorkspaceEditor)
               || (role == Roles.Admin);

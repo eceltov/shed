@@ -432,6 +432,11 @@ namespace WebSocketServer.Database
                 if (foundWorkspace != null)
                 {
                     foundWorkspace.Role = role;
+                    // remove the workspace if the role is None
+                    if (role == Roles.None)
+                    {
+                        user.Workspaces.Remove(foundWorkspace);
+                    }
                 }
                 else
                 {

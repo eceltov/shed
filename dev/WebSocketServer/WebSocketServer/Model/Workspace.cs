@@ -527,24 +527,17 @@ namespace WebSocketServer.Model
                     return false;
                 }
 
-                int? existingClientID = null;
+                // change role for all clients of the user
                 foreach (var (clientID, existingClient) in Clients)
                 {
                     if (existingClient.User.Username == username)
                     {
-                        existingClientID = clientID;
                         existingClient.Role = role;
+
+                        ChangeUserWorkspaceRoleMessage message = new(role);
+                        Clients[clientID].ClientInterface.Send(message);
                     }
                 }
-
-                if (existingClientID == null)
-                {
-                    Logger.DebugWriteLine($"Error in {nameof(HandleAddUserToWorkspaceAsync)}: User {username} is missing in the workspace instance.");
-                    return false;
-                }
-
-                ChangeUserWorkspaceRoleMessage message = new(role);
-                Clients[existingClientID.Value].ClientInterface.Send(message);
             }
 
             return await DatabaseProvider.Database.AddUserToWorkspaceAsync(ID, Name, username, role);
