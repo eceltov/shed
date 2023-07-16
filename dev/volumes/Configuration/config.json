@@ -2,6 +2,9 @@
   "JWT": {
     "Secret": "secretsecretsecretsecretsecretsecret"
   },
+  "Client": {
+    "bufferingIntervalMilliseconds": 200
+  },
   "Database": {
     "paths": {
       "workspacesPath": "workspaces",
