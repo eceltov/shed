@@ -6,5 +6,6 @@
         "workspaceConfigPath": "config.json"
     },
     "workspaceHashSalt": "some salt",
-    "userHashSalt": "different salt"
+    "userHashSalt": "different salt",
+    "passwordSalt": "some extra salt"
 }

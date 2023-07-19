@@ -21,6 +21,7 @@ class DatabaseGateway {
     this.paths.usernameToIdMapPath = path.join(__dirname, '../volumes/Data/usernameToIdMap.json')
     this.workspaceHashSalt = config.workspaceHashSalt;
     this.userHashSalt = config.userHashSalt;
+    this.passwordSalt = config.passwordSalt;
   }
 
   /**
@@ -80,7 +81,7 @@ class DatabaseGateway {
         id: userID,
         role: 'user',
         username,
-        password,
+        password: this.getPasswordHash(password),
         workspaces: [],
       };
 
@@ -110,7 +111,7 @@ class DatabaseGateway {
     try {
       const userPath = this.getUserPath(userID);
       const userJson = this.getUserJson(userID);
-      userJson.password = newPassword;
+      userJson.password = this.getPasswordHash(newPassword);
 
       fs.writeFileSync(userPath, JSON.stringify(userJson));
 
@@ -409,6 +410,12 @@ class DatabaseGateway {
     }
   }
 
+  getPasswordHash(password) {
+    const passwordSha256Hasher = crypto.createHmac('sha256', this.passwordSalt);
+    const passwordHash = passwordSha256Hasher.update(password).digest('hex');
+    return passwordHash;
+  }
+
   /**
    * @brief Adds a user to the UsernameToIDMap and creates a new JSON file for it.
    * @param {*} username The username of the new user.
@@ -428,6 +435,7 @@ class DatabaseGateway {
     // create userHash
     const sha256Hasher = crypto.createHmac('sha256', this.userHashSalt);
     const userID = sha256Hasher.update(username).digest('hex');
+
 
     // create new user json
     map[username] = userID;
@@ -489,7 +497,7 @@ class DatabaseGateway {
     const meta = this.getUserJson(userHash);
     if (meta === null)
       return { valid: false };
-    if (meta.password === password) {
+    if (meta.password === this.getPasswordHash(password)) {
       return { valid: true, id: userHash, role: meta.role };
     }
 
