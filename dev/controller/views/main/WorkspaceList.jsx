@@ -9,21 +9,14 @@ class WorkspaceList extends React.Component {
 
   // eslint-disable-next-line class-methods-use-this
   createItem(workspace) {
+    if (workspace.role === roles.roles.none)
+      return;
+      
     return (
       <li key={workspace.id} className="workspaceLinkContainer">
         <a href={`/workspace?hash=${workspace.id}`} className="workspaceLink">
           {`${workspace.name} (${roles.getRoleName(workspace.role)})`}
         </a>
-        {!roles.canDeleteWorkspace(workspace.role) ? null :
-          <button className="deleteButton"
-            type="submit"
-            name="deleteWorkspaceButton"
-            id={workspace.id}
-            workspacename={workspace.name}
-          >
-            Delete
-          </button>
-        }
       </li>
     );
   }

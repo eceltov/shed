@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using WebSocketServer.MessageProcessing.ServerMessages;
 using System.Runtime.InteropServices;
 using WebSocketServer.Utilities;
+using System.Data;
 
 namespace WebSocketServer.Model
 {
@@ -564,6 +565,28 @@ namespace WebSocketServer.Model
             return false;
         }
 
+        public async Task<bool> HandleDeleteWorkspaceAsync(Client client)
+        {
+            if (client.Role != Roles.Owner)
+            {
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteWorkspaceAsync)}: Unprivileged user tried to delete a workspace.");
+                return false;
+            }
+
+            if (!await DatabaseProvider.Database.DeleteWorkspaceAsync(ID))
+            {
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteWorkspaceAsync)}: Could not delete workspace.");
+                return false;
+            }
+
+            DeleteWorkspaceMessage message = new();
+            Clients.SendMessage(message);
+
+            CloseAllConnections();
+
+            return true;
+        }
+
         async Task<bool> SaveFileStructureAsync()
         {
             return await DatabaseProvider.Database.UpdateFileStructureAsync(ID, FileStructure);
@@ -575,6 +598,21 @@ namespace WebSocketServer.Model
                 document.ScheduleRemoveConnection(client);
 
             Clients.TryRemove(client.ID, out Client? _);
+        }
+
+        public void CloseAllConnections()
+        {
+            foreach (var client in Clients.Values)
+            {
+                client.ClientInterface.CloseConnection();
+            }
+
+            Clients.Clear();
+
+            foreach (var document in ActiveDocuments.Values)
+            {
+                document.RemoveAllConnectionsWithoutSaving();
+            }
         }
     }
 }

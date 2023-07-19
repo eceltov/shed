@@ -6,6 +6,7 @@ class OptionsScreen extends React.Component {
   constructor(props) {
     super(props);
     this.handleAddUser = this.handleAddUser.bind(this);
+    this.handleDeleteWorkspace = this.handleDeleteWorkspace.bind(this);
     this.onAccessTypeChange = this.onAccessTypeChange.bind(this);
   }
 
@@ -32,13 +33,19 @@ class OptionsScreen extends React.Component {
     console.log(`Error in handleAddUser: Invalid values: ${username}, ${role}`);
   }
 
+  handleDeleteWorkspace(e) {
+    if (window.confirm(`Do you really want to delete this workspace?`)) {
+      this.props.deleteWorkspace();
+    }
+  }
+
   onAccessTypeChange(e) {
     this.props.changeWorkspaceAccessType(e.target.value);
   }
 
   renderAddUsers() {
     return (
-      <div>
+      <div className="optionsSegment">
         <h1 className="optionsTitle">Change User Roles</h1>
 
         <p className="optionsText">Changes the role of the specified user with access to this workspace (if you have sufficient permissions).</p>
@@ -75,7 +82,7 @@ class OptionsScreen extends React.Component {
 
   renderChangeAccessTypes() {
     return (
-      <div>
+      <div className="optionsSegment">
         <h1 className="optionsTitle">Change Workspace Access Type</h1>
 
         <p className="optionsText">Changes the workspace access type to one of the following options.</p>
@@ -97,6 +104,22 @@ class OptionsScreen extends React.Component {
     );
   }
 
+  renderDeleteWorkspace() {
+    return (
+      <div className="optionsSegment">
+        <h1 className="optionsTitle">Delete Workspace</h1>
+
+        <p className="optionsText">Permanently deletes the workspace.</p>
+
+        <div className="createSegment">
+          <button className="deleteWorkspaceButton" type="submit" id="deleteWorkspaceButton" onClick={this.handleDeleteWorkspace}>
+            Delete Workspace
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   render() {
     return (
       <div className="optionsContent">
@@ -106,6 +129,10 @@ class OptionsScreen extends React.Component {
 
         {!roles.canChangeWorkspaceAccessType(this.props.role) ? null :
           this.renderChangeAccessTypes()
+        }
+
+        {this.props.role !== roles.roles.owner ? null :
+          this.renderDeleteWorkspace()
         }
       </div>
     );

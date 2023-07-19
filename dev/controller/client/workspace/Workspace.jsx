@@ -42,6 +42,7 @@ class Workspace extends React.Component {
     this.showOptionsView = this.showOptionsView.bind(this);
     this.forceDocument = this.forceDocument.bind(this);
     this.addUserToWorkspace = this.addUserToWorkspace.bind(this);
+    this.deleteWorkspace = this.deleteWorkspace.bind(this);
     this.changeWorkspaceAccessType = this.changeWorkspaceAccessType.bind(this);
     this.state = {
       role: roles.none,
@@ -328,9 +329,16 @@ class Workspace extends React.Component {
       case msgTypes.server.changeUserWorkspaceRole:
         this.onChangeUserWorkspaceRole(message);
         break;
+      case msgTypes.server.deleteWorkspace:
+        this.onDeleteWorkspace(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
+  }
+
+  onDeleteWorkspace(message) {
+    window.location.href = '/';
   }
 
   onChangeUserWorkspaceRole(message) {
@@ -608,6 +616,14 @@ class Workspace extends React.Component {
     this.sendMessageToServer(JSON.stringify(message));
   }
 
+  deleteWorkspace() {
+    if (this.state.role !== roles.roles.owner)
+      return;
+
+    const message = msgFactory.deleteWorkspace();
+    this.sendMessageToServer(JSON.stringify(message));
+  }
+
   showOptionsView() {
     this.setState((prevState) => ({
       activeTab: null,
@@ -649,6 +665,7 @@ class Workspace extends React.Component {
           <OptionsScreen
             addUserToWorkspace={this.addUserToWorkspace}
             changeWorkspaceAccessType={this.changeWorkspaceAccessType}
+            deleteWorkspace={this.deleteWorkspace}
             accessType={this.state.accessType}
             role={this.state.role}
           />

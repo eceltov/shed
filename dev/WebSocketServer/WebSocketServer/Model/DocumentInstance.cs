@@ -171,6 +171,12 @@ namespace WebSocketServer.Model
                 SaveDocumentCallback(new List<string>(Document));
         }
 
+        public void RemoveAllConnectionsWithoutSaving()
+        {
+            clients.Clear();
+            ResetAllStructures();
+        }
+
         bool HandleOperation(Client authoringClient, Operation operation)
         {
             if (!ClientCanEditCallback(authoringClient))

@@ -556,6 +556,33 @@ namespace WebSocketServer.Database
             }
         }
 
+        public async Task<bool> DeleteWorkspaceAsync(string workspaceHash)
+        {
+            try
+            {
+                if (await GetWorkspaceUsersAsync(workspaceHash) is not WorkspaceUsers users)
+                {
+                    return false;
+                }
+
+                foreach (string userID in users.Users.Keys)
+                {
+                    await RemoveUserWorkspaceAsync(userID, workspaceHash);
+                }
+
+                await Task.Run(() =>
+                {
+                    System.IO.Directory.Delete(GetWorkspacePath(workspaceHash), true);
+                });
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
         string GetWorkspaceUsersPath(string workspaceHash)
         {
             return Path.Combine(
