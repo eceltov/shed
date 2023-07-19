@@ -153,7 +153,7 @@ Everything can be changed in the `config.json` file.
  - To see debug logs, change `ShowDebugLogs` to `true`.
  - To change the the client buffering interval, navigate to the `Client` section and modify the `bufferingIntervalMilliseconds` field.
 
-When running in Docker, the `config.json` file should only be used for changing the JWT secret and whether debug logs are shown; the `.env` file should be used for everything else.
+When running in Docker, the `config.json` file should be used only when configuring options that are not present in the `.env` file.
 
 ## Repository Structure
 
