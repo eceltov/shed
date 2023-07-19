@@ -73,6 +73,9 @@ namespace WebSocketServer.MessageProcessing
                 case ClientMessageTypes.ChangeWorkspaceAccessType:
                     HandleChangeWorkspaceAccessType(messageString);
                     break;
+                case ClientMessageTypes.DeleteWorkspace:
+                    HandleDeleteWorkspace(messageString);
+                    break;
                 default:
                     Utilities.Logger.DebugWriteLine($"Received unknown message type: {genericMessage.MsgType}");
                     break;
@@ -211,6 +214,15 @@ namespace WebSocketServer.MessageProcessing
             client.Workspace.ScheduleAction(async () => await client.Workspace.HandleChangeWorkspaceAccessTypeAsync(client, message.AccessType));
         }
 
+        void HandleDeleteWorkspace(string messageString)
+        {
+            if (client == null)
+                return;
+
+            var message = new ClientDeleteWorkspaceMessage(messageString);
+            client.Workspace.ScheduleAction(async () => await client.Workspace.HandleDeleteWorkspaceAsync(client));
+        }
+
         protected override void OnClose(CloseEventArgs e)
         {
             if (client != null)
@@ -222,6 +234,11 @@ namespace WebSocketServer.MessageProcessing
 
             Utilities.Logger.DebugWriteLine($"Connection closed (client ID {client?.ID})");
             base.OnClose(e);
+        }
+
+        public void CloseConnection()
+        {
+            Sessions.CloseSession(ID);
         }
 
         public void Send(object message)

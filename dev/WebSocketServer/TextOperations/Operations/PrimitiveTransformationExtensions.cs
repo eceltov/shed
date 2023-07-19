@@ -76,17 +76,6 @@ namespace TextOperations.Operations
             else if (transformer.Row == wrap.Sub.Row)
             {
                 // do nothing
-                //throw new NotImplementedException("IT_AR not implemented.");
-                /**
-                 * In order to preserve the intention of adding characters,
-                   a new line has to be added and those characters will be added here.
-                  * Note that those character may not make semantically sense, if they were
-                    to be inserted in another set of characters that were deleted.
-                  */
-                /**
-                 * Another idea is to do nothing, the remline was first, therefore the add might end up wrong
-                 */
-                /// TODO: implement this
             }
             return wrap;
         }
@@ -225,12 +214,6 @@ namespace TextOperations.Operations
             }
             else if (transformer.Row == subdif.Row && subdif.Position + subdif.Count > transformer.Position)
             {
-                /**
-                 * The user tries to delete characters that no longer exist,
-                   therefore his intention was fulfilled by someone else and
-                    the deletion can be removed.
-                  */
-                /// TODO: check if the empty del does not corrupt the algorithm
                 wrap.Sub = new Del(0, 0, 0);
             }
             return wrap;
@@ -325,7 +308,6 @@ namespace TextOperations.Operations
             {
                 // disable the remline
                 // saveLI(wrap, wTransformer);
-                /// TODO: make sure that the remline should not be disabled
 
                 // move the position so that it will again be on the end of the row
                 subdif.Position += transformer.Content.Length;
@@ -399,11 +381,6 @@ namespace TextOperations.Operations
             }
             else if (transformer.Row == subdif.Row)
             {
-                /**
-                     * Trying to delete a row that already had been deleted. The intention was
-                       fulfilled by someone else, therefore the subdif may be omitted.
-                     */
-                /// TODO: not sure if this is the right way to disable a remline
                 wrap.SaveLI(wTransformer);
             }
             return wrap;
@@ -650,7 +627,6 @@ namespace TextOperations.Operations
             Add transformer = (Add)wTransformer.Sub;
             if (subdif.Row == transformer.Row)
             {
-                /// TODO: should that inequality be sharp instead (like in ET_AA)?
                 // case when the whole add is in front of the newline
                 if (transformer.Position + transformer.Content.Length <= subdif.Position)
                 {
@@ -677,7 +653,6 @@ namespace TextOperations.Operations
             {
                 wrap.RecoverLI();
             }
-            /// TODO: should the inequality be sharp?
             else if (subdif.Row == transformer.Row && transformer.Position < subdif.Position)
             {
                 subdif.Position += transformer.Count;

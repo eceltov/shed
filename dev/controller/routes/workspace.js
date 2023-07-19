@@ -10,7 +10,6 @@ const DatabaseGateway = require('../DatabaseGateway');
 const appConfigPath = path.join(__dirname, '../../volumes/Configuration/config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
-/// TODO: should the route make its own gateway?
 const database = new DatabaseGateway();
 database.initialize();
 

@@ -346,8 +346,6 @@ namespace WebSocketServer.Database
             // meaning that the situation will not produce two database calls
             await documentAndFolderLocker.WaitAsync(oldAbsolutePath);
 
-            ///TODO: renaming a file will make all operations targeting the file with the old name invalid
-
             try
             {
                 await Task.Run(() =>
@@ -549,6 +547,33 @@ namespace WebSocketServer.Database
                 // add workspace entry to owner
                 // this is added last so that all workspaces listed in user config are valid
                 await AddUserWorkspaceAsync(ownerID, workspaceID, name, Roles.Owner);
+
+                return true;
+            }
+            catch
+            {
+                return false;
+            }
+        }
+
+        public async Task<bool> DeleteWorkspaceAsync(string workspaceHash)
+        {
+            try
+            {
+                if (await GetWorkspaceUsersAsync(workspaceHash) is not WorkspaceUsers users)
+                {
+                    return false;
+                }
+
+                foreach (string userID in users.Users.Keys)
+                {
+                    await RemoveUserWorkspaceAsync(userID, workspaceHash);
+                }
+
+                await Task.Run(() =>
+                {
+                    System.IO.Directory.Delete(GetWorkspacePath(workspaceHash), true);
+                });
 
                 return true;
             }

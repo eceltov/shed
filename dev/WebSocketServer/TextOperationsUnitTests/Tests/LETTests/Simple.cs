@@ -43,7 +43,6 @@ namespace TextOperationsUnitTests.Tests.LETTests
                 new() { new Add(0, 0, "b") },
                 new() { new Add(0, 0, "a") },
                 new() { new(false, true, null, null, 0) }
-                ///TODO: there might be some lost information going on here, test I/E on this example
             );
 
             DifAssertions.TestLET(test);
@@ -91,7 +90,7 @@ namespace TextOperationsUnitTests.Tests.LETTests
             DifTest test = new(
                 new() { new Add(0, 3, "a") },
                 new() { new Del(0, 3, 1) },
-                new() { new Add(0, 3, "a") } ///TODO: should this be (0, 3, 'a') or (0, 4, 'a')?
+                new() { new Add(0, 3, "a") }
             );
 
             DifAssertions.TestLET(test);
@@ -201,7 +200,7 @@ namespace TextOperationsUnitTests.Tests.LETTests
             DifTest test = new(
                 new() { new Del(0, 3, 3) },
                 new() { new Del(0, 4, 1) },
-                new() { new Del(0, 3, 1), new Del(0, 5, 2) }, ///TODO: check lost info, test I/E
+                new() { new Del(0, 3, 1), new Del(0, 5, 2) },
                 new() { new(false, false, null, null, null, new() { 1 }), new() }
             );
 

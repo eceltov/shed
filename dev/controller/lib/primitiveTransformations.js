@@ -56,16 +56,6 @@ function IT_AR(wrap, wTransformer) {
     wrap.sub[1] += transformer[1];
   }
   else if (transformer[0] === wrap.sub[0]) {
-    /**
-     * In order to preserve the intention of adding characters,
-       a new line has to be added and those characters will be added here.
-      * Note that those character may not make semantically sense, if they were
-        to be inserted in another set of characters that were deleted.
-      */
-    /**
-     * Another idea is to do nothing, the remline was first, therefore the add might end up wrong
-     */
-    /// TODO: implement this
   }
   return wrap;
 }
@@ -173,12 +163,6 @@ function IT_DR(wrap, wTransformer) {
     wrap.sub[1] += transformer[1];
   }
   else if (transformer[0] === wrap.sub[0] && wrap.sub[1] + wrap.sub[2] > transformer[1]) {
-    /**
-     * The user tries to delete characters that no longer exist,
-       therefore his intention was fulfilled by someone else and
-        the deletion can be removed.
-      */
-    /// TODO: check if the empty del does not corrupt the algorithm
     wrap.sub = del(0, 0, 0);
   }
   return wrap;
@@ -243,10 +227,6 @@ function IT_RA(wrap, wTransformer) {
   }
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
-    // disable the remline
-    // saveLI(wrap, wTransformer);
-    /// TODO: make sure that the remline should not be disabled
-
     // move the position so that it will again be on the end of the row
     wrap.sub[1] += transformer[2].length;
   }
@@ -299,11 +279,6 @@ function IT_RR(wrap, wTransformer) {
     wrap.sub[1] += transformer[1];
   }
   else if (transformer[0] === wrap.sub[0]) {
-    /**
-         * Trying to delete a row that already had been deleted. The intention was
-           fulfilled by someone else, therefore the subdif may be omitted.
-         */
-    /// TODO: not sure if this is the right way to disable a remline
     saveLI(wrap, wTransformer);
   }
   return wrap;
@@ -503,7 +478,6 @@ function ET_DR(wrap, wTransformer) {
 function ET_NA(wrap, wTransformer) {
   const transformer = wTransformer.sub;
   if (sameRow(wrap, wTransformer)) {
-    /// TODO: should that inequality be sharp instead (like in ET_AA)?
     // case when the whole add is in front of the newline
     if (transformer[1] + transformer[2].length <= wrap.sub[1]) {
       wrap.sub[1] -= transformer[2].length;
@@ -524,7 +498,6 @@ function ET_ND(wrap, wTransformer) {
   if (checkLI(wrap, wTransformer)) {
     recoverLI(wrap);
   }
-  /// TODO: should the inequality be sharp?
   else if (sameRow(wrap, wTransformer) && transformer[1] < wrap.sub[1]) {
     wrap.sub[1] += transformer[2];
   }
@@ -641,7 +614,6 @@ function ET_RR(wrap, wTransformer) {
   return wrap;
 }
 
-/// TODO: consider returning an array from all prim transform functions
 function IT(wrap, wTransformer) {
   const transformedWraps = [];
   if (isAdd(wrap)) {

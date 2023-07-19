@@ -47,7 +47,6 @@ class FileStructure extends React.Component {
     }
   }
 
-  /// TODO: this is a copypasta of onCreateDocument
   onCreateFolder() {
     const parentID = fsOps.getSpawnParentID(
       this.props.fileStructure, this.props.pathMap, this.props.activeFile,

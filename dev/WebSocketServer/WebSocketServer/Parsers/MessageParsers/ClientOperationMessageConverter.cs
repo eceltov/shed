@@ -42,7 +42,6 @@ namespace WebSocketServer.Parsers.MessageParsers
                 }
                 else if (rawSubdif[2] is long count)
                 {
-                    ///TODO: the conversion should be probably handled differently
                     Del del = new(row, position, Convert.ToInt32(count));
                     dif.Add(del);
                 }

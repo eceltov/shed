@@ -169,7 +169,6 @@ namespace TextOperationsUnitTests.Library
         {
             WrappedDif wiDif = testDif.Wrap().MakeIndependent();
             WrappedDif wdDif = wiDif.MakeDependent();
-            /// TODO add joinSiblings to the actual implementation
             WrappedDif wdJoinedDif = wdDif.JoinSiblings();
             Dif result = wdJoinedDif.Unwrap();
             Assert.IsTrue(result.SameAs(testDif));

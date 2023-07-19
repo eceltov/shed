@@ -15,8 +15,6 @@ function verifyJWTCookie(req, res) {
   if (req.cookies.jwt !== undefined) {
     try {
       const payload = jwt.verify(req.cookies.jwt, appConfig.JWT.Secret);
-      /// TODO: make sure the payload has the correct shape
-      /// TODO: check expiration
       return payload;
     }
     catch {

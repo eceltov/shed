@@ -158,7 +158,6 @@ function addDelCompression(addSubdif, delSubdif) {
   return compressionObj;
 }
 
-/// TODO: the cycle will not do anything in the second run, remove it
 function mergeSubdifs(dif) {
   let changeOccurred = true;
   while (changeOccurred) {
@@ -200,7 +199,6 @@ function mergeSubdifs(dif) {
         // both subdifs got removed
         else {
           dif.splice(i, 2);
-          ///TODO: should the index be moved by 2 instead? So that the previous subdif can be processed with the next one.
           i -= 1;
         }
       }

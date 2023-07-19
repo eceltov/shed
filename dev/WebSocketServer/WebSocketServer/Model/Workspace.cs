@@ -14,6 +14,7 @@ using System.Text.RegularExpressions;
 using WebSocketServer.MessageProcessing.ServerMessages;
 using System.Runtime.InteropServices;
 using WebSocketServer.Utilities;
+using System.Data;
 
 namespace WebSocketServer.Model
 {
@@ -137,7 +138,6 @@ namespace WebSocketServer.Model
                 else
                 {
                     // the document could not be instantiated
-                    /// TODO: send an error message
                     Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: DocumentInstance could not be started.");
                     return false;
                 }
@@ -148,7 +148,6 @@ namespace WebSocketServer.Model
             }
 
             // handle client already connected to the document
-            /// TODO: this should probably be handled sooner than here
             if (documentInstance.ClientPresent(client.ID))
             {
                 Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Connecting client to a document when already connected.");
@@ -307,7 +306,6 @@ namespace WebSocketServer.Model
 
             if (!await DatabaseProvider.Database.DeleteDocumentAsync(ID, relativePath))
             {
-                ///TODO: retry it later
                 Logger.DebugWriteLine($"Error in {nameof(DeleteDocumentAsync)}: Database could not delete document.");
             }
 
@@ -337,10 +335,7 @@ namespace WebSocketServer.Model
             if (!FileStructure.RemoveFile(fileID))
                 return false;
 
-            if (!await DatabaseProvider.Database.DeleteFolderAsync(ID, relativePath))
-            {
-                ///TODO: retry it later
-            }
+            await DatabaseProvider.Database.DeleteFolderAsync(ID, relativePath);
 
             return true;
         }
@@ -363,7 +358,6 @@ namespace WebSocketServer.Model
             if (!await DatabaseProvider.Database.RenameFileAsync(ID, oldPath, newPath))
             {
                 Logger.DebugWriteLine($"Error in {nameof(RenameFileAsync)}: Database could not rename file.");
-                ///TODO: retry it later
                 return false;
             }
 
@@ -571,7 +565,28 @@ namespace WebSocketServer.Model
             return false;
         }
 
-        ///TODO: save after all clients left
+        public async Task<bool> HandleDeleteWorkspaceAsync(Client client)
+        {
+            if (client.Role != Roles.Owner)
+            {
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteWorkspaceAsync)}: Unprivileged user tried to delete a workspace.");
+                return false;
+            }
+
+            if (!await DatabaseProvider.Database.DeleteWorkspaceAsync(ID))
+            {
+                Logger.DebugWriteLine($"Error in {nameof(HandleDeleteWorkspaceAsync)}: Could not delete workspace.");
+                return false;
+            }
+
+            DeleteWorkspaceMessage message = new();
+            Clients.SendMessage(message);
+
+            CloseAllConnections();
+
+            return true;
+        }
+
         async Task<bool> SaveFileStructureAsync()
         {
             return await DatabaseProvider.Database.UpdateFileStructureAsync(ID, FileStructure);
@@ -583,6 +598,21 @@ namespace WebSocketServer.Model
                 document.ScheduleRemoveConnection(client);
 
             Clients.TryRemove(client.ID, out Client? _);
+        }
+
+        public void CloseAllConnections()
+        {
+            foreach (var client in Clients.Values)
+            {
+                client.ClientInterface.CloseConnection();
+            }
+
+            Clients.Clear();
+
+            foreach (var document in ActiveDocuments.Values)
+            {
+                document.RemoveAllConnectionsWithoutSaving();
+            }
         }
     }
 }

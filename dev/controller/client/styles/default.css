@@ -343,6 +343,10 @@ TODO: handle bigger and smaller resolutions
     padding: 5px 0 5px 1vw;
 }
 
+.optionsSegment {
+    margin-bottom: 3vh;
+}
+
 .title {
     margin-left: var(--workspace-link-margin-left);
     margin-right: var(--workspace-link-margin-left);
@@ -454,6 +458,17 @@ TODO: handle bigger and smaller resolutions
     font-size: x-large;
 }
 
+.deleteWorkspaceButton {
+    background: red;
+    color: var(--main-font-color);
+    border-radius: 4px;
+    outline: none;
+    box-shadow: none;
+    border: none;
+    margin: 10px 0 5px 0;
+    font-size: x-large;
+}
+
 .createWorkspaceButton {
     background: rgb(14, 216, 14);
     color: var(--main-font-color);
@@ -469,17 +484,6 @@ TODO: handle bigger and smaller resolutions
 
 .inlineBlock {
     display: inline-block;
-}
-
-.deleteWorkspaceButton {
-    background: rgb(228, 67, 4);
-    color: var(--main-font-color);
-    border-radius: 4px;
-    outline: none;
-    box-shadow: none;
-    border: none;
-    margin: 5px;
-    font-size: large;
 }
 
 #editor { 

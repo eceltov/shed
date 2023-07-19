@@ -46,7 +46,6 @@ class ManagedSession {
     // BufferingIntervalMilliseconds is a global variable set in the workspace.js routes file
     this.LISTEN_INTERVAL = 200; // how long will the editor listen before sending the data to others
 
-    ///TODO: this is used to make the document readonly when applying changes,
     ///but it sets readonly for the whole editor, even when this document is not active
     this.setReadOnly = setReadOnly;
 
@@ -59,7 +58,6 @@ class ManagedSession {
   /**
    * @brief Disables the ManagedSession, making it unable to communicate with other components.
    */
-  ///TODO: this could be done in a cleaner way, removing these functions will cause to errors,
   /// that will not impact the rest of the client, but they can pollute the console
   disable() {
     this.setReadOnly = null;
@@ -263,22 +261,12 @@ class ManagedSession {
     else {
       /*const document = this.session.getDocument();
 
-      /// TODO: RACE CONDITION: what about changes made by the user while
-      ///   UDR is being processed with handlingChanges === false?
-      /// TODO: the readonly state was removed because the below implementation is wrong;
-      /// the state should be restored, not set to true every time
-      //const readOnlyState = (this.setReadOnly !== null ? this.setReadOnly(true) : null);
       this.handlingChanges = false;
       const loggingCond = false;
-      // this.clientID === 1 && operation[0][0] === 0 && operation[0][1] >= 2;
       const finalState = UDR(
         operation, document, this.HB, this.serverOrdering, loggingCond, oldCursorPosition,
       );
       this.handlingChanges = true;
-      //if (this.setReadOnly !== null) {
-        //this.setReadOnly(readOnlyState);
-      //}
-      /// TODO: RACE CONDITION END*/
 
       this.serverOrdering.push([
         operation[0][0], operation[0][1], operation[0][2], operation[0][3],

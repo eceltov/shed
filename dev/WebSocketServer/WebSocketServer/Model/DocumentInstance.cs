@@ -66,7 +66,6 @@ namespace WebSocketServer.Model
         // does not need to be concurrent, as it is changed in the Text Operation Task queue
         int garbageCount = 0;
 
-        ///TODO: set this value in the configuration
         // after how many messages to GC
         int garbageMax = 50;
 
@@ -142,7 +141,6 @@ namespace WebSocketServer.Model
             return clients.ContainsKey(clientID);
         }
 
-        ///TODO: make this concurrent, it should abort all other activities
         /// <summary>
         /// Prepares the instance for deletion.
         /// Removes references to all clients and clears the state of GC.
@@ -190,7 +188,6 @@ namespace WebSocketServer.Model
             client.ClientInterface.Send(initMsg);
         }
 
-        ///TODO: handle changes in GC active clients
         void RemoveConnection(Client client)
         {
             if (!clients.ContainsKey(client.ID))
@@ -208,6 +205,12 @@ namespace WebSocketServer.Model
             // save the document if all clients left
             if (ClientCount == 0)
                 SaveDocumentCallback(new List<string>(Document));
+        }
+
+        public void RemoveAllConnectionsWithoutSaving()
+        {
+            clients.Clear();
+            ResetAllStructures();
         }
 
         bool HandleOperation(Client authoringClient, Operation operation)
@@ -306,7 +309,6 @@ namespace WebSocketServer.Model
                     clients[clientID].ClientInterface.Send(message);
 
                 garbageCount = 0;
-                ///TODO: update document file (but preferably do it somewhere else)
             }
         }
 

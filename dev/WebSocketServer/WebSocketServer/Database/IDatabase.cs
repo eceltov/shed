@@ -89,6 +89,8 @@ namespace WebSocketServer.Database
 
         Task<bool> CreateWorkspaceAsync(string ownerID, string name);
 
+        Task<bool> DeleteWorkspaceAsync(string workspaceHash);
+
         Task<WorkspaceUsers?> GetWorkspaceUsersAsync(string workspaceHash);
 
         Task<bool> UpdateWorkspaceUsersAsync(string workspaceHash, WorkspaceUsers workspaceUsers);

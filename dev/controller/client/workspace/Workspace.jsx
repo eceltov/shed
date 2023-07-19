@@ -16,7 +16,7 @@ const OptionsScreen = require('./OptionsScreen');
 const Editor = require('./Editor');
 const WaitingForInit = require('./ErrorComponents/WaitingForInit');
 
-const CSLatency = 0;
+var CSLatency = 0;
 const SCLatency = 0;
 const webSocketReconnectDelay = 3000;
 const modelist = ace.require('ace/ext/modelist');
@@ -42,6 +42,7 @@ class Workspace extends React.Component {
     this.showOptionsView = this.showOptionsView.bind(this);
     this.forceDocument = this.forceDocument.bind(this);
     this.addUserToWorkspace = this.addUserToWorkspace.bind(this);
+    this.deleteWorkspace = this.deleteWorkspace.bind(this);
     this.changeWorkspaceAccessType = this.changeWorkspaceAccessType.bind(this);
     this.state = {
       role: roles.none,
@@ -71,8 +72,6 @@ class Workspace extends React.Component {
     this.savedCommitSerialNumbers = new Map();
   }
 
-  /// TODO: the token should be removed from the URL in order to be sharable
-  /// TODO: if the above is implemented, do not forget to store the token for reconnections
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
@@ -91,7 +90,6 @@ class Workspace extends React.Component {
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
 
-    /// TODO: use hooks instead of 'that'?
     const that = this;
 
     connection.onopen = function onopen(e) {
@@ -164,7 +162,6 @@ class Workspace extends React.Component {
     }
     // if the document is already requested, do nothing (wait for it)
     else if (this.requestedDocuments.has(fileID)) {
-      /// TODO: do nothing? mby show a dialog that the request is being processed
     }
     // request the document from the server
     else {
@@ -332,9 +329,16 @@ class Workspace extends React.Component {
       case msgTypes.server.changeUserWorkspaceRole:
         this.onChangeUserWorkspaceRole(message);
         break;
+      case msgTypes.server.deleteWorkspace:
+        this.onDeleteWorkspace(message);
+        break;
       default:
         console.error('Invalid message type. Message:', JSON.stringify(message));
     }
+  }
+
+  onDeleteWorkspace(message) {
+    window.location.href = '/';
   }
 
   onChangeUserWorkspaceRole(message) {
@@ -345,7 +349,6 @@ class Workspace extends React.Component {
     this.connection.close();
     console.log('[closed] Connection closed');
     window.alert('Error: Invalid authentication token sent to server. Please log in again.');
-    /// TODO: change the background to an error view
   }
 
   onInitWorkspace(message) {
@@ -425,7 +428,6 @@ class Workspace extends React.Component {
      * @param message Operation send by the server
      */
   onOperation(message) {
-    /// TODO: unused cursor position
     const oldCursorPosition = this.editor.getCursorPosition();
 
     if (!this.openedDocuments.has(message[2])) {
@@ -608,10 +610,17 @@ class Workspace extends React.Component {
 
   forceDocument(fileID) {
     const managedSession = this.openedDocuments.get(fileID);
-    ///TODO: test if this works, then make this into a method of ManagedSession
     const document = managedSession.session.getDocument().getAllLines();
 
     const message = msgFactory.forceDocument(fileID, document);
+    this.sendMessageToServer(JSON.stringify(message));
+  }
+
+  deleteWorkspace() {
+    if (this.state.role !== roles.roles.owner)
+      return;
+
+    const message = msgFactory.deleteWorkspace();
     this.sendMessageToServer(JSON.stringify(message));
   }
 
@@ -656,6 +665,7 @@ class Workspace extends React.Component {
           <OptionsScreen
             addUserToWorkspace={this.addUserToWorkspace}
             changeWorkspaceAccessType={this.changeWorkspaceAccessType}
+            deleteWorkspace={this.deleteWorkspace}
             accessType={this.state.accessType}
             role={this.state.role}
           />

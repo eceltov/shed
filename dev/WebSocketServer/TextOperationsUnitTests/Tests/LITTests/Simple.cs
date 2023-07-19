@@ -1035,7 +1035,7 @@ namespace TextOperationsUnitTests.Tests.LITTests
             DifTest test = new(
                 new() { new Add(0, 0, "a") },
                 new() { new Remline(0, 0) },
-                new() { new Add(0, 0, "a") } /// TODO: check this on an IT(ET()) test
+                new() { new Add(0, 0, "a") }
             );
 
             DifAssertions.TestLIT(test);

@@ -166,7 +166,6 @@ namespace TextOperations.Operations
             return result;
         }
 
-        /// TODO: the cycle will not do anything in the second run, remove it
         static void MergeSubdifs(List<Subdif> dif)
         {
             bool changeOccurred = true;
@@ -218,7 +217,6 @@ namespace TextOperations.Operations
                         else if (compressionResult.Count == 0)
                         {
                             dif.RemoveRange(i, 2);
-                            ///TODO: should the index be moved by 2 instead? So that the previous subdif can be processed with the next one.
                             i -= 1;
                         }
                         else

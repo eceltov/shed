@@ -77,10 +77,6 @@ namespace TextOperations.Operations
                     wrap.Relative = false;
                     wrap.Addresser = null;
                 }
-                else
-                {
-                    ///TODO: Conversion not implemented
-                }
             }
             else if (wrap.Sub is Newline)
             {
@@ -98,10 +94,6 @@ namespace TextOperations.Operations
                     wrap.Relative = false;
                     wrap.Addresser = null;
                 }
-                else
-                {
-                    ///TODO: Conversion not implemented
-                }
             }
             else if (wrap.Sub is Remline)
             {
@@ -111,10 +103,6 @@ namespace TextOperations.Operations
                     wrap.Sub.Position += wAddresser.Sub.Position;
                     wrap.Relative = false;
                     wrap.Addresser = null;
-                }
-                else
-                {
-                    ///TODO: Conversion not implemented
                 }
             }
             else
@@ -190,8 +178,6 @@ namespace TextOperations.Operations
                     List<int> siblings = wrap.Siblings;
                     if (siblings.Count > 0)
                     {
-                        ///TODO: this differs from the js implementation
-                        ///TODO: slicing the list may be too slow
                         wrap = InternalJoinSiblings(wDif.GetRange(i, wDif.Count - i));
                     }
                     wNewDif.Add(wrap);

@@ -18,15 +18,16 @@ Users do not need to interact with the endpoints of the workspace server; this i
 
 ## Installing ShEd
 
-This project uses [Ace Editor][1] to display documents.
-In order to initialize this submodule, run the following commands.
+To install ShEd, first clone the repository by using `git clone`.
+
+Then, initialize the [Ace Editor][1] submodule by running the following commands in the root of the repository.
 
 ```bash 
 git submodule init
 git submodule update
 ```
 
-ShEd can be started either manually, or using Docker.
+ShEd can be started either manually, or by using Docker.
 If you prefer to run ShEd in Docker, you can ignore the following installation steps.
 
 ### Manual Installation
@@ -85,24 +86,6 @@ And to start the workspace server, run:
 npm run start-workspace-server
 ```
 
-## Configuring ShEd
-
-ShEd can be configured to run on different ports and to use a different secret for JWT tokens.
-Whether debug logs are shown can be configured as well.
-
-The servers do not support hot reloading; to see the effects of the new configuration, you need to restart them.
-
-There are two files used for configuration.
-The first one is the `.env` file in the root of the repository.
-The second one is the `config.json` file located in `dev/volumes/Configuration/`.
-
-When running manually, the `.env` file does not need to be changed, as it will have no effect.
-In the `config.json`, to change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
-To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
-To see debug logs, change `ShowDebugLogs` to `true`.
-
-When running in Docker, the `config.json` file should only be used for changing the JWT secret and whether debug logs are shown; the `.env` file should be used for everything else.
-
 ## Using ShEd
 
 ShEd can be accessed through the controller server at <http://localhost:8060> by default.
@@ -126,7 +109,7 @@ To see a workspace from the perspective of multiple users at once, you can open 
 Alternatively, you can also open the workspace in incognito mode, because it usually does not share cookies with the main browser.
 
 To change the role of a user in the workspace, navigate to the `Options` in the top right corner of the workspace, type in their username, select their new role, and finally change it using the `Change Role` button.
-The same interface can be used to add new users to the workspace.
+The same interface can be used to add new users to the workspace or to delete the workspace.
 
 The workspace can be in one of three access modes:
   - `Privileged`: allows only authenticated users with access to the workspace to connect to it.
@@ -151,6 +134,26 @@ To use the scripts, it is necessary to have Node installed and the packages init
 ```bash 
 npm install
 ```
+
+## Configuring ShEd
+
+ShEd can be configured to run on different ports and to use a different secret for JWT tokens.
+Additionally, whether it is possible to enable debug logs and the buffering window for Workspace clients.
+
+The servers do not support hot reloading; to see the effects of the new configuration, you need to restart them.
+
+There are two files used for configuration.
+The first one is the `.env` file in the root of the repository.
+The second one is the `config.json` file located in `dev/volumes/Configuration/`.
+
+When running manually, the `.env` file does not need to be changed, as it will have no effect.
+Everything can be changed in the `config.json` file.
+ - To change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
+ - To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
+ - To see debug logs, change `ShowDebugLogs` to `true`.
+ - To change the the client buffering interval, navigate to the `Client` section and modify the `bufferingIntervalMilliseconds` field.
+
+When running in Docker, the `config.json` file should be used only when configuring options that are not present in the `.env` file.
 
 ## Repository Structure
 

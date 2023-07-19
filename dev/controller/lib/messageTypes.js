@@ -22,7 +22,6 @@ const msgTypes = {
     // sent to delete a workspace: {msgType}
     deleteWorkspace: 9,
     // sent after divergence was detected by the local client: {msgType, fileID}
-    ///TODO: currently unused, only the server can detect divergences
     divergenceDetected: 10,
     // sent to force the local document state on all clients: {msgType, fileID, document}
     forceDocument: 11,
