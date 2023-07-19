@@ -23,5 +23,5 @@
     "workspaceServerUrl": "localhost",
     "pathToVolumes": "./dev/volumes"
   },
-  "ShowDebugLogs": false
+  "ShowDebugLogs": true
 }

@@ -1,11 +1,13 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
+using System.Diagnostics;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using TextOperations.Operations;
 using TextOperations.Types;
+using WebSocketServer.Configuration;
 using WebSocketServer.Data;
 using WebSocketServer.Extensions;
 using WebSocketServer.MessageProcessing;
@@ -18,6 +20,32 @@ namespace WebSocketServer.Model
 {
     internal class DocumentInstance
     {
+
+        public static Stopwatch TimeSpentInUDRWatch = new();
+        public static Stopwatch TimeSpentGCing = new();
+        public static Stopwatch TimeSpentInTextOp = new();
+        public static Stopwatch TimeSpentSending = new();
+        public static int ProcessedOperations = 0;
+        public static int GarbageCollections = 0;
+        public static int TotalTextOps = 0;
+        public static Timer timer = new Timer(DocumentTimerCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+
+        static void DocumentTimerCallback(object? state)
+        {
+            string line = $"{TotalTextOps},{TimeSpentInTextOp.Elapsed.TotalMilliseconds},{GarbageCollections},{TimeSpentGCing.Elapsed.TotalMilliseconds},{ProcessedOperations},{TimeSpentInUDRWatch.Elapsed.TotalMilliseconds},{TimeSpentSending.Elapsed.TotalMilliseconds}";
+            TimeSpentInUDRWatch = new();
+            TimeSpentGCing = new();
+            TimeSpentInTextOp = new();
+            TimeSpentSending = new();
+            ProcessedOperations = 0;
+            GarbageCollections = 0;
+            TotalTextOps = 0;
+            using StreamWriter sw = System.IO.File.AppendText(EnvironmentVariables.DataPath + "/testOutput.csv");
+            sw.WriteLine(line);
+            //Console.WriteLine($"textOps:{TotalTextOps};t:{TimeSpentInTextOp.Elapsed.TotalMilliseconds};gcs:{GarbageCollections};t:{TimeSpentGCing.Elapsed.TotalMilliseconds};udrs:{ProcessedOperations};t:{TimeSpentInUDRWatch.Elapsed.TotalMilliseconds};tSending:{TimeSpentSending.Elapsed.TotalMilliseconds}");
+        }
+
+
         // Maps client IDs to Client instances.
         ConcurrentDictionary<int, Client> clients = new();
 
@@ -40,7 +68,7 @@ namespace WebSocketServer.Model
 
         ///TODO: set this value in the configuration
         // after how many messages to GC
-        int garbageMax = 5;
+        int garbageMax = 50;
 
         bool GCInProgress = false;
         // clients that are partaking in garbage collection, maps ClientIDs to their index in the StatusChecker
@@ -138,7 +166,15 @@ namespace WebSocketServer.Model
         {   
             lock (lastTextOperationTaskLock)
             {
-                lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => action()); 
+                lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => {
+                    TimeSpentInTextOp.Start();
+
+                    action();
+
+                    TotalTextOps++;
+
+                    TimeSpentInTextOp.Stop();
+                }); 
             }
         }
 
@@ -184,7 +220,9 @@ namespace WebSocketServer.Model
 
             var message = new OperationMessage(operation, documentFile.ID);
 
+            TimeSpentSending.Start();
             clients.SendMessage(message);
+            TimeSpentSending.Stop();
 
             // operation application always succeeds if the concurrency model is correct
             // in case it is not and the application fails, a divergence detection message is sent to the clients
@@ -228,10 +266,15 @@ namespace WebSocketServer.Model
         /// <param name="operation">The operation to be applied.</param>
         void ApplyOperation(Operation operation)
         {
+            TimeSpentInUDRWatch.Start();
+
             var (newDocument, wNewHB) = operation.UDR(Document, wHB, serverOrdering);
             serverOrdering.Add(operation.Metadata);
             wHB = wNewHB;
             Document = newDocument;
+            ProcessedOperations++;
+
+            TimeSpentInUDRWatch.Stop();
         }
 
         /// <summary>
@@ -335,9 +378,13 @@ namespace WebSocketServer.Model
         /// <param name="SOGarbageIndex">The index that specifies which entries should be removed.</param>
         void GCRemove(int SOGarbageIndex)
         {
+            TimeSpentGCing.Start();
+
             if (SOGarbageIndex < 0 || SOGarbageIndex >= serverOrdering.Count)
             {
                 Logger.DebugWriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO.");
+                GarbageCollections++;
+                TimeSpentGCing.Stop();
                 return;
             }
 
@@ -369,6 +416,9 @@ namespace WebSocketServer.Model
 
             serverOrdering = serverOrdering.GetRange(SOGarbageIndex, serverOrdering.Count - SOGarbageIndex);
             wHB = wNewHB;
+
+            GarbageCollections++;
+            TimeSpentGCing.Stop();
         }
 
         void GC()

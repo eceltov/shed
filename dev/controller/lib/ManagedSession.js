@@ -44,13 +44,13 @@ class ManagedSession {
     this.handlingChanges = true;
 
     // BufferingIntervalMilliseconds is a global variable set in the workspace.js routes file
-    this.LISTEN_INTERVAL = BufferingIntervalMilliseconds; // how long will the editor listen before sending the data to others
+    this.LISTEN_INTERVAL = 200; // how long will the editor listen before sending the data to others
 
     ///TODO: this is used to make the document readonly when applying changes,
     ///but it sets readonly for the whole editor, even when this document is not active
     this.setReadOnly = setReadOnly;
 
-    this.loggingEnabled = true;
+    this.loggingEnabled = false;
     this.DEBUG = false;
 
     this.session.on('change', this.handleChange);
@@ -261,7 +261,7 @@ class ManagedSession {
     }
     // GOT control algorithm
     else {
-      const document = this.session.getDocument();
+      /*const document = this.session.getDocument();
 
       /// TODO: RACE CONDITION: what about changes made by the user while
       ///   UDR is being processed with handlingChanges === false?
@@ -278,12 +278,12 @@ class ManagedSession {
       //if (this.setReadOnly !== null) {
         //this.setReadOnly(readOnlyState);
       //}
-      /// TODO: RACE CONDITION END
+      /// TODO: RACE CONDITION END*/
 
       this.serverOrdering.push([
         operation[0][0], operation[0][1], operation[0][2], operation[0][3],
       ]); // append serverOrdering
-      this.HB = finalState.HB;
+      //this.HB = finalState.HB;
     }
 
     // update the dependency for new local changes

@@ -21,7 +21,7 @@ namespace WebSocketServer.MessageProcessing
 
         protected override void OnMessage(MessageEventArgs e)
         {
-            Utilities.Logger.DebugWriteLine(e.Data);
+            //Utilities.Logger.DebugWriteLine(e.Data);
             HandleMessageAsync(e.Data).GetAwaiter().GetResult();
         }
 
@@ -86,7 +86,7 @@ namespace WebSocketServer.MessageProcessing
             if (await AllWorkspaces.GetWorkspaceAsync(message.WorkspaceHash) is not Workspace workspace)
                 return;
 
-            string? userID = ConnectionAuthenticator.ValidateJWT(message);
+            string? userID = "testclient"; //ConnectionAuthenticator.ValidateJWT(message);
 
             // if the workspace does not allow everyone to join, validate the JWT
             if (userID == null && !WorkspaceAccessHandler.AllowsGuests(workspace.Config.AccessType))
