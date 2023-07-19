@@ -42,7 +42,9 @@ class ManagedSession {
     this.firstSOMessageNumber = initObj.firstSOMessageNumber;
     this.sendMessageToServer = sendMessageToServer;
     this.handlingChanges = true;
-    this.LISTEN_INTERVAL = 200; // how long will the editor listen before sending the data to others
+
+    // BufferingIntervalMilliseconds is a global variable set in the workspace.js routes file
+    this.LISTEN_INTERVAL = BufferingIntervalMilliseconds; // how long will the editor listen before sending the data to others
 
     ///but it sets readonly for the whole editor, even when this document is not active
     this.setReadOnly = setReadOnly;

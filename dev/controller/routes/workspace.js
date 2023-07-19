@@ -43,7 +43,7 @@ function register(app) {
     const port = process.env.WORKSPACE_SERVER_PORT ?? appConfig.FallbackSettings.workspaceServerPort;
 
     const WebSocketServerURL = `ws://${url}:${port}`;
-    const script = `var WebSocketServerURL = "${WebSocketServerURL}";`;
+    const script = `var WebSocketServerURL = "${WebSocketServerURL}"; var BufferingIntervalMilliseconds = ${appConfig.Client.bufferingIntervalMilliseconds}`;
     res.render('Workspace.jsx', { script });
   });
 }
