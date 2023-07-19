@@ -88,7 +88,7 @@ npm run start-workspace-server
 ## Configuring ShEd
 
 ShEd can be configured to run on different ports and to use a different secret for JWT tokens.
-Whether debug logs are shown can be configured as well.
+Additionally, whether it is possible to enable debug logs and the buffering window for Workspace clients.
 
 The servers do not support hot reloading; to see the effects of the new configuration, you need to restart them.
 
@@ -97,9 +97,11 @@ The first one is the `.env` file in the root of the repository.
 The second one is the `config.json` file located in `dev/volumes/Configuration/`.
 
 When running manually, the `.env` file does not need to be changed, as it will have no effect.
-In the `config.json`, to change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
-To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
-To see debug logs, change `ShowDebugLogs` to `true`.
+Everything can be changed in the `config.json` file.
+ - To change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
+ - To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
+ - To see debug logs, change `ShowDebugLogs` to `true`.
+ - To change the the client buffering interval, navigate to the `Client` section and modify the `bufferingIntervalMilliseconds` field.
 
 When running in Docker, the `config.json` file should only be used for changing the JWT secret and whether debug logs are shown; the `.env` file should be used for everything else.
 
@@ -126,7 +128,7 @@ To see a workspace from the perspective of multiple users at once, you can open 
 Alternatively, you can also open the workspace in incognito mode, because it usually does not share cookies with the main browser.
 
 To change the role of a user in the workspace, navigate to the `Options` in the top right corner of the workspace, type in their username, select their new role, and finally change it using the `Change Role` button.
-The same interface can be used to add new users to the workspace.
+The same interface can be used to add new users to the workspace or to delete the workspace.
 
 The workspace can be in one of three access modes:
   - `Privileged`: allows only authenticated users with access to the workspace to connect to it.
