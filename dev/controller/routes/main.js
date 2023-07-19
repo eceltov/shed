@@ -121,16 +121,6 @@ function register(app) {
     }
   });
 
-  app.post('/api/deleteWorkspace', (req, res) => {
-    const jwtPayload = verifyJWTCookie(req, res);
-    if (jwtPayload !== null && req.body !== undefined && req.body.workspaceHash !== undefined) {
-      database.deleteWorkspace(jwtPayload.id, req.body.workspaceHash);
-    }
-    else {
-      console.log('Invalid delete workspace request. Body:', req.body, 'UserID:', jwtPayload.id);
-    }
-  });
-
   app.post('/api/login', (req, res) => {
     if (req.body !== undefined && req.body.username !== undefined && req.body.password !== undefined) {
       const verificationObj = database.verifyCredentials(req.body.username, req.body.password);
