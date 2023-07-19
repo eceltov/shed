@@ -29,7 +29,6 @@ namespace WebSocketServer.Model
         // sent to delete a workspace: {msgType}
         DeleteWorkspace = 9,
         // sent after divergence was detected by the local client: {msgType, fileID}
-        ///TODO: currently unused, only the server can detect divergences
         DivergenceDetected = 10,
         // sent to force the local document state on all clients: {msgType, fileID, document}
         ForceDocument = 11,

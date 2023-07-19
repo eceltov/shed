@@ -11,7 +11,6 @@ namespace WebSocketServer.Model
         // only those with access can view and edit the workspace
         Privileged = 0,
         // only those with access can view the workspace
-        ///TODO: not implemented
         PrivilegedReadOnly = 1,
         // all can view and edit the workspace
         All = 2,

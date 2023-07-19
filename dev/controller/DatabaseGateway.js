@@ -227,14 +227,12 @@ class DatabaseGateway {
      * @param {*} folderPath The path of the folder.
      * @returns Returns whether the folder was created successfully.
      */
-  /// TODO: always returns true
   createFolder(workspaceHash, folderPath) {
     const absolutePath = this.createPath(workspaceHash, folderPath);
     fs.mkdirSync(absolutePath);
     return true;
   }
 
-  /// TODO: always returns true
   deleteDocument(workspaceHash, docPath) {
     const absolutePath = this.createPath(workspaceHash, docPath);
     fs.rmSync(absolutePath);
@@ -247,14 +245,12 @@ class DatabaseGateway {
      * @param {*} folderPath The relative path to the folder.
      * @returns Returns whether the folder was deleted successfully.
      */
-  /// TODO: always returns true
   deleteFolder(workspaceHash, folderPath) {
     const absolutePath = this.createPath(workspaceHash, folderPath);
     fs.rmSync(absolutePath, { recursive: true });
     return true;
   }
 
-  /// TODO: always returns true
   renameFile(workspaceHash, oldPath, newPath) {
     const absoluteOldPath = this.createPath(workspaceHash, oldPath);
     const absoluteNewPath = this.createPath(workspaceHash, newPath);

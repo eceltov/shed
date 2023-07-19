@@ -346,8 +346,6 @@ namespace WebSocketServer.Database
             // meaning that the situation will not produce two database calls
             await documentAndFolderLocker.WaitAsync(oldAbsolutePath);
 
-            ///TODO: renaming a file will make all operations targeting the file with the old name invalid
-
             try
             {
                 await Task.Run(() =>

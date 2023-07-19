@@ -11,7 +11,6 @@ class FileStructureFolder extends React.Component {
     this.getULClassName = this.getULClassName.bind(this);
     this.shouldBeChecked = this.shouldBeChecked.bind(this);
     this.state = {
-      /// TODO: the fileID passed has 0 in string format, fix it
       // eslint-disable-next-line eqeqeq
       checked: this.props.fileID == 0,
     };

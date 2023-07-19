@@ -137,7 +137,6 @@ namespace WebSocketServer.Model
                 else
                 {
                     // the document could not be instantiated
-                    /// TODO: send an error message
                     Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: DocumentInstance could not be started.");
                     return false;
                 }
@@ -148,7 +147,6 @@ namespace WebSocketServer.Model
             }
 
             // handle client already connected to the document
-            /// TODO: this should probably be handled sooner than here
             if (documentInstance.ClientPresent(client.ID))
             {
                 Logger.DebugWriteLine($"Error in {nameof(ConnectClientToDocumentAsync)}: Connecting client to a document when already connected.");
@@ -307,7 +305,6 @@ namespace WebSocketServer.Model
 
             if (!await DatabaseProvider.Database.DeleteDocumentAsync(ID, relativePath))
             {
-                ///TODO: retry it later
                 Logger.DebugWriteLine($"Error in {nameof(DeleteDocumentAsync)}: Database could not delete document.");
             }
 
@@ -337,10 +334,7 @@ namespace WebSocketServer.Model
             if (!FileStructure.RemoveFile(fileID))
                 return false;
 
-            if (!await DatabaseProvider.Database.DeleteFolderAsync(ID, relativePath))
-            {
-                ///TODO: retry it later
-            }
+            await DatabaseProvider.Database.DeleteFolderAsync(ID, relativePath);
 
             return true;
         }
@@ -363,7 +357,6 @@ namespace WebSocketServer.Model
             if (!await DatabaseProvider.Database.RenameFileAsync(ID, oldPath, newPath))
             {
                 Logger.DebugWriteLine($"Error in {nameof(RenameFileAsync)}: Database could not rename file.");
-                ///TODO: retry it later
                 return false;
             }
 
@@ -571,7 +564,6 @@ namespace WebSocketServer.Model
             return false;
         }
 
-        ///TODO: save after all clients left
         async Task<bool> SaveFileStructureAsync()
         {
             return await DatabaseProvider.Database.UpdateFileStructureAsync(ID, FileStructure);

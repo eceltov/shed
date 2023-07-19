@@ -9,7 +9,6 @@ const DatabaseGateway = require('../DatabaseGateway');
 const appConfigPath = path.join(__dirname, '../../volumes/Configuration/config.json');
 const appConfig = JSON.parse(fs.readFileSync(appConfigPath));
 
-/// TODO: should the route make its own gateway?
 const database = new DatabaseGateway();
 database.initialize();
 
@@ -36,7 +35,6 @@ function renderDefaultView(res, jwtPayload = null) {
       res.render('Main.jsx', { activeView: views.workspaces, authenticated: true, workspaces });
     }
     catch {
-      /// TODO: handle this more gracefully
       console.log('Unable to load workspaces from database. UserID:', jwtPayload.id);
     }
   }
@@ -54,7 +52,6 @@ function register(app) {
       try {
         const newPayload = jwt.verify(req.query.token, appConfig.JWT.Secret);
         jwtPayload = newPayload;
-        /// TODO: make sure the payload has the correct shape
         // refresh the cookie
         res.cookie('jwt', req.query.token);
       }

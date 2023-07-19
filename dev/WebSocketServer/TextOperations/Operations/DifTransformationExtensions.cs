@@ -54,7 +54,6 @@ namespace TextOperations.Operations
                 // first one, so it is pushed to the respective arrays and is removed from @wraps.
                 // In order to not transform the wraps agains a transformer multiple times, the for cycle
                 // will start at the first transformer not yet applied (the first wrap).
-                ///TODO: if an IT produced two wraps, are the dependent? if so, they should be removed both
                 wNewTransformationDif.Add(wraps[0]);
                 wdTransformedDif.Add(wraps[0]);
                 wraps.RemoveAt(0);
@@ -108,7 +107,6 @@ namespace TextOperations.Operations
             return wiTransformedDif;
         }
 
-        ///TODO: this has a bad name
         /// <summary>
         /// Takes a wDif of chronologically dependent subdifs and returns a new wDif of independent subdifs.
         /// </summary>
@@ -129,7 +127,6 @@ namespace TextOperations.Operations
             return wIndependentDif;
         }
 
-        ///TODO: this has a bad name
         /// <summary>
         /// Takes a wDif of independent subdifs and returns a new wDif of chronologically dependent subdifs.
         /// </summary>

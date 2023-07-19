@@ -169,40 +169,6 @@ function findFirstLocalDependancyIndex(operation, HB) {
   return -1;
 }
 
-/**
- * @brief Finds the HB index of an operation.
- * @param {*} operation The input operation.
- * @param {*} HB The history buffer.
- * @returns Returns the index.
- */
-/* TODO: is this used anywhere?
-function HBIndex(operation, HB) {
-  return HB.findIndex((entry) => (
-    entry[0][0] === operation[0][0] && entry[0][1] === operation[0][1]
-  ));
-}
-*/
-
-/* TODO: is this used anywhere?
-function identicalSubdifs(subdif1, subdif2) {
-  if (typeof subdif1 === 'number' && typeof subdif2 === 'number') {
-    return subdif1 === subdif2;
-  }
-  if (typeof subdif1 === 'number' || typeof subdif2 === 'number') {
-    return false;
-  }
-  if (subdif1.length !== subdif2.length) {
-    return false;
-  }
-  for (let i = 0; i < subdif2.length; i++) {
-    if (subdif1[i] !== subdif2[i]) {
-      return false;
-    }
-  }
-  return true;
-}
-*/
-
 function LIT(wDif, wTransformationDif, log = false) {
   if (wDif.length === 0) return [];
   if (wTransformationDif.length === 0) return makeDependant(wDif);
@@ -429,7 +395,6 @@ function applyDifServer(wDif, document) {
       document[subdif[0]] = prefix;
       document.splice(subdif[0] + 1, 0, trailingText);
     }
-    /// TODO: don't forget to implement the information lost bit in the live version
     else if (isRemline(subdif) && !wrap.meta.informationLost) {
       document[subdif[0]] += document[subdif[0] + 1];
       document.splice(subdif[0] + 1, 1);
@@ -586,7 +551,6 @@ function GOTCA(wdMessage, wdHB, SO, log = false) {
   for (let i = 0; i < postDependentSectionDependentIndices.length; i++)
       postDependentSectionDependentIndices[i] -= dependentSectionEndIdx + 1;
 
-  ///TODO: this should be a function
   const wdReversedHBDifs = [];
   for (let i = wdReducedHB.length - 1; i >= 0; i--) {
       const wdDif = deepCopy(wdReducedHB[i][1]);
@@ -628,152 +592,6 @@ function GOTCA(wdMessage, wdHB, SO, log = false) {
   return wdMessage;
 }
 
-/**
- * @brief The General Operation Transformation Control Algorithm. Transforms an operation so that
- *        it is dependant on the last HB entry.
- * @param {*} wdMessage A wrapped operation to be transformed.
- * @param {*} wdHB The wrapped HB against which to transform.
- * @param {*} SO The serverOrdering agains which to transform.
- * @param {*} log Whether to print out debug messages to the console.
- * @returns Returns the wrapped transformed operation.
- */
-///TODO: remove
-function OldGOTCA_DEPRECATED(wdMessage, wdHB, SO, log = false) {
-  /**
-   *  @note Due to the fact that all operations are being received by all clients in the same
-       order, the only independant operations from the received one can be those made by the
-      local client after the received ones generation, as all others are present in the context
-      of the received operation.
-  */
-
-  // array of difs of independant operations in HB
-  const wdIndependantDifs = [];
-  // causally preceding difs with an index higher than last_directly_dependant_index
-  const wdLocallyDependantDifs = [];
-  const locallyDependantIndices = [];
-
-  const lastDirectlyDependantIndex = SO.findIndex((operation) => (
-    operation[0] === wdMessage[0][2] && operation[1] === wdMessage[0][3]));
-
-  let lastDirectlyDependantHBIndex = lastDirectlyDependantIndex;
-
-  // finding independant and locally dependant operations in HB
-  for (let i = lastDirectlyDependantIndex + 1; i < wdHB.length; i++) {
-    // locally dependant operations have the same author
-    if (wdHB[i][0][0] === wdMessage[0][0]) {
-      locallyDependantIndices.push(i);
-      wdLocallyDependantDifs.push(wdHB[i][1]);
-      continue;
-    }
-
-    // the remainder must be independant
-    wdIndependantDifs.push(wdHB[i][1]);
-  }
-
-  if (log) dlog('wdIndependantDifs', wdIndependantDifs, 'wDifs');
-
-  if (log) dlog('wdLocallyDependantDifs', wdLocallyDependantDifs, 'wDifs');
-
-  // there are no independant messages, therefore no transformation is needed
-  if (wdIndependantDifs.length === 0) {
-    if (log) console.log('GOTCA no independant messages');
-    return wdMessage;
-  }
-
-  const wdMessageDif = wdMessage[1];
-  const wiMessageDif = makeIndependant(wdMessageDif);
-
-  // there are no locally dependant operations in HB, therefore all independant
-  // operations can be included directly
-  /// TODO: or if all locally dependant difs are empty
-  if (wdLocallyDependantDifs.length === 0) {
-    if (log) console.log('GOTCA no locally dependant ops');
-    const wdTransformationDif = [];
-    wdIndependantDifs.forEach((wdDif) => wdTransformationDif.push(...wdDif));
-    const wTransformedMessageDif = LIT(wiMessageDif, wdTransformationDif);
-    wdMessage[1] = wTransformedMessageDif;
-    return wdMessage;
-  }
-
-  // preparing difs for transformation
-  const dependantHBIndex = findLastDependancyIndex(wdMessage, wdHB);
-  const wdReversedTransformerDifs = [];
-  for (let i = dependantHBIndex; i > lastDirectlyDependantIndex; i--) {
-    const wdDif = deepCopy(wdHB[i][1]);
-    wdDif.reverse();
-    wdReversedTransformerDifs.push(wdDif);
-  }
-
-  // if(log) console.log('wdLocallyDependantDifs:', JSON.stringify(wdLocallyDependantDifs));
-  // if(log) console.log('wdReversedTransformerDifs:', JSON.stringify(wdReversedTransformerDifs));
-
-  // [..., last_dep_index=20, indep1, indep2, loc_dep0=23, indep3, loc_dep1=25]
-
-  // transformation
-  const wdTransformedDifs = []; // EOL' in wrapped dif form
-  let wdLETDif = dissolveArrays(wdReversedTransformerDifs.slice(
-    wdReversedTransformerDifs.length
-    - (locallyDependantIndices[0]
-    - (lastDirectlyDependantIndex + 1)),
-  ));
-  const wdLITDif = [];
-  if (log) dlog('wdLocallyDependantDifs[0]', wdLocallyDependantDifs[0], 'wDif');
-
-  const wiFirstTransformedDif = LET(
-    makeIndependant(wdLocallyDependantDifs[0]), wdLETDif,
-  );
-
-  // this now has mutually independant subdifs, they need to be made dependant
-  const wdFirstTransformedDif = makeDependant(wiFirstTransformedDif);
-  if (log) dlog('wdFirstTransformedDif', wdFirstTransformedDif, 'wDif');
-  wdTransformedDifs.push(wdFirstTransformedDif);
-  for (let i = 1; i < wdLocallyDependantDifs.length; i++) {
-    wdLETDif = dissolveArrays(wdReversedTransformerDifs.slice(
-      wdReversedTransformerDifs.length
-      - (locallyDependantIndices[i]
-      - (lastDirectlyDependantIndex + 1)),
-    ));
-
-    // this is also mutually independant
-    const wiIndependantExcludedDif = LET(
-      makeIndependant(wdLocallyDependantDifs[i]), wdLETDif,
-    );
-    wdLITDif.push(...wdTransformedDifs[i - 1]);
-    const wdTransformedDif = LIT(wiIndependantExcludedDif, wdLITDif);
-    wdTransformedDifs.push(wdTransformedDif);
-  }
-  const wdReversedTransformedDifs = deepCopy(wdTransformedDifs);
-  wdReversedTransformedDifs.reverse();
-  wdReversedTransformedDifs.forEach((wdDif) => wdDif.reverse());
-  if (log) dlog('wdReversedTransformedDifs', wdReversedTransformedDifs, 'wDifs');
-  if (log) dlog('wiMessageDif', wiMessageDif, 'wDif');
-
-  const wiExcludedMessageDif = LET(
-    wiMessageDif, dissolveArrays(wdReversedTransformedDifs),
-  );
-
-  if (log) dlog('wiExcludedMessageDif', wiExcludedMessageDif, 'wDif');
-
-  // independant difs between the last directly and first locally dependant dif
-  const prependingIndependantDifs = wdHB.slice(
-    lastDirectlyDependantIndex + 1, findFirstLocalDependancyIndex(wdMessage, wdHB),
-  );
-  prependingIndependantDifs.forEach((operation, index) => {
-    prependingIndependantDifs[index] = operation[1];
-  });
-
-  const wdHBLITDif = [];
-  for (let i = lastDirectlyDependantHBIndex + 1; i < wdHB.length; i++) {
-    wdHBLITDif.push(...wdHB[i][1]);
-  }
-  if (log) dlog('wdHBLITDif', wdHBLITDif, 'wDif');
-  const wdTransformedMessageDif = LIT(wiExcludedMessageDif, wdHBLITDif);
-  wdMessage[1] = wdTransformedMessageDif;
-  if (log) console.log('GOTCA full run');
-  return wdMessage;
-}
-
-/// TODO: remove HB = [...HB, operation], too slow
 /**
  * @brief The undo/do/redo algorithm. Applies a message to a document.
  * @param {*} dMessage An operation to be applied.

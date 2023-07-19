@@ -16,7 +16,7 @@ const OptionsScreen = require('./OptionsScreen');
 const Editor = require('./Editor');
 const WaitingForInit = require('./ErrorComponents/WaitingForInit');
 
-const CSLatency = 0;
+var CSLatency = 0;
 const SCLatency = 0;
 const webSocketReconnectDelay = 3000;
 const modelist = ace.require('ace/ext/modelist');
@@ -71,8 +71,6 @@ class Workspace extends React.Component {
     this.savedCommitSerialNumbers = new Map();
   }
 
-  /// TODO: the token should be removed from the URL in order to be sharable
-  /// TODO: if the above is implemented, do not forget to store the token for reconnections
   /**
      * @brief Initializes a WobSocket connection with the server.
      */
@@ -91,7 +89,6 @@ class Workspace extends React.Component {
     // WebSocketServerURL is injected into a script tag in SSR
     const connection = new WebSocket(WebSocketServerURL);
 
-    /// TODO: use hooks instead of 'that'?
     const that = this;
 
     connection.onopen = function onopen(e) {
@@ -164,7 +161,6 @@ class Workspace extends React.Component {
     }
     // if the document is already requested, do nothing (wait for it)
     else if (this.requestedDocuments.has(fileID)) {
-      /// TODO: do nothing? mby show a dialog that the request is being processed
     }
     // request the document from the server
     else {
@@ -345,7 +341,6 @@ class Workspace extends React.Component {
     this.connection.close();
     console.log('[closed] Connection closed');
     window.alert('Error: Invalid authentication token sent to server. Please log in again.');
-    /// TODO: change the background to an error view
   }
 
   onInitWorkspace(message) {
@@ -425,7 +420,6 @@ class Workspace extends React.Component {
      * @param message Operation send by the server
      */
   onOperation(message) {
-    /// TODO: unused cursor position
     const oldCursorPosition = this.editor.getCursorPosition();
 
     if (!this.openedDocuments.has(message[2])) {
@@ -608,7 +602,6 @@ class Workspace extends React.Component {
 
   forceDocument(fileID) {
     const managedSession = this.openedDocuments.get(fileID);
-    ///TODO: test if this works, then make this into a method of ManagedSession
     const document = managedSession.session.getDocument().getAllLines();
 
     const message = msgFactory.forceDocument(fileID, document);

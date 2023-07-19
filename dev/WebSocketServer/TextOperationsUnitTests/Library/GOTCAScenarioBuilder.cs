@@ -224,7 +224,6 @@ namespace TextOperationsUnitTests.Library
             }
             else
             {
-                ///TODO: ids will most likely not match
                 var result = UDRUtilities.WOFactory(
                     resultDescriptor!.ClientID,
                     original.Metadata.CommitSerialNumber,

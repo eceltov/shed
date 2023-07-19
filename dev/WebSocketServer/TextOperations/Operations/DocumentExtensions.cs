@@ -31,7 +31,6 @@ namespace TextOperations.Operations
                     document[newline.Row] = prefix;
                     document.Insert(newline.Row + 1, trailingText);
                 }
-                /// TODO: don't forget to implement the information lost bit in the live version
                 else if (subdif is Remline remline && !wrap.InformationLost)
                 {
                     document[remline.Row] += document[remline.Row + 1];
