@@ -18,33 +18,47 @@ using WebSocketServer.Utilities;
 
 namespace WebSocketServer.Model
 {
+    internal static class TimerResults
+    {
+        public static readonly DateTime Start = DateTime.Now;
+        public static ConcurrentQueue<TimeSpan> TimeSinceStart = new();
+        public static ConcurrentQueue<double> OperationMillis = new();
+        public static ConcurrentQueue<double> SendingMillis = new();
+        public static ConcurrentQueue<bool> IsAddOperation = new();
+
+        public static void WriteToFile(object? state)
+        {
+            using StreamWriter sw = System.IO.File.AppendText(EnvironmentVariables.DataPath + "/testOutput.csv");
+
+            int writes = TimeSinceStart.Count - 1;
+            for (int i = 0; i < writes; i++)
+            {
+                bool success = true;
+                success &= TimeSinceStart.TryDequeue(out TimeSpan ts);
+                success &= OperationMillis.TryDequeue(out double op);
+                success &= SendingMillis.TryDequeue(out double send);
+                success &= IsAddOperation.TryDequeue(out bool isAdd);
+
+                if (!success)
+                {
+                    throw new InvalidOperationException();
+                }
+
+                string line = $"{ts.TotalMilliseconds},{op},{send},{(isAdd ? 1 : 0)}";
+                sw.WriteLine(line);
+            }
+        }
+    }
+
     internal class DocumentInstance
     {
 
-        public static Stopwatch TimeSpentInUDRWatch = new();
-        public static Stopwatch TimeSpentGCing = new();
-        public static Stopwatch TimeSpentInTextOp = new();
-        public static Stopwatch TimeSpentSending = new();
-        public static int ProcessedOperations = 0;
-        public static int GarbageCollections = 0;
-        public static int TotalTextOps = 0;
-        public static Timer timer = new Timer(DocumentTimerCallback, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        public static Timer timer;
 
-        static void DocumentTimerCallback(object? state)
+        public static void testc(object? state)
         {
-            string line = $"{TotalTextOps},{TimeSpentInTextOp.Elapsed.TotalMilliseconds},{GarbageCollections},{TimeSpentGCing.Elapsed.TotalMilliseconds},{ProcessedOperations},{TimeSpentInUDRWatch.Elapsed.TotalMilliseconds},{TimeSpentSending.Elapsed.TotalMilliseconds}";
-            TimeSpentInUDRWatch = new();
-            TimeSpentGCing = new();
-            TimeSpentInTextOp = new();
-            TimeSpentSending = new();
-            ProcessedOperations = 0;
-            GarbageCollections = 0;
-            TotalTextOps = 0;
-            using StreamWriter sw = System.IO.File.AppendText(EnvironmentVariables.DataPath + "/testOutput.csv");
-            sw.WriteLine(line);
-            //Console.WriteLine($"textOps:{TotalTextOps};t:{TimeSpentInTextOp.Elapsed.TotalMilliseconds};gcs:{GarbageCollections};t:{TimeSpentGCing.Elapsed.TotalMilliseconds};udrs:{ProcessedOperations};t:{TimeSpentInUDRWatch.Elapsed.TotalMilliseconds};tSending:{TimeSpentSending.Elapsed.TotalMilliseconds}");
+            Console.WriteLine("Asdf");
         }
-
 
         // Maps client IDs to Client instances.
         ConcurrentDictionary<int, Client> clients = new();
@@ -91,6 +105,11 @@ namespace WebSocketServer.Model
         public int ClientCount { get { return clients.Count; } }
         public int DocumentID { get { return documentFile.ID; } }
 
+        static DocumentInstance()
+        {
+            timer = new Timer(TimerResults.WriteToFile, null, TimeSpan.FromSeconds(1), TimeSpan.FromSeconds(1));
+        }
+
         public DocumentInstance(Document documentFile, List<string> document)
         {
             this.documentFile = documentFile;
@@ -123,7 +142,7 @@ namespace WebSocketServer.Model
 
         public void ScheduleGCMetadata(Client client, int dependency)
         {
-            Task.Run(() => HandleGCMetadata(client, dependency));
+            ScheduleTextOperationAction(() => HandleGCMetadata(client, dependency));
         }
 
         public void ScheduleOperation(Client authoringClient, Operation operation)
@@ -161,18 +180,12 @@ namespace WebSocketServer.Model
         /// </summary>
         /// <param name="action">The Text Operation action to be executed.</param>
         void ScheduleTextOperationAction(Action action)
-        {   
+        {
             lock (lastTextOperationTaskLock)
             {
                 lastTextOperationTask = lastTextOperationTask.ContinueWith((prevTask) => {
-                    TimeSpentInTextOp.Start();
-
                     action();
-
-                    TotalTextOps++;
-
-                    TimeSpentInTextOp.Stop();
-                }); 
+                });
             }
         }
 
@@ -221,11 +234,15 @@ namespace WebSocketServer.Model
                 return false;
             }
 
+            TimerResults.TimeSinceStart.Enqueue(DateTime.Now - TimerResults.Start);
+
             var message = new OperationMessage(operation, documentFile.ID);
 
-            TimeSpentSending.Start();
+            Stopwatch sendSw = new();
+            sendSw.Start();
             clients.SendMessage(message);
-            TimeSpentSending.Stop();
+            sendSw.Stop();
+            TimerResults.SendingMillis.Enqueue((sendSw.ElapsedTicks / (double)Stopwatch.Frequency) * 1000);
 
             // operation application always succeeds if the concurrency model is correct
             // in case it is not and the application fails, a divergence detection message is sent to the clients
@@ -269,15 +286,17 @@ namespace WebSocketServer.Model
         /// <param name="operation">The operation to be applied.</param>
         void ApplyOperation(Operation operation)
         {
-            TimeSpentInUDRWatch.Start();
+            Stopwatch opSw = new();
+            opSw.Start();
 
             var (newDocument, wNewHB) = operation.UDR(Document, wHB, serverOrdering);
             serverOrdering.Add(operation.Metadata);
             wHB = wNewHB;
             Document = newDocument;
-            ProcessedOperations++;
 
-            TimeSpentInUDRWatch.Stop();
+            opSw.Stop();
+            TimerResults.OperationMillis.Enqueue((opSw.ElapsedTicks / (double)Stopwatch.Frequency) * 1000);
+            TimerResults.IsAddOperation.Enqueue(operation.Dif[0] is Add);
         }
 
         /// <summary>
@@ -380,13 +399,11 @@ namespace WebSocketServer.Model
         /// <param name="SOGarbageIndex">The index that specifies which entries should be removed.</param>
         void GCRemove(int SOGarbageIndex)
         {
-            TimeSpentGCing.Start();
-
             if (SOGarbageIndex < 0 || SOGarbageIndex >= serverOrdering.Count)
             {
-                Logger.DebugWriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO.");
-                GarbageCollections++;
-                TimeSpentGCing.Stop();
+                Logger.DebugWriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO. Time: {(DateTime.Now - TimerResults.Start).TotalMilliseconds}");
+                using StreamWriter sw = System.IO.File.AppendText(EnvironmentVariables.DataPath + "/GcErrors.csv");
+                sw.WriteLine((DateTime.Now - TimerResults.Start).TotalMilliseconds);
                 return;
             }
 
@@ -416,11 +433,11 @@ namespace WebSocketServer.Model
                     wNewHB.Add(wHB[i]);
             }
 
+            Console.WriteLine($"Removed in GC: {HBRemovalIndices.Count}, Remaining: {wNewHB.Count}");
+
             serverOrdering = serverOrdering.GetRange(SOGarbageIndex, serverOrdering.Count - SOGarbageIndex);
             wHB = wNewHB;
 
-            GarbageCollections++;
-            TimeSpentGCing.Stop();
         }
 
         void GC()
@@ -436,7 +453,7 @@ namespace WebSocketServer.Model
             // need to subtract this.firstSOMessageNumber,
             //    because that is how many SO entries from the beginning are missing
             int SOGarbageIndex = GCOldestMessageNumber - firstSOMessageNumber;
-            ScheduleGCRemove(SOGarbageIndex);
+            GCRemove(SOGarbageIndex);
 
             // filter out all the GC'd operations
             firstSOMessageNumber += SOGarbageIndex;

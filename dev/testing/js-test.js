@@ -8,13 +8,8 @@ var clientCount;
 var connectionChecker;
 var msgReceivedChecker;
 
-/*const server = new Server();
-server.initialize();
-//server.enableLogging();
-server.listen(8080);*/
-
 clientCount = 200;
-activeClientCount = 50;
+activeClientCount = 40;
 const testFileID = 1;
 connectionChecker = new StatusChecker(clientCount);
 msgReceivedChecker = new StatusChecker(clientCount);
@@ -38,14 +33,13 @@ function doAddIteration(previousPromise) {
     .then(() => {
         let clientMsgCount = 1;
         let subdifCount = 1;
-        let charCount = 1;
+        let charCount = 20;
         for (let i = 0; i < activeClientCount * clientMsgCount; i++) {
             let dif = [];
             let index = Math.floor(i / clientMsgCount);
             for (let j = 0; j < subdifCount; j++) dif.push(add(0, j, "a".repeat(charCount)));
             clients[index].propagateLocalDif(dif);
         }
-        //return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
         return lib.getDelayPromise(200);
     });
 }
@@ -58,7 +52,23 @@ function doDelIteration(previousPromise) {
         for (let i = 0; i < activeClientCount * clientMsgCount; i++) {
             let dif = [];
             let index = Math.floor(i / clientMsgCount);
-            for (let j = 0; j < subdifCount; j++) dif.push(del(0, index, 1));
+            for (let j = 0; j < subdifCount; j++) dif.push(del(0, 0, 20));
+            clients[index].propagateLocalDif(dif);
+        }
+        //return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
+        return lib.getDelayPromise(200);
+    });
+}
+
+function doDelDifferentPlacesIteration(previousPromise) {
+    return previousPromise
+    .then(() => {
+        let clientMsgCount = 1;
+        let subdifCount = 1;
+        for (let i = 0; i < activeClientCount * clientMsgCount; i++) {
+            let dif = [];
+            let index = Math.floor(i / clientMsgCount);
+            for (let j = 0; j < subdifCount; j++) dif.push(del(0, index * 20, 20));
             clients[index].propagateLocalDif(dif);
         }
         //return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
@@ -87,7 +97,7 @@ function doAddOnDifferentLinesIteration(previousPromise) {
     .then(() => {
         let clientMsgCount = 1;
         let subdifCount = 1;
-        let charCount = 1;
+        let charCount = 20;
         for (let i = 0; i < activeClientCount * clientMsgCount; i++) {
             let dif = [];
             let index = Math.floor(i / clientMsgCount);
@@ -99,8 +109,8 @@ function doAddOnDifferentLinesIteration(previousPromise) {
     });
 }
 
-function addDelInterleasedTest() {
-    const iterationCount = 10000;
+function addDelInterleavedTest() {
+    const iterationCount = 10000000;
 
     let promise = lib.getStatusPromise(connectionChecker);
     for (let i = 0; i < iterationCount; i++) {
@@ -113,6 +123,22 @@ function addDelInterleasedTest() {
         console.log("done");
     });
 }
+
+function addDelDifferentPlacesInterleavedTest() {
+    const iterationCount = 10000000;
+
+    let promise = lib.getStatusPromise(connectionChecker);
+    for (let i = 0; i < iterationCount; i++) {
+        if (i % 2 === 0)
+            promise = doAddIteration(promise);
+        else
+            promise = doDelDifferentPlacesIteration(promise);
+    }
+    promise.then(() => {
+        console.log("done");
+    });
+}
+
 
 function addDifferentLinesTest() {
     const iterationCount = 10000;
@@ -130,7 +156,7 @@ function addDifferentLinesTest() {
 }
 
 function addSingleLineTest() {
-    const iterationCount = 10000;
+    const iterationCount = 10000000;
 
     let promise = lib.getStatusPromise(connectionChecker);
     for (let i = 0; i < iterationCount; i++) {
@@ -142,36 +168,6 @@ function addSingleLineTest() {
 }
 
 //addDifferentLinesTest();
-addDelInterleasedTest();
-
-/*
-lib.getStatusPromise(connectionChecker)
-.then(() => {
-    let clientMsgCount = 1;
-    let subdifCount = 1;
-    let charCount = 10;
-    for (let i = 0; i < clientCount * clientMsgCount; i++) {
-        let dif = [];
-        let index = Math.floor(i / clientMsgCount);
-        for (let j = 0; j < subdifCount; j++) dif.push(add(0, j, "a".repeat(charCount)));
-        clients[index].propagateLocalDif(dif);
-    }
-    //return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-    return lib.getDelayPromise(200);
-})
-.then(() => {
-    let clientMsgCount = 1;
-    let subdifCount = 1;
-    for (let i = 0; i < clientCount * clientMsgCount; i++) {
-        let dif = [];
-        let index = Math.floor(i / clientMsgCount);
-        for (let j = 0; j < subdifCount; j++) dif.push(add(0, j, index.toString()));
-        clients[index].propagateLocalDif(dif);
-    }
-    //return lib.getStatusPromise(msgReceivedChecker, clientCount * clientMsgCount);
-    return lib.getDelayPromise(1000);
-})
-.then(() => {
-    //lib.cleanFile(testFileID);
-});
-*/
+//addDelInterleavedTest();
+//addSingleLineTest();
+addDelDifferentPlacesInterleavedTest();

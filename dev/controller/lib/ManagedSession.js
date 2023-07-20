@@ -267,7 +267,7 @@ class ManagedSession {
         operation, document, this.HB, this.serverOrdering, loggingCond, oldCursorPosition,
       );
       this.handlingChanges = true;
-
+      */
       this.serverOrdering.push([
         operation[0][0], operation[0][1], operation[0][2], operation[0][3],
       ]); // append serverOrdering
