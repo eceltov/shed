@@ -402,8 +402,6 @@ namespace WebSocketServer.Model
             if (SOGarbageIndex < 0 || SOGarbageIndex >= serverOrdering.Count)
             {
                 Logger.DebugWriteLine($"Error: {nameof(GCRemove)}: The SOGarbageIndex is outside the bounds of SO. Time: {(DateTime.Now - TimerResults.Start).TotalMilliseconds}");
-                using StreamWriter sw = System.IO.File.AppendText(EnvironmentVariables.DataPath + "/GcErrors.csv");
-                sw.WriteLine((DateTime.Now - TimerResults.Start).TotalMilliseconds);
                 return;
             }
 

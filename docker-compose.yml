@@ -1,19 +1,6 @@
 version: '3.4'
 
 services:
-  controllerServer:
-    image: ${DOCKER_REGISTRY-}controllerserver
-    environment:
-      - WORKSPACE_SERVER_PORT=${WORKSPACE_SERVER_PORT}
-      - WORKSPACE_SERVER_URL=${WORKSPACE_SERVER_URL}
-    build:
-      context: dev/controller
-      dockerfile: Dockerfile
-    ports:
-      - ${CONTROLLER_SERVER_PORT}:8060
-    volumes:
-      - ${PATH_TO_VOLUMES}:/app/volumes
-
   websocketserver:
     image: ${DOCKER_REGISTRY-}websocketserver
     environment:
