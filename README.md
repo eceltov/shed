@@ -209,4 +209,9 @@ npm run test-randomized 123456
 npm run test-randomized-failed
 ```
 
+### Performance Tests
+
+The repository contains the `performanceTesting` branch for performance testing.
+Please read the README in that branch for further details.
+
 [1]: https://github.com/ajaxorg/ace-builds
