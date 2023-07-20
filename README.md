@@ -11,18 +11,19 @@ A shared web editor and repository prototype supporting real-time collaborative 
 ## Overview
 
 ShEd is composed of two servers that need to be running to provide full functionality.
-The first one is the `controller server`, that serves static pages.
+The first one is the `controller server`, which serves static pages.
 The second one is the `workspace server`, which handles the collaborative aspects.
 
 Users do not need to interact with the endpoints of the workspace server; this is handled by the client provided by the controller server.
 
 ## Installing ShEd
 
-To install ShEd, first clone the repository by using `git clone`.
+To install ShEd, first, clone the repository by using `git clone`.
 
 Then, initialize the [Ace Editor][1] submodule by running the following commands in the root of the repository.
 
-```bash 
+```bash
+git init
 git submodule init
 git submodule update
 ```
@@ -116,7 +117,7 @@ The workspace can be in one of three access modes:
   - `Everyone with link`: additionally allows unauthenticated users to connect to the workspace and edit documents.
   - `Everyone with link (read-only)`: does not allow unauthenticated users to edit documents.
 
-Authenticated users can still make changes to the workspace, if their role is sufficient in the latter two modes.
+Authenticated users can still make changes to the workspace if their role is sufficient in the latter two modes.
 
 ### Managing Users
 
@@ -151,19 +152,19 @@ Everything can be changed in the `config.json` file.
  - To change the JWT secret, navigate to the `JWT` section and modify its `Secret` field.
  - To change the ports and the endpoint on which the servers run, go to the `FallbackSettings` section and modify the `controllerServerPort`, `workspaceServerPort`, and `workspaceServerUrl`.
  - To see debug logs, change `ShowDebugLogs` to `true`.
- - To change the the client buffering interval, navigate to the `Client` section and modify the `bufferingIntervalMilliseconds` field.
+ - To change the client buffering interval, navigate to the `Client` section and modify the `bufferingIntervalMilliseconds` field.
 
 When running in Docker, the `config.json` file should be used only when configuring options that are not present in the `.env` file.
 
 ## Repository Structure
 
-All of the source code and application data is located in the `dev` folder.
+All of the source code and application data are located in the `dev` folder.
 
 ### Controller Server
 
 The source code of the controller server can be found in the `controller` folder.
-It stores the workspace client in the `client` folder, the transformation library in the `lib` folder, and the routes and views used for server side rendering in the `routes` and `views` folder.
-The main entrypoint is the `controllerServer.js` file, that initializes the `Controller` class in `Controller.js`.
+It stores the workspace client in the `client` folder, the transformation library in the `lib` folder, and the routes and views used for server-side rendering in the `routes` and `views` folder.
+The main entrypoint is the `controllerServer.js` file, which initializes the `Controller` class in `Controller.js`.
 
 ### Workspace Server
 
