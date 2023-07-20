@@ -28,6 +28,8 @@ git submodule init
 git submodule update
 ```
 
+If the submodule initalized successfully, the `dev/controller/editor/ace-builds` folder should not be empty.
+
 ShEd can be started either manually, or by using Docker.
 If you prefer to run ShEd in Docker, you can ignore the following installation steps.
 
@@ -42,10 +44,17 @@ npm install
 ```
 
 The final step is to bundle the client.
-This can be done by running:
+When running from a Linux environment, run the following command:
 
 ```bash 
 npm run build-client
+```
+
+When running in Windows, run this instead:
+
+```
+New-Item -ItemType Directory -Force -Path ./dev/controller/client/bundles
+npm run build-client-windows
 ```
 
 ## Running ShEd
